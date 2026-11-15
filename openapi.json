@@ -5478,6 +5478,52 @@
         "title": "ClearInstagramTokenResponse",
         "type": "object"
       },
+      "ContactAccepted": {
+        "description": "Response body. Deliberately says nothing about delivery internals.",
+        "properties": {
+          "accepted": {
+            "default": true,
+            "title": "Accepted",
+            "type": "boolean"
+          }
+        },
+        "title": "ContactAccepted",
+        "type": "object"
+      },
+      "ContactRequest": {
+        "description": "``POST /api/contact`` body.\n\n``website`` is a **honeypot**: a real browser never fills it because the\nfield is visually hidden, off the tab order, and hidden from assistive\ntech. Anything in it is a bot, and the route answers success while sending\nnothing (see the route for why silence is deliberate).",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "firstName": {
+            "title": "Firstname",
+            "type": "string"
+          },
+          "lastName": {
+            "default": "",
+            "title": "Lastname",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "website": {
+            "default": "",
+            "title": "Website",
+            "type": "string"
+          }
+        },
+        "required": [
+          "firstName",
+          "email",
+          "message"
+        ],
+        "title": "ContactRequest",
+        "type": "object"
+      },
       "DataResponse_AddressPreviewResponse_": {
         "properties": {
           "data": {
@@ -6806,6 +6852,44 @@
           }
         },
         "title": "DataResponse[ClearInstagramTokenResponse]",
+        "type": "object"
+      },
+      "DataResponse_ContactAccepted_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContactAccepted"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ContactAccepted]",
         "type": "object"
       },
       "DataResponse_DropDetailResponse_": {
@@ -17778,6 +17862,48 @@
         "summary": "Get Public Config",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "description": "Accept a contact message and mail it to the team.\n\nA filled honeypot returns the **same success shape** without sending. That\nsilence is deliberate: a distinct response would tell a bot which field to\nleave alone, and an operator chasing false positives gets nothing useful\nfrom a louder failure. The rejection is logged with no message body.\n\nThe ack to the sender is best-effort. If it fails, the ops notice still\nstands and the person simply gets no copy \u2014 a normal, acceptable outcome,\nso it must not fail the request.",
+        "operationId": "submit_contact_api_contact_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ContactAccepted_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Submit Contact",
+        "tags": [
+          "contact"
         ]
       }
     },

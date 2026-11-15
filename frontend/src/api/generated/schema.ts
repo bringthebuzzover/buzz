@@ -2000,6 +2000,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Contact
+         * @description Accept a contact message and mail it to the team.
+         *
+         *     A filled honeypot returns the **same success shape** without sending. That
+         *     silence is deliberate: a distinct response would tell a bot which field to
+         *     leave alone, and an operator chasing false positives gets nothing useful
+         *     from a louder failure. The rejection is logged with no message body.
+         *
+         *     The ack to the sender is best-effort. If it fails, the ops notice still
+         *     stands and the person simply gets no copy — a normal, acceptable outcome,
+         *     so it must not fail the request.
+         */
+        post: operations["submit_contact_api_contact_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/drops": {
         parameters: {
             query?: never;
@@ -4312,6 +4341,44 @@ export interface components {
              */
             userId: string;
         };
+        /**
+         * ContactAccepted
+         * @description Response body. Deliberately says nothing about delivery internals.
+         */
+        ContactAccepted: {
+            /**
+             * Accepted
+             * @default true
+             */
+            accepted: boolean;
+        };
+        /**
+         * ContactRequest
+         * @description ``POST /api/contact`` body.
+         *
+         *     ``website`` is a **honeypot**: a real browser never fills it because the
+         *     field is visually hidden, off the tab order, and hidden from assistive
+         *     tech. Anything in it is a bot, and the route answers success while sending
+         *     nothing (see the route for why silence is deliberate).
+         */
+        ContactRequest: {
+            /** Email */
+            email: string;
+            /** Firstname */
+            firstName: string;
+            /**
+             * Lastname
+             * @default
+             */
+            lastName: string;
+            /** Message */
+            message: string;
+            /**
+             * Website
+             * @default
+             */
+            website: string;
+        };
         /** DataResponse[AddressPreviewResponse] */
         DataResponse_AddressPreviewResponse_: {
             data?: components["schemas"]["AddressPreviewResponse"] | null;
@@ -4621,6 +4688,15 @@ export interface components {
         /** DataResponse[ClearInstagramTokenResponse] */
         DataResponse_ClearInstagramTokenResponse_: {
             data?: components["schemas"]["ClearInstagramTokenResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[ContactAccepted] */
+        DataResponse_ContactAccepted_: {
+            data?: components["schemas"]["ContactAccepted"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -9734,6 +9810,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_PublicConfigResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    submit_contact_api_contact_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ContactAccepted_"];
                 };
             };
             /** @description Unprocessable Entity */

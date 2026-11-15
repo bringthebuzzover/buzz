@@ -3,9 +3,20 @@ import { act } from "react";
 import { renderWithProviders } from "../../../testUtils";
 import ContactModal from "./ContactModal";
 
+const mockMutateAsync = jest.fn();
+let mockSuccess = false;
+
+jest.mock("../../../api/hooks/useContactHooks", () => ({
+  useSubmitContact: () => ({
+    mutateAsync: mockMutateAsync,
+    isPending: false,
+    isSuccess: mockSuccess,
+  }),
+}));
+
 jest.mock("../../../data/siteIdentity", () => ({
   siteIdentity: {
-    brand: { displayName: "Example Org" },
+    brand: { displayName: "Bring the Buzz Over" },
     social: {
       instagram: {
         handleWithAt: "@exampleorg",
@@ -13,59 +24,113 @@ jest.mock("../../../data/siteIdentity", () => ({
       },
       linkedin: { companyUrl: "https://www.linkedin.com/company/example/" },
     },
-    contact: { primaryPersonName: "Example team", email: "contact@example.com" },
+    contact: { primaryPersonName: "Buzz team", email: "hello@example.com" },
   },
 }));
 
+/** Radix portals the dialog into document.body, so queries go there. */
+function field(id: string): HTMLInputElement | HTMLTextAreaElement | null {
+  return document.body.querySelector(`#${id}`);
+}
+
+function setInput(id: string, value: string) {
+  const el = field(id) as HTMLInputElement | HTMLTextAreaElement;
+  const proto =
+    el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, "value")!.set!;
+  act(() => {
+    setter.call(el, value);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+function submit() {
+  return act(async () => {
+    document.body
+      .querySelector("form")!
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+}
+
 describe("ContactModal", () => {
-  it("renders Contact modal with Instagram, LinkedIn, and Email in order without Name", () => {
-    const onClose = jest.fn();
-    renderWithProviders(<ContactModal onClose={onClose} />);
+  beforeEach(() => {
+    mockMutateAsync.mockReset();
+    mockMutateAsync.mockResolvedValue({ accepted: true });
+    mockSuccess = false;
+    document.body.innerHTML = "";
+  });
 
-    // Radix Dialog.Portal renders into document.body
-    const modalContent = document.body;
+  it("renders the message form and the three channels from siteIdentity", () => {
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
-    // Title and description
-    expect(modalContent.textContent).toContain("Contact");
-    expect(modalContent.textContent).toContain("Reach out anytime!");
+    expect(field("contact-first-name")).not.toBeNull();
+    expect(field("contact-last-name")).not.toBeNull();
+    expect(field("contact-email")).not.toBeNull();
+    expect(field("contact-message")).not.toBeNull();
 
-    // Name field must be completely removed
-    expect(modalContent.textContent).not.toContain("Example team");
-    expect(modalContent.textContent).not.toContain("Name");
+    // Channels come from siteIdentity, not hardcoded copy.
+    expect(document.body.textContent).toContain("@exampleorg");
+    expect(document.body.textContent).toContain("Bring the Buzz Over");
+    expect(document.body.textContent).toContain("hello@example.com");
 
-    // Channels in strict order: Instagram -> LinkedIn -> Email
-    const channelCards = Array.from(modalContent.querySelectorAll("a"));
-    expect(channelCards).toHaveLength(3);
+    // The old read-only "Done"-card layout is gone.
+    expect(
+      Array.from(document.body.querySelectorAll("button")).some(
+        (b) => b.textContent === "Done",
+      ),
+    ).toBe(false);
+  });
 
-    // 1. Instagram
-    expect(channelCards[0].textContent).toContain("Instagram");
-    expect(channelCards[0].textContent).toContain("@exampleorg");
-    expect(channelCards[0].getAttribute("href")).toBe("https://instagram.com/exampleorg");
-    expect(channelCards[0].getAttribute("target")).toBe("_blank");
-    expect(channelCards[0].getAttribute("rel")).toBe("noopener noreferrer");
+  it("posts the form once with the honeypot left empty", async () => {
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
-    // 2. LinkedIn
-    expect(channelCards[1].textContent).toContain("LinkedIn");
-    expect(channelCards[1].textContent).toContain("Example Org");
-    expect(channelCards[1].getAttribute("href")).toBe(
-      "https://www.linkedin.com/company/example/",
-    );
-    expect(channelCards[1].getAttribute("target")).toBe("_blank");
-    expect(channelCards[1].getAttribute("rel")).toBe("noopener noreferrer");
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "We want to run a drop.");
+    await submit();
 
-    // 3. Email
-    expect(channelCards[2].textContent).toContain("Email");
-    expect(channelCards[2].textContent).toContain("contact@example.com");
-    expect(channelCards[2].getAttribute("href")).toBe("mailto:contact@example.com");
-
-    // Clicking Done dismisses modal
-    const doneButton = Array.from(modalContent.querySelectorAll("button")).find(
-      (btn) => btn.textContent === "Done",
-    );
-    expect(doneButton).toBeDefined();
-    act(() => {
-      doneButton?.click();
+    expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+    expect(mockMutateAsync).toHaveBeenCalledWith({
+      firstName: "Jordan",
+      lastName: "",
+      email: "jordan@example.edu",
+      message: "We want to run a drop.",
+      website: "",
     });
-    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps what the user typed when the send fails", async () => {
+    mockMutateAsync.mockRejectedValueOnce(new Error("network down"));
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "Please keep this text.");
+    await submit();
+
+    // Still on the form with the body intact — nothing lost.
+    const message = field("contact-message") as HTMLTextAreaElement;
+    expect(message).not.toBeNull();
+    expect(message.value).toBe("Please keep this text.");
+  });
+
+  it("includes the honeypot field so a bot can fill it", () => {
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+
+    const honeypot = field("contact-website") as HTMLInputElement;
+    expect(honeypot).not.toBeNull();
+    expect(honeypot.getAttribute("tabindex")).toBe("-1");
+    expect(honeypot.getAttribute("autocomplete")).toBe("off");
+  });
+
+  it("replaces the form with a confirmation after a successful send", () => {
+    mockSuccess = true;
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+
+    expect(document.body.textContent).toContain("Thanks");
+    // Form gone, so nothing can be submitted twice.
+    expect(document.body.querySelector("form")).toBeNull();
   });
 });
