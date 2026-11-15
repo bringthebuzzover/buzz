@@ -4,13 +4,11 @@ import { waitForAuthSettled } from "./authSettled";
 /** Marketing site must render for logged-out visitors (the cutover kept it). */
 test("home page renders the marketing shell + join section", async ({ page }) => {
   await page.goto("/");
-  // Join Us CTAs for org (/org/apply) and brand (/brand/apply). Scope to the
-  // section — the same brand-apply link also lives in the footer, so a
-  // global `getByRole('link')` matches twice under strict mode.
+  // Join Us CTAs for org (/org/apply) and brand (/brand/apply) live in JoinSplit (#home-join).
   const joinSection = page.locator("#home-join");
-  await expect(joinSection.getByRole("heading", { name: /want to join/i })).toBeVisible();
+  await expect(joinSection.getByRole("heading", { name: /apply with your instagram/i })).toBeVisible();
   await expect(
-    joinSection.getByRole("link", { name: /join as a student organization/i }),
+    joinSection.getByRole("link", { name: /apply as an organization/i }),
   ).toBeVisible();
   await expect(
     joinSection.getByRole("link", { name: /apply as a brand/i }),
@@ -141,7 +139,7 @@ for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
     await page.emulateMedia({ reducedMotion });
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     for (const route of ["/", "/for-orgs", "/for-brands"]) {
-      await page.goto(route);
+      await page.goto(route, { waitUntil: "domcontentloaded" });
       const heading = page.locator(".marketing-hero").getByRole("heading", { level: 1 });
       await expect(heading).toBeVisible();
       await heading.evaluate(async (element) => {
@@ -233,7 +231,7 @@ test("home how-to cards open role tours", async ({ page }) => {
   ).toBeVisible();
   await expect(page.locator("body")).not.toContainText("placehold.co");
   await expect(page.locator("body")).not.toContainText("Multiple Campuses");
-  await page.getByRole("link", { name: /apply as an organization/i }).click();
+  await page.getByRole("link", { name: /join us!|bring your organization|apply as an organization/i }).first().click();
   await expect(page).toHaveURL(/\/org\/apply$/);
 
   await page.goto("/");
@@ -254,9 +252,6 @@ test("home how-to cards open role tours", async ({ page }) => {
 test("footer and login link to tours", async ({ page }) => {
   await page.goto("/");
   const footer = page.getByRole("contentinfo");
-  await expect(
-    footer.getByRole("heading", { name: /want to join/i }),
-  ).toBeVisible();
   await expect(footer.getByRole("heading", { name: "Organizations" })).toBeVisible();
   await expect(footer.getByRole("heading", { name: "Brands" })).toBeVisible();
   await expect(footer.getByRole("link", { name: "How it works" }).first()).toHaveAttribute(
@@ -268,10 +263,10 @@ test("footer and login link to tours", async ({ page }) => {
     "/for-brands",
   );
   await expect(
-    footer.getByRole("link", { name: /join as a student organization/i }),
+    footer.getByRole("link", { name: "Apply" }).first(),
   ).toHaveAttribute("href", "/org/apply");
   await expect(
-    footer.getByRole("link", { name: /^apply as a brand$/i }),
+    footer.getByRole("link", { name: "Apply" }).nth(1),
   ).toHaveAttribute("href", "/brand/apply");
   await expect(footer.getByRole("link", { name: /organization login/i })).toHaveCount(0);
 

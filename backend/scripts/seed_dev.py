@@ -102,12 +102,22 @@ PROD_FRONTEND_HOSTS = {"bringthebuzzover.com", "www.bringthebuzzover.com"}
 _SAMPLE_ORG_USER = uuid.UUID(int=8101)
 _SAMPLE_CLUB_USER = uuid.UUID(int=8102)
 _SAMPLE_BRAND_USER = uuid.UUID(int=8103)
+_SAMPLE_BRAND_SAIE_USER = uuid.UUID(int=8104)
+_SAMPLE_BRAND_DAVID_USER = uuid.UUID(int=8105)
+_SAMPLE_BRAND_BLOOM_USER = uuid.UUID(int=8106)
 _SAMPLE_ORG = uuid.UUID(int=8110)
 _SAMPLE_CLUB = uuid.UUID(int=8111)
 _SAMPLE_BRAND = uuid.UUID(int=8120)
+_SAMPLE_BRAND_SAIE = uuid.UUID(int=8121)
+_SAMPLE_BRAND_DAVID = uuid.UUID(int=8122)
+_SAMPLE_BRAND_BLOOM = uuid.UUID(int=8123)
 _SAMPLE_DROP = uuid.UUID(int=8130)
+_SAMPLE_DROP_SAIE = uuid.UUID(int=8131)
+_SAMPLE_DROP_DAVID = uuid.UUID(int=8132)
+_SAMPLE_DROP_BLOOM = uuid.UUID(int=8133)
 _SAMPLE_APP_ORG = uuid.UUID(int=8140)
 _SAMPLE_APP_CLUB = uuid.UUID(int=8141)
+_SAMPLE_APP_SAIE = uuid.UUID(int=8142)
 
 
 def _db_host(database_url: str) -> str:
@@ -258,6 +268,24 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         status=OrgUserStatus.ACTIVE.value,
         password_hash=hash_password(_DEV_BRAND_PASSWORD),
     )
+    brand_user_saie = User(
+        id=_uuid(7),
+        portal_role=PortalRole.BRAND.value,
+        status=OrgUserStatus.ACTIVE.value,
+        password_hash=hash_password(_DEV_BRAND_PASSWORD),
+    )
+    brand_user_david = User(
+        id=_uuid(8),
+        portal_role=PortalRole.BRAND.value,
+        status=OrgUserStatus.ACTIVE.value,
+        password_hash=hash_password(_DEV_BRAND_PASSWORD),
+    )
+    brand_user_bloom = User(
+        id=_uuid(9),
+        portal_role=PortalRole.BRAND.value,
+        status=OrgUserStatus.ACTIVE.value,
+        password_hash=hash_password(_DEV_BRAND_PASSWORD),
+    )
 
     # --- Organizations -----------------------------------------------------
     org_active = Organization(
@@ -308,6 +336,33 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         brand_name="Northwind Apparel",
         company_email="brand@northwind.example",
         instagram_handle="northwindapparel",
+        status=BrandStatus.APPROVED.value,
+        approved_at=now,
+    )
+    brand_saie = Brand(
+        id=_uuid(22),
+        user_id=brand_user_saie.id,
+        brand_name="Saie",
+        company_email="partnerships@saiehello.com",
+        instagram_handle="saiebeauty",
+        status=BrandStatus.APPROVED.value,
+        approved_at=now,
+    )
+    brand_david = Brand(
+        id=_uuid(23),
+        user_id=brand_user_david.id,
+        brand_name="DAVID PROTEIN",
+        company_email="partnerships@davidprotein.com",
+        instagram_handle="davidprotein",
+        status=BrandStatus.APPROVED.value,
+        approved_at=now,
+    )
+    brand_bloom = Brand(
+        id=_uuid(24),
+        user_id=brand_user_bloom.id,
+        brand_name="BLOOM",
+        company_email="partnerships@bloomnu.com",
+        instagram_handle="bloomsupps",
         status=BrandStatus.APPROVED.value,
         approved_at=now,
     )
@@ -375,6 +430,57 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         wrapped_at=now - timedelta(days=60),
         published_at=now - timedelta(days=120),
     )
+    drop_saie = Drop(
+        id=_uuid(35),
+        brand_id=brand_saie.id,
+        title="Dew Balm & Slip Tint Social Drop",
+        description=(
+            "200 Saie beauty and skincare kits for sorority formals, "
+            "club social mixers, and wellness days."
+        ),
+        image="/images/mockups/drop-saie.webp",
+        location="Ivy & Northeast",
+        capacity_total=10,
+        apply_open_at=now - timedelta(days=2),
+        apply_close_at=now + timedelta(days=12),
+        total_product_units=200,
+        campaign_hashtag="SaieDewBalm",
+        published_at=now - timedelta(days=2),
+    )
+    drop_david = Drop(
+        id=_uuid(36),
+        brand_id=brand_david.id,
+        title="Campus Athlete Nutrition Sampling",
+        description=(
+            "500 David Protein Bars (Salted Peanut Butter & Chocolate Chunk) "
+            "for campus athletes and club events."
+        ),
+        image="/images/mockups/drop-david.webp",
+        location="BUZZ University",
+        capacity_total=12,
+        apply_open_at=now - timedelta(days=1),
+        apply_close_at=now + timedelta(days=14),
+        total_product_units=500,
+        campaign_hashtag="DavidCampusNutrition",
+        published_at=now - timedelta(days=1),
+    )
+    drop_bloom = Drop(
+        id=_uuid(37),
+        brand_id=brand_bloom.id,
+        title="Sparkling Energy Campus Tour",
+        description=(
+            "250 cans of Bloom Sparkling Energy for campus sports "
+            "tournaments and tailgate kickoffs."
+        ),
+        image="/images/mockups/drop-bloom.webp",
+        location="BUZZ University & Northeast",
+        capacity_total=15,
+        apply_open_at=now + timedelta(days=2, hours=2, minutes=55, seconds=30),
+        apply_close_at=now + timedelta(days=16),
+        total_product_units=250,
+        campaign_hashtag="BloomSparklingEnergy",
+        published_at=now - timedelta(days=1),
+    )
 
     # --- Drop applications -------------------------------------------------
     app_accepted = DropApplication(
@@ -404,6 +510,14 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         org_id=org_active.id,
         decision=ApplicationDecision.APPLIED.value,
         applied_at=now - timedelta(days=1),
+    )
+    app_saie = DropApplication(
+        id=_uuid(48),
+        drop_id=drop_saie.id,
+        org_id=org_active.id,
+        decision=ApplicationDecision.APPLIED.value,
+        applied_at=now - timedelta(days=1),
+        pitch="Excited to share Saie beauty and skincare kits with our campus community!",
     )
     # A pending org can't apply yet; its interest is an intent, promoted to an
     # application once the org is active (PRODUCT §7.1).
@@ -520,15 +634,27 @@ def _build_seed_rows() -> dict[str, list[Base]]:
             org_user_onboarding,
             brand_user_1,
             brand_user_2,
+            brand_user_saie,
+            brand_user_david,
+            brand_user_bloom,
         ],
         "organizations": [org_active, org_pending],
-        "brands": [brand_a, brand_b],
+        "brands": [brand_a, brand_b, brand_saie, brand_david, brand_bloom],
         "drop_requests": [request_e2e],
-        "drops": [drop_brief, drop_review, drop_shipped, drop_finished],
+        "drops": [
+            drop_brief,
+            drop_review,
+            drop_shipped,
+            drop_finished,
+            drop_saie,
+            drop_david,
+            drop_bloom,
+        ],
         "drop_applications": [
             app_accepted,
             app_accepted_finished,
             app_applied_review,
+            app_saie,
         ],
         "drop_apply_intents": [intent_pending_org],
         "drop_application_shipments": [
@@ -672,6 +798,117 @@ async def upsert_staging_demo(session: AsyncSession, *, password: str) -> None:
         application.decision_sent_at = None
         if created:
             application.applied_at = now
+    await session.flush()
+
+    # --- Staging Mock Drops (Saie, David Protein, Bloom) ------------------
+    brand_user_saie, _ = await _upsert_row(session, User, _SAMPLE_BRAND_SAIE_USER)
+    brand_user_saie.portal_role = PortalRole.BRAND.value
+    brand_user_saie.status = OrgUserStatus.ACTIVE.value
+    brand_user_saie.password_hash = hash_password(password)
+    brand_user_saie.edu_email = None
+
+    brand_user_david, _ = await _upsert_row(session, User, _SAMPLE_BRAND_DAVID_USER)
+    brand_user_david.portal_role = PortalRole.BRAND.value
+    brand_user_david.status = OrgUserStatus.ACTIVE.value
+    brand_user_david.password_hash = hash_password(password)
+    brand_user_david.edu_email = None
+
+    brand_user_bloom, _ = await _upsert_row(session, User, _SAMPLE_BRAND_BLOOM_USER)
+    brand_user_bloom.portal_role = PortalRole.BRAND.value
+    brand_user_bloom.status = OrgUserStatus.ACTIVE.value
+    brand_user_bloom.password_hash = hash_password(password)
+    brand_user_bloom.edu_email = None
+    await session.flush()
+
+    brand_saie, _ = await _upsert_row(session, Brand, _SAMPLE_BRAND_SAIE)
+    brand_saie.user_id = brand_user_saie.id
+    brand_saie.brand_name = "Saie"
+    brand_saie.company_email = "partnerships@saiehello.com"
+    brand_saie.instagram_handle = "saiebeauty"
+    brand_saie.status = BrandStatus.APPROVED.value
+    brand_saie.approved_at = now
+
+    brand_david, _ = await _upsert_row(session, Brand, _SAMPLE_BRAND_DAVID)
+    brand_david.user_id = brand_user_david.id
+    brand_david.brand_name = "DAVID PROTEIN"
+    brand_david.company_email = "partnerships@davidprotein.com"
+    brand_david.instagram_handle = "davidprotein"
+    brand_david.status = BrandStatus.APPROVED.value
+    brand_david.approved_at = now
+
+    brand_bloom, _ = await _upsert_row(session, Brand, _SAMPLE_BRAND_BLOOM)
+    brand_bloom.user_id = brand_user_bloom.id
+    brand_bloom.brand_name = "BLOOM"
+    brand_bloom.company_email = "partnerships@bloomnu.com"
+    brand_bloom.instagram_handle = "bloomsupps"
+    brand_bloom.status = BrandStatus.APPROVED.value
+    brand_bloom.approved_at = now
+    await session.flush()
+
+    drop_saie, _ = await _upsert_row(session, Drop, _SAMPLE_DROP_SAIE)
+    drop_saie.brand_id = brand_saie.id
+    drop_saie.title = "Dew Balm & Slip Tint Social Drop"
+    drop_saie.description = (
+        "200 Saie beauty and skincare kits for sorority formals, "
+        "club social mixers, and wellness days."
+    )
+    drop_saie.image = "/images/mockups/drop-saie.webp"
+    drop_saie.location = "Ivy & Northeast"
+    drop_saie.capacity_total = 10
+    drop_saie.apply_open_at = now - timedelta(days=2)
+    drop_saie.apply_close_at = now + timedelta(days=12)
+    drop_saie.wrapped_at = None
+    drop_saie.total_product_units = 200
+    drop_saie.campaign_hashtag = "SaieDewBalm"
+    drop_saie.published_at = now - timedelta(days=2)
+    drop_saie.hidden_at = None
+
+    drop_david, _ = await _upsert_row(session, Drop, _SAMPLE_DROP_DAVID)
+    drop_david.brand_id = brand_david.id
+    drop_david.title = "Campus Athlete Nutrition Sampling"
+    drop_david.description = (
+        "500 David Protein Bars (Salted Peanut Butter & Chocolate Chunk) "
+        "for campus athletes and club events."
+    )
+    drop_david.image = "/images/mockups/drop-david.webp"
+    drop_david.location = "BUZZ University"
+    drop_david.capacity_total = 12
+    drop_david.apply_open_at = now - timedelta(days=1)
+    drop_david.apply_close_at = now + timedelta(days=14)
+    drop_david.wrapped_at = None
+    drop_david.total_product_units = 500
+    drop_david.campaign_hashtag = "DavidCampusNutrition"
+    drop_david.published_at = now - timedelta(days=1)
+    drop_david.hidden_at = None
+
+    drop_bloom, _ = await _upsert_row(session, Drop, _SAMPLE_DROP_BLOOM)
+    drop_bloom.brand_id = brand_bloom.id
+    drop_bloom.title = "Sparkling Energy Campus Tour"
+    drop_bloom.description = (
+        "250 cans of Bloom Sparkling Energy for campus sports tournaments and tailgate kickoffs."
+    )
+    drop_bloom.image = "/images/mockups/drop-bloom.webp"
+    drop_bloom.location = "BUZZ University & Northeast"
+    drop_bloom.capacity_total = 15
+    drop_bloom.apply_open_at = now + timedelta(days=2, hours=2, minutes=55, seconds=30)
+    drop_bloom.apply_close_at = now + timedelta(days=16)
+    drop_bloom.wrapped_at = None
+    drop_bloom.total_product_units = 250
+    drop_bloom.campaign_hashtag = "BloomSparklingEnergy"
+    drop_bloom.published_at = now - timedelta(days=1)
+    drop_bloom.hidden_at = None
+    await session.flush()
+
+    app_saie, saie_created = await _upsert_row(session, DropApplication, _SAMPLE_APP_SAIE)
+    app_saie.drop_id = drop_saie.id
+    app_saie.org_id = org.id
+    app_saie.decision = ApplicationDecision.APPLIED.value
+    app_saie.pitch = "Excited to share Saie beauty and skincare kits with our campus community!"
+    app_saie.allocated_units = None
+    app_saie.decision_at = None
+    app_saie.decision_sent_at = None
+    if saie_created:
+        app_saie.applied_at = now - timedelta(days=1)
     await session.flush()
 
 

@@ -7,7 +7,6 @@ import { SideBySideHow } from "../../components/marketing/SideBySideHow";
 import {
   CurrentDrops,
   FaqList,
-  JoinSplit,
   MarketingHero,
   Statement,
 } from "../../components/marketing/sections";
@@ -69,15 +68,6 @@ export default function ForOrgsPage() {
       <div id="instagram-guide">
         <FaqList items={ORG_FAQ} />
       </div>
-      <JoinSplit
-        left={{
-          kicker: "For organizations",
-          title: "Apply with your\nInstagram.",
-          support: "Connect Instagram, then verify your campus .edu.",
-          action: { label: "Apply as an organization", to: "/org/apply" },
-          quiet: { label: "Already connected? Log in", to: "/login" },
-        }}
-      />
       <SiteFooter audience="org" />
     </MarketingPage>
   );
