@@ -211,7 +211,7 @@ export function DropFormFields({
       placeholder="24"
       hint={
         config
-          ? "Leave empty, or check “Clear to spot-only”."
+          ? "Check “Clear to spot-only” to remove the budget. Emptying the field alone keeps the current units."
           : "Total across all organizations. Leave empty for a spot-only drop."
       }
       onChange={(e) => setField("units", e.target.value)}
