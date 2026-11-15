@@ -637,6 +637,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/ig-change-requests/{request_id}/retarget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retarget Ig Change Request Endpoint
+         * @description Point a stuck reconnect ticket at the handle the org can actually bind.
+         */
+        post: operations["retarget_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__retarget_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/impersonate/resume": {
         parameters: {
             query?: never;
@@ -3241,6 +3261,14 @@ export interface components {
             userId: string;
             /** Userstatus */
             userStatus?: string | null;
+        };
+        /**
+         * AdminIgChangeRetargetRequest
+         * @description New handle for a switch ticket that is stuck waiting to reconnect.
+         */
+        AdminIgChangeRetargetRequest: {
+            /** Requestedhandle */
+            requestedHandle: string;
         };
         /**
          * AdminInviteState
@@ -7346,6 +7374,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminIgChangeRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    retarget_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__retarget_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIgChangeRetargetRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

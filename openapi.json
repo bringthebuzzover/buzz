@@ -2229,6 +2229,20 @@
         "title": "AdminIgChangeRequestItem",
         "type": "object"
       },
+      "AdminIgChangeRetargetRequest": {
+        "description": "New handle for a switch ticket that is stuck waiting to reconnect.",
+        "properties": {
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestedHandle"
+        ],
+        "title": "AdminIgChangeRetargetRequest",
+        "type": "object"
+      },
       "AdminInviteState": {
         "description": "Latest brand invite token. ``used_at`` is ambiguous between redeemed and\nsuperseded, so read it alongside ``password_set``.",
         "properties": {
@@ -13605,6 +13619,76 @@
           }
         },
         "summary": "Deny Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/ig-change-requests/{request_id}/retarget": {
+      "post": {
+        "description": "Point a stuck reconnect ticket at the handle the org can actually bind.",
+        "operationId": "retarget_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__retarget_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminIgChangeRetargetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Retarget Ig Change Request Endpoint",
         "tags": [
           "admin"
         ]
