@@ -520,14 +520,48 @@ class TestOrgIgChangeRequest:
         )
         assert taken.status_code == 409
 
-        # Its own current handle is excluded, so that one is allowed.
+        # Retargeting to the handle the org already had is refused: that shape
+        # makes the ticket read as a migration placeholder, and placeholders
+        # accept whatever account binds — it would remove the switch restriction.
         own = await app_client.post(
             f"/api/admin/ig-change-requests/{request_id}/retarget",
             json={"requestedHandle": "campusgreeks"},
             headers=admin,
         )
-        assert own.status_code == 200
+        assert own.status_code == 400
         _ = other
+
+    async def test_retarget_moves_the_handle_reservation(self, app_client: AsyncClient, db_session):
+        """Ownership follows the ticket.
+
+        Handle uniqueness is enforced through ``users.instagram_username``. If
+        retargeting left the old handle there, an ordinary Instagram login for
+        the new one could create a separate account holding it, and the org's own
+        bind would then fail because that Graph identity belongs to another user.
+        """
+        user, org = await _active_org(db_session)
+        created = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        request_id = created.json()["data"]["id"]
+        admin = await admin_headers(db_session)
+        await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/approve",
+            json={"kind": "account_switch", "testerInviteConfirmed": True},
+            headers=admin,
+        )
+
+        retargeted = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/retarget",
+            json={"requestedHandle": "renamedclubig"},
+            headers=admin,
+        )
+        assert retargeted.status_code == 200
+
+        await db_session.refresh(user)
+        assert user.instagram_username == "renamedclubig"
 
     async def test_deny_after_approve_is_refused(self, app_client: AsyncClient, db_session):
         """A decided request cannot be decided again.

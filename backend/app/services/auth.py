@@ -166,6 +166,12 @@ async def handle_instagram_callback(
                     OrgIgChangeRequest.status == "awaiting_connect",
                     OrgIgChangeRequest.decided_kind == "account_switch",
                 )
+                # Locked: an admin retarget rewrites the target under its own
+                # lock. Without this, a callback could validate target B, a
+                # retarget commit C, and the callback then bind B and mark the
+                # request approved — the portal opening on credentials that do
+                # not satisfy the recorded approval.
+                .with_for_update()
             )
         )
         # An approved account switch names the handle the org must bind to. Binding
