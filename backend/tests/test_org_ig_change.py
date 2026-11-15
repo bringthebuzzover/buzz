@@ -446,6 +446,89 @@ class TestOrgIgChangeRequest:
         )
         assert len(live) == 1
 
+    async def test_stuck_switch_can_be_retargeted_and_then_bound(
+        self, app_client: AsyncClient, db_session
+    ):
+        """A renamed handle must not strand an org.
+
+        Approval releases the credentials and closes the portal, so the org
+        cannot submit a new request. If the approved handle no longer matches
+        anything the org can bind, the strict target check refuses every
+        attempt. Retargeting keeps the recovery path open.
+        """
+        user, _org = await _active_org(db_session)
+        created = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        request_id = created.json()["data"]["id"]
+        admin = await admin_headers(db_session)
+
+        approved = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/approve",
+            json={"kind": "account_switch", "testerInviteConfirmed": True},
+            headers=admin,
+        )
+        assert approved.status_code == 200
+
+        retargeted = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/retarget",
+            json={"requestedHandle": "renamedclubig"},
+            headers=admin,
+        )
+        assert retargeted.status_code == 200
+        assert retargeted.json()["data"]["requestedHandle"] == "renamedclubig"
+
+        row = await db_session.get(OrgIgChangeRequest, request_id)
+        assert row is not None
+        # Still an open recovery path, now aimed at the real account.
+        assert row.status == "awaiting_connect"
+        assert row.requested_handle == "renamedclubig"
+
+    async def test_retarget_rejects_a_handle_another_org_holds(
+        self, app_client: AsyncClient, db_session
+    ):
+        """Retargeting must not let an admin hand over a taken handle."""
+        user, _org = await _active_org(db_session)
+        created = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        request_id = created.json()["data"]["id"]
+        admin = await admin_headers(db_session)
+        await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/approve",
+            json={"kind": "account_switch", "testerInviteConfirmed": True},
+            headers=admin,
+        )
+
+        # A second org holding its own handle. Retargeting must not steal it.
+        other = await persist(
+            db_session,
+            make_user(
+                role=PortalRole.ORG, instagram_user_id="ig_b", instagram_username="otherclub"
+            ),
+        )
+        await db_session.flush()
+
+        taken = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/retarget",
+            json={"requestedHandle": "otherclub"},
+            headers=admin,
+        )
+        assert taken.status_code == 409
+
+        # Its own current handle is excluded, so that one is allowed.
+        own = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/retarget",
+            json={"requestedHandle": "campusgreeks"},
+            headers=admin,
+        )
+        assert own.status_code == 200
+        _ = other
+
     async def test_deny_after_approve_is_refused(self, app_client: AsyncClient, db_session):
         """A decided request cannot be decided again.
 

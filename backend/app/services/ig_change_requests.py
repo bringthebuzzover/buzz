@@ -36,6 +36,7 @@ from app.services.email import (
     send_org_ig_switch_connect_email,
 )
 from app.services.email_tasks import schedule_email
+from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.lifecycle import seat_is_live
 from app.services.org_apply import (
@@ -292,11 +293,10 @@ async def _pending_request_for_update(
     wait, then see the new status and fail its own ``!= "pending"`` check.
     """
     row: OrgIgChangeRequest | None = await db.scalar(
-        select(OrgIgChangeRequest)
-        .where(OrgIgChangeRequest.id == request_id)
-        .with_for_update()
+        select(OrgIgChangeRequest).where(OrgIgChangeRequest.id == request_id).with_for_update()
     )
     return row
+
 
 async def approve_request(
     db: AsyncSession,
@@ -405,6 +405,42 @@ async def approve_request(
         email_queued,
     )
     return {**_serialize(req), "email_queued": email_queued, "user_status": user.status}
+
+
+async def retarget_awaiting_connect(
+    db: AsyncSession, request_id: UUID, requested_handle: str
+) -> dict[str, Any]:
+    """Point a stuck ``awaiting_connect`` ticket at the account the org really has.
+
+    Approval releases the org's credentials, so its portal is closed and it
+    cannot submit a new request itself. If the handle an admin approved is later
+    renamed on Instagram, the bind's strict target check refuses every attempt,
+    approval cannot be repeated (the request is no longer ``pending``), and
+    denying would leave no ticket at all — so the org would be stranded with no
+    portal and no Connect path. This is the admin exit: rewrite the approved
+    target on the open ticket, keeping the recovery path intact.
+    """
+    req = await _pending_request_for_update(db, request_id)
+    if req is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
+    if req.status != "awaiting_connect":
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Only a request waiting to reconnect can be retargeted.",
+            status_code=400,
+        )
+    cleaned = canonical_instagram_handle(requested_handle)
+    if not cleaned:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Enter the Instagram handle the organization should connect.",
+            status_code=400,
+        )
+    await assert_handle_available(db, cleaned, exclude_user_id=req.user_id)
+    req.requested_handle = cleaned
+    await db.flush()
+    logger.info("ig_change_request_retargeted request_id=%s handle=%s", req.id, cleaned)
+    return _serialize(req)
 
 
 async def deny_request(

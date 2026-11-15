@@ -351,9 +351,7 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
         # no handle to bind and no ticket to redeem, so 'active' would close the
         # portal with no Connect action able to reopen it. pending_approval is
         # reachable by the admin "send Connect link" action.
-        assert statuses == dict(
-            zip(ids, ("active", "active", "active", "pending_approval"))
-        )
+        assert statuses == dict(zip(ids, ("active", "active", "active", "pending_approval")))
         assert (
             await conn.fetchval(
                 "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id

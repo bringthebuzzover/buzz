@@ -385,6 +385,12 @@ class AdminIgChangeApproveRequest(CamelModel):
     tester_invite_confirmed: bool = False
 
 
+class AdminIgChangeRetargetRequest(CamelModel):
+    """New handle for a switch ticket that is stuck waiting to reconnect."""
+
+    requested_handle: str
+
+
 class AdminIgChangeRequestItem(CamelModel):
     id: uuid.UUID
     org_id: uuid.UUID

@@ -102,7 +102,13 @@ async def handle_instagram_callback(
     existing = matches[0] if matches else None
 
     if bind_user_id is not None:
-        target = await db.get(User, bind_user_id)
+        # Lock the row before reading eligibility. Two callbacks for the same org
+        # can otherwise both pass ``org_may_connect_instagram`` while the user is
+        # unbound; A binds and is approved, then B writes its own credentials
+        # from the stale eligibility result and the org ends up active on an
+        # account nobody approved. Holding the row serializes the check with the
+        # credential write below.
+        target = await db.scalar(select(User).where(User.id == bind_user_id).with_for_update())
         if target is None or target.portal_role != PortalRole.ORG.value:
             raise BuzzAPIException(
                 errors.NOT_FOUND,

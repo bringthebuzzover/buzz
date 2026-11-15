@@ -61,6 +61,7 @@ from app.schemas.admin import (
     AdminHealthResponse,
     AdminIgChangeApproveRequest,
     AdminIgChangeRequestItem,
+    AdminIgChangeRetargetRequest,
     AdminOrgApproveRequest,
     AdminOrgDetail,
     AdminOrgItem,
@@ -151,6 +152,9 @@ from app.services.ig_change_requests import (
 )
 from app.services.ig_change_requests import (
     list_requests as list_ig_change_requests,
+)
+from app.services.ig_change_requests import (
+    retarget_awaiting_connect as retarget_ig_change_request,
 )
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.seats import lock_drop, send_decisions, set_seat_decision
@@ -443,6 +447,21 @@ async def deny_ig_change_request_endpoint(
             await deny_ig_change_request(db, request_id, background_tasks=background_tasks)
         )
     )
+
+
+@router.post(
+    "/ig-change-requests/{request_id}/retarget",
+    response_model=DataResponse[AdminIgChangeRequestItem],
+)
+async def retarget_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    body: AdminIgChangeRetargetRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Point a stuck reconnect ticket at the handle the org can actually bind."""
+    result = await retarget_ig_change_request(db, request_id, body.requested_handle)
+    return api_response(data=AdminIgChangeRequestItem.model_validate(result))
 
 
 @router.get(
