@@ -668,7 +668,7 @@ async def rotate_edu_email_endpoint(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Start a pending-swap .edu rotate (active / pending_approval orgs)."""
+    """Start a pending-swap .edu rotate (approved orgs only; awaiting approval is locked)."""
     result = await rotate_edu_email(db, user, payload.edu_email, background_tasks=background_tasks)
     return api_response(data=RotateEduEmailResponse.model_validate(result))
 

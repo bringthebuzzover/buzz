@@ -3,16 +3,16 @@
  *
  * Polls the current user every 15s so that once an admin approves (status →
  * active) or denies (→ denied) the account, the route guard forwards the user
- * automatically without a manual refresh. Also hosts pending-swap .edu rotate
- * (PRODUCT §3.1) so officers can correct the campus email before approval.
+ * automatically without a manual refresh. School email is locked on this
+ * screen; a swap already in flight is only shown, not editable.
  */
 import { useEffect } from "react";
 import { Info } from "lucide-react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { Notice } from "../../components/forms/controls";
-import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
 import StatusHero from "../../components/site/StatusHero";
+import { TEXT } from "../../theme/tokens";
 import { pathForUser } from "../../utils/landing";
 
 const POLL_INTERVAL_MS = 15_000;
@@ -55,18 +55,14 @@ export default function PendingApprovalPage() {
           </Notice>
         ) : undefined
       }
-      action={
-        <div className="w-full">
-          <EduEmailRotatePanel
-            liveEmail={user.email}
-            pendingEmail={user.pendingEduEmail}
-            onChanged={() => refreshUser()}
-          />
-        </div>
-      }
     >
-      We&apos;re reviewing your organization. BUZZ curates vetted campus
-      communities to guarantee high-quality brand collaborations.
+      <p>
+        We&apos;re reviewing your organization. BUZZ curates vetted campus
+        communities to guarantee high-quality brand collaborations.
+      </p>
+      <p className={TEXT.meta}>
+        Your school email is locked while we review your application.
+      </p>
     </StatusHero>
   );
 }

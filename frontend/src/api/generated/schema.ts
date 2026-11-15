@@ -1518,7 +1518,7 @@ export interface paths {
         put?: never;
         /**
          * Rotate Edu Email Endpoint
-         * @description Start a pending-swap .edu rotate (active / pending_approval orgs).
+         * @description Start a pending-swap .edu rotate (approved orgs only; awaiting approval is locked).
          */
         post: operations["rotate_edu_email_endpoint_api_auth_verify_email_rotate_post"];
         delete?: never;

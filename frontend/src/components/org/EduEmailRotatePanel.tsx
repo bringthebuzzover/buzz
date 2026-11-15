@@ -1,7 +1,7 @@
 /**
  * Change / pending-swap UI for a verified school .edu (PRODUCT §3.1).
  *
- * Used on the active org profile and the pending-approval wait screen.
+ * Used on the active org profile. Awaiting-approval orgs are locked out.
  */
 import { useState } from "react";
 import { Pencil } from "lucide-react";
