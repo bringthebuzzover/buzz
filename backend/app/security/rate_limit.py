@@ -168,6 +168,7 @@ def submission_already_accepted(key: str) -> bool:
 def mark_submission_accepted(key: str) -> None:
     """Remember an accepted submission so replays are answered, not re-charged."""
     if len(_accepted) >= _MAX_BUCKETS:
-        for stale in sorted(_accepted, key=_accepted.get)[: _MAX_BUCKETS // 4]:
+        oldest = sorted(_accepted.items(), key=lambda kv: kv[1])
+        for stale, _ in oldest[: _MAX_BUCKETS // 4]:
             _accepted.pop(stale, None)
     _accepted[key] = time.monotonic()
