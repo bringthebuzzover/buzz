@@ -15,12 +15,12 @@ The HTTP contract is [`openapi.json`](openapi.json). After any route or schema c
 For any **behavior-touching** change:
 
 1. Run the **simplify-pass** skill ([`.agents/skills/simplify-pass/SKILL.md`](.agents/skills/simplify-pass/SKILL.md)).
-2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes Playwright E2E).
+2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes Playwright E2E). This is the gate for **opening a PR** too: never open or push a PR for Buzz unless local CI passed on that exact commit. A green GitHub run later does not substitute for it.
 3. **Stop** — do not commit or push unless the user explicitly asks.
 4. Stress Playwright ×N **only if the user asks** (`workflow_dispatch` / `[e2e-stress-N]`).
 5. **Never push to `main`** — it is protected. Feature-branch PR only (into `staging`) ([Branching & main protection](README.md#branching--main-protection)).
 
-Docs/rules/skills-only changes: commit when the user asks; `ci-local` not required unless app code was touched.
+Docs/rules/skills-only changes: commit when the user asks; `ci-local` is not required for the commit itself, but a **PR** from any branch still needs it green.
 
 ### Hard stops (ask first)
 
