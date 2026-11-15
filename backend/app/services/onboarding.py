@@ -331,6 +331,7 @@ async def submit_org_onboarding(
         state=payload.state,
         contact_name=payload.contact_name,
         claimed_instagram_username=canonical_instagram_handle(user.instagram_username),
+        instagram_handle_confirmed=True,
     )
     apply_to_org(org, addr)
     db.add(org)

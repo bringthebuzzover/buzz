@@ -263,8 +263,11 @@ class TestOrgIgChangeRequest:
             "/api/auth/instagram/callback",
             json={"code": "old-a", "state": state},
         )
-        assert old.status_code == 400
-        assert old.json()["error"]["code"] == "ORG_APPLY_REQUIRED"
+        # A disconnected identity can start a new application, but cannot
+        # regain the switched organization's active session.
+        assert old.status_code == 200
+        assert old.json()["data"]["user"]["status"] == "pending_org_profile"
+        assert old.json()["data"]["user"]["id"] != str(user.id)
 
         fake_instagram.user_id = "ig_b"
         fake_instagram.username = "newcampusig"

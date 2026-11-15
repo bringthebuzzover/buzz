@@ -81,7 +81,21 @@ describe("Notice icons", () => {
       <Notice icon={<svg data-testid="notice-icon" />}>Short notice.</Notice>,
     );
     const icon = view.container.querySelector('[data-testid="notice-icon"]');
-    expect(icon?.parentElement?.className).toContain("mt-[2px]");
+    expect(icon?.parentElement?.className).toContain("h-[1.25rem]");
+    expect(icon?.parentElement?.className).toContain("items-center");
     expect(icon?.parentElement?.parentElement?.className).toContain("items-start");
+  });
+
+  it("renders a green wash and icon color when tone is success", () => {
+    const view = mount(
+      <Notice tone="success" icon={<svg data-testid="notice-icon" />}>
+        Connected as @org · Business Account
+      </Notice>,
+    );
+    const status = view.container.querySelector('[role="status"]');
+    const icon = view.container.querySelector('[data-testid="notice-icon"]');
+    expect(status?.className).toContain("border-[#4ade80]/30");
+    expect(status?.className).toContain("bg-[#4ade80]/15");
+    expect(icon?.parentElement?.className).toContain("text-[#4ade80]");
   });
 });

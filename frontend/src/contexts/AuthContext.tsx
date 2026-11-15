@@ -115,8 +115,7 @@ function onAuthRoute(): boolean {
     p.startsWith("/brand/forgot-password") ||
     p.startsWith("/brand/reset-password") ||
     p.startsWith("/org/apply") ||
-    p.startsWith("/onboarding/verify-email") ||
-    p.startsWith("/onboarding/connect-instagram") ||
+    p.startsWith("/onboarding/") ||
     p.startsWith("/admin") ||
     p.startsWith("/auth/")
   );

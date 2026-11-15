@@ -435,9 +435,18 @@ type Half = {
   quiet?: { label: string; to: string };
 };
 
-export function JoinSplit({ left, right }: { left: Half; right?: Half }) {
+export function JoinSplit({
+  id,
+  left,
+  right,
+}: {
+  id?: string;
+  left: Half;
+  right?: Half;
+}) {
   return (
     <section
+      id={id}
       data-nav-surface="ink"
       className={cn(
         "grid bg-page text-primary",

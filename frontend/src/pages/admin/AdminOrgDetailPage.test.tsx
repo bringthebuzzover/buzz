@@ -17,6 +17,7 @@ const mockUseAdminOrg = jest.fn();
 const mockEraseMutateAsync = jest.fn();
 const mockSendEmailMutateAsync = jest.fn();
 const mockAckMutateAsync = jest.fn();
+const mockApprove = jest.fn();
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminOrg: (...args: unknown[]) => mockUseAdminOrg(...args),
@@ -26,7 +27,7 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     isPending: false,
     isError: false,
   }),
-  useApproveOrg: () => idleMutation(),
+  useApproveOrg: () => ({ ...idleMutation(), mutateAsync: mockApprove }),
   useClearOrgInstagramToken: () => idleMutation(),
   useDenyOrg: () => idleMutation(),
   useEraseOrg: () => ({
@@ -55,7 +56,7 @@ function orgDetail() {
     userId: "11111111-1111-1111-1111-111111111111",
     orgId: "22222222-2222-2222-2222-222222222222",
     status: "active",
-    orgName: "Lawrence's Test",
+    orgName: "Test Org",
     university: "Cornell University",
     instagramHandle: "test_org_admin",
     instagramHandleConfirmed: false,
@@ -105,6 +106,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
 
   beforeEach(() => {
     mockUseAdminOrg.mockReset();
+    mockApprove.mockReset().mockResolvedValue({});
     mockEraseMutateAsync.mockReset();
     mockAckMutateAsync.mockReset();
     mockAckMutateAsync.mockResolvedValue({});
@@ -126,6 +128,26 @@ describe("AdminOrgDetailPage erase confirm", () => {
       path: "/admin/orgs/:userId",
     }).container;
   }
+
+  it.each([true, false])("approval respects connected identity: %s", async (connected) => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), status: "pending_approval", instagramHandleConfirmed: connected },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    const approve = container.querySelector('[data-testid="approve-org"]') as HTMLButtonElement;
+    expect(approve.disabled).toBe(!connected);
+    expect(container.querySelector('[data-testid="tester-invite-confirmed"]') !== null).toBe(!connected);
+    await act(async () => approve.click());
+    expect(mockApprove.mock.calls).toEqual(connected ? [[{
+      orgId: orgDetail().orgId,
+      testerInviteConfirmed: false,
+    }]] : []);
+    expect(container.textContent).toContain(
+      connected ? "Approved — organization is active." : "Before you approve",
+    );
+  });
 
   it("links claimed Instagram to the public profile", () => {
     mockUseAdminOrg.mockReturnValue({

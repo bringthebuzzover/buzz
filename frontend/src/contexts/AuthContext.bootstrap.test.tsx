@@ -16,22 +16,6 @@ import {
   type AuthUser,
 } from "./AuthContext";
 
-jest.mock("../api/auth", () => {
-  const actual = jest.requireActual("../api/auth") as typeof import("../api/auth");
-  return {
-    ...actual,
-    refreshAccessToken: jest.fn(),
-    fetchMe: jest.fn(),
-    devLogin: jest.fn(),
-    logout: jest.fn(async () => {}),
-    resumeImpersonation: jest.fn(),
-    resumeViewAs: jest.fn(async () => "none" as const),
-    endViewAsIntent: jest.fn(async () => {}),
-    takeRefreshedUser: jest.fn(() => null),
-    takeImpersonatedUser: jest.fn(() => null),
-  };
-});
-
 import {
   clearViewAsLatch,
   fetchMe,
@@ -48,6 +32,24 @@ import {
   takeImpersonatedUser,
   takeRefreshedUser,
 } from "../api/auth";
+
+jest.mock("../api/auth", () => {
+  const actual = jest.requireActual("../api/auth") as typeof import("../api/auth");
+  return {
+    ...actual,
+    refreshAccessToken: jest.fn(),
+    fetchMe: jest.fn(),
+    devLogin: jest.fn(),
+    logout: jest.fn(async () => {}),
+    resumeImpersonation: jest.fn(),
+    resumeViewAs: jest.fn(async () => "none" as const),
+    endViewAsIntent: jest.fn(async () => {}),
+    takeRefreshedUser: jest.fn(() => null),
+    takeImpersonatedUser: jest.fn(() => null),
+  };
+});
+
+
 
 const refreshMock = refreshAccessToken as jest.MockedFunction<
   typeof refreshAccessToken
@@ -235,6 +237,17 @@ describe("AuthProvider bootstrap resolution", () => {
     await waitForStatus(container, "authenticated");
     expect(fetchMeMock).toHaveBeenCalledTimes(1);
   });
+
+  it.each(["profile", "verify-email", "pending-approval", "connect-instagram"])(
+    "does not dev-login over the %s onboarding step",
+    async (step) => {
+      refreshMock.mockResolvedValue(false);
+      window.history.pushState({}, "", `/onboarding/${step}`);
+      await mountAuth();
+      await waitForStatus(container, "error");
+      expect(devLoginMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("uses the user from dev-login and skips /me on the bootstrap dev-login path (auth.ci-session-restore-flake v5)", async () => {
     // dev-login's TokenResponse carries user in the same transaction as the

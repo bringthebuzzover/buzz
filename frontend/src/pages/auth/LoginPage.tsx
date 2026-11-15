@@ -68,7 +68,7 @@ export default function LoginPage() {
 
       <div className="space-y-3">
         <AuthLinkRow quiet="New organization?">
-          <AuthArrowLink to="/org/apply">Apply here.</AuthArrowLink>
+          <AuthArrowLink to="/org/apply">Apply here</AuthArrowLink>
         </AuthLinkRow>
         <p>
           <AuthArrowLink to="/for-orgs">See how it works</AuthArrowLink>

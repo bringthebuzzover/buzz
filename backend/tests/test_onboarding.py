@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from httpx import AsyncClient
@@ -22,7 +24,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
-from tests.conftest import make_brand, make_user, mint_access_token, persist
+from tests.conftest import admin_headers, make_brand, make_user, mint_access_token, persist
 
 # --- Org onboarding: profile submit -----------------------------------------
 
@@ -1051,3 +1053,47 @@ async def test_me_exposes_pending_edu_email(app_client: AsyncClient, db_session)
     data = resp.json()["data"]
     assert data["email"] == "me-live@test.edu"
     assert data["pending_edu_email"] == "me-pend@test.edu"
+
+
+async def test_instagram_signup_through_approval(
+    app_client: AsyncClient, db_session, fake_instagram, monkeypatch
+) -> None:
+    from app.models.org_connect_token import OrgConnectToken
+
+    queued_verification = AsyncMock(return_value=True)
+    queued_approval = AsyncMock(return_value=True)
+    monkeypatch.setattr("app.services.onboarding.schedule_email", queued_verification)
+    monkeypatch.setattr("app.services.admin.schedule_email", queued_approval)
+    login = await app_client.get("/api/auth/instagram/login", follow_redirects=False)
+    state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
+    signup = await app_client.post(
+        "/api/auth/instagram/callback", json={"code": "signup", "state": state}
+    )
+    assert signup.status_code == 200, signup.text
+    session = signup.json()["data"]
+    assert session["user"]["status"] == "pending_org_profile"
+    headers = {"Authorization": f"Bearer {session['access_token']}"}
+    profile = await app_client.post("/api/orgs/onboarding", json=_VALID_PROFILE, headers=headers)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["data"]["status"] == "pending_email_verification"
+    assert profile.json()["data"]["emailQueued"] is True
+    org = await db_session.scalar(select(Organization))
+    assert org is not None
+    assert org.instagram_handle_confirmed is True
+    assert org.follower_count == 1000
+    raw_verification = queued_verification.await_args.args[4]
+    verified = await app_client.post("/api/auth/verify-email", json={"token": raw_verification})
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["data"]["status"] == "pending_approval"
+    approved = await app_client.post(
+        f"/api/admin/orgs/{org.id}/approve",
+        headers=await admin_headers(db_session),
+        json={},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["data"]["status"] == "active"
+    assert await db_session.scalar(select(OrgConnectToken)) is None
+    assert "connect_token" not in queued_approval.await_args.kwargs
+    refreshed = await app_client.post("/api/auth/refresh")
+    assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["data"]["user"]["status"] == "active"

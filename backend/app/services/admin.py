@@ -239,7 +239,8 @@ async def approve_org(
             status_code=400,
         )
 
-    if not tester_invite_confirmed:
+    already_bound = bool(user.instagram_user_id and user.instagram_access_token)
+    if not already_bound and not tester_invite_confirmed:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
             "Confirm you added this organization as an Instagram Tester before approving.",
@@ -249,8 +250,7 @@ async def approve_org(
     now = datetime.now(timezone.utc)
     org.approved_at = now
 
-    # Legacy mid-flight: Graph ids + token already on file → skip Connect.
-    already_bound = bool(user.instagram_user_id and user.instagram_access_token)
+    # Instagram-first applications are already connected.
     connect_token: str | None = None
     if already_bound:
         user.status = OrgUserStatus.ACTIVE.value

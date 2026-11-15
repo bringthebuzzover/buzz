@@ -57,9 +57,12 @@ describe("SiteFooter", () => {
 
   it("uses the organization conversion for the org tour", () => {
     const { container } = renderWithProviders(<SiteFooter audience="org" />);
-    expect(container.querySelector("h2")?.textContent).toBe("Want to join?");
+    expect(container.querySelector("h2")?.textContent).toBe("Bring your org.");
     expect(container.querySelector('a[href="/org/apply"]')?.textContent).toBe(
       "Join as a student organization",
+    );
+    expect(container.querySelector('a[href="/login"]')?.textContent).toBe(
+      "Already connected? Log in",
     );
     expect(
       Array.from(container.querySelectorAll('a[href="/brand/apply"]')).some((link) =>

@@ -447,29 +447,43 @@ export function Notice({
   children,
   icon,
 }: {
-  tone?: "neutral" | "accent";
+  tone?: "neutral" | "accent" | "success";
   children: ReactNode;
   icon?: ReactNode;
 }) {
   if (!children) return null;
   const accent = tone === "accent";
+  const success = tone === "success";
   return (
     <div
       className={cn(
         "flex items-start gap-3 rounded-buzzField border px-4 py-4 text-sm text-primary",
-        accent
-          ? "border-buzz-yellowLine bg-accent-wash"
-          : "border-line bg-buzz-paper08",
+        success
+          ? "border-[#4ade80]/30 bg-[#4ade80]/15"
+          : accent
+            ? "border-buzz-yellowLine bg-accent-wash"
+            : "border-line bg-buzz-paper08",
       )}
       role="status"
     >
       {icon ? (
-        <span className="mt-[2px] shrink-0">{icon}</span>
+        <span
+          className={cn(
+            "flex h-[1.25rem] shrink-0 items-center",
+            success && "text-[#4ade80]",
+          )}
+        >
+          {icon}
+        </span>
       ) : (
         <span
           className={cn(
             "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-            accent ? "bg-accent" : "bg-quiet",
+            success
+              ? "bg-[#4ade80]"
+              : accent
+                ? "bg-accent"
+                : "bg-quiet",
           )}
           aria-hidden
         />

@@ -9,7 +9,8 @@
  * Followers are Graph-seeded server-side — not collected here.
  */
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Check } from "lucide-react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
@@ -17,12 +18,12 @@ import { pathForUser } from "../../utils/landing";
 import {
   Button,
   ErrorBanner,
+  Notice,
   Select,
   TextField,
   fieldClass,
 } from "../../components/forms/controls";
-import AuthShell from "../../components/site/AuthShell";
-import { AuthHeading } from "../../components/auth/AuthFrame";
+import { AuthHeading, AuthSplit } from "../../components/auth/AuthFrame";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -128,41 +129,32 @@ export default function OrgProfilePage() {
   };
 
   return (
-    <AuthShell align="stack">
-      <AuthHeading kicker="Organization setup" title="Set up your organization profile">
-        Tell us about your organization to continue. Sign in with the
-        organization&apos;s Instagram Business or Creator account — not a
-        personal member account.
+    <AuthSplit
+      wide
+      asideStatement="Join as a student organization and work with brands on real campus campaigns."
+    >
+      <AuthHeading kicker="Step 2 of 3 · Connected" title="Campus Profile">
+        Instagram connected. Tell us about your campus community and where to
+        ship campaign drop kits.
       </AuthHeading>
 
       <form onSubmit={(e) => void onSubmit(e)} className="mt-8 space-y-4">
         {error && <ErrorBanner>{error}</ErrorBanner>}
-        {signedInAs && (
-          <div className="flex flex-col gap-1 rounded-buzzField border border-line bg-surface-tile px-4 py-3">
-            <p className="text-xs text-quiet">Signed in as</p>
-            <p className="text-sm text-primary">{signedInAs}</p>
-            <p className="text-xs text-quiet">
-              This Instagram account is your organization identity on BUZZ.
-            </p>
-          </div>
-        )}
+        <Notice
+          tone="success"
+          icon={<Check className="h-4 w-4" aria-hidden />}
+        >
+          {`Connected as ${signedInAs ?? "@org"} · Professional Account`}
+        </Notice>
 
         <TextField
-          id="org-onboarding-org-name"
-          label="Organization name"
-          value={orgName}
-          onChange={(e) => setOrgName(e.target.value)}
+          id="org-onboarding-contact-name"
+          label="Contact name"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+          placeholder="Test Officer"
           required
-          error={fieldErrors.orgName}
-        />
-
-        <TextField
-          id="org-onboarding-university"
-          label="University"
-          value={university}
-          onChange={(e) => setUniversity(e.target.value)}
-          required
-          error={fieldErrors.university}
+          error={fieldErrors.contactName}
         />
 
         <div>
@@ -172,48 +164,64 @@ export default function OrgProfilePage() {
             label="School (.edu) email"
             value={eduEmail}
             onChange={(e) => setEduEmail(e.target.value)}
-            placeholder="you@university.edu"
+            placeholder="org1@example.edu"
             required
             error={fieldErrors.eduEmail}
           />
           <p className="mt-1 text-xs text-quiet">
-            We&apos;ll send a verification link here.
+            Must be a university .edu address for campus verification.
           </p>
         </div>
 
-        <TextField
-          id="org-onboarding-member-count"
-          type="number"
-          min="0"
-          label="Number of members"
-          value={memberCount}
-          onChange={(e) => setMemberCount(e.target.value)}
-          required
-          error={fieldErrors.memberCount}
-        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField
+            id="org-onboarding-org-name"
+            label="Organization name"
+            value={orgName}
+            onChange={(e) => setOrgName(e.target.value)}
+            placeholder="Test Student Organization"
+            required
+            error={fieldErrors.orgName}
+          />
 
-        <Select
-          label="Organization type"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-          required
-        >
-          <option value="">Select a type…</option>
-          {ORG_CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
+          <TextField
+            id="org-onboarding-university"
+            label="University"
+            value={university}
+            onChange={(e) => setUniversity(e.target.value)}
+            placeholder="Test University"
+            required
+            error={fieldErrors.university}
+          />
+        </div>
 
-        <TextField
-          id="org-onboarding-contact-name"
-          label="Contact name"
-          value={contactName}
-          onChange={(e) => setContactName(e.target.value)}
-          required
-          error={fieldErrors.contactName}
-        />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Select
+            label="Organization type"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+            required
+          >
+            <option value="">Select a type…</option>
+            {ORG_CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+
+          <TextField
+            id="org-onboarding-member-count"
+            type="number"
+            min="0"
+            label="Active members"
+            value={memberCount}
+            onChange={(e) => setMemberCount(e.target.value)}
+            placeholder="120"
+            required
+            error={fieldErrors.memberCount}
+          />
+        </div>
 
         <ShippingAddressFields
           value={shipping}
@@ -221,16 +229,28 @@ export default function OrgProfilePage() {
           inputClass={fieldClass.default}
           testIdPrefix="org-onboarding"
           error={fieldErrors.shipping}
+          layout="split"
         />
 
         <Button
           type="submit"
           disabled={submit.isPending}
+          size="field"
           fullWidth
         >
-          {submit.isPending ? "Submitting…" : "Continue"}
+          {submit.isPending ? "Submitting…" : "Complete Application"}
         </Button>
+
+        <div className="flex items-center gap-2 pt-2 text-sm text-quiet">
+          <span>Already connected Instagram?</span>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1 font-medium text-primary hover:text-accent"
+          >
+            Organization login &rarr;
+          </Link>
+        </div>
       </form>
-    </AuthShell>
+    </AuthSplit>
   );
 }
