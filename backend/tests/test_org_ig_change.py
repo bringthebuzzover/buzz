@@ -606,6 +606,48 @@ class TestOrgIgChangeRequest:
         await db_session.refresh(user)
         assert user.instagram_username == "renamedclubig"
 
+    async def test_retarget_clears_the_migration_placeholder_signature(
+        self, app_client: AsyncClient, db_session
+    ):
+        """A retargeted placeholder must not be recognisable as one.
+
+        ``8d1c70e5a942`` flags placeholders by their migration reason text. If a
+        retarget only cleared the boolean, a downgrade and re-upgrade would
+        re-derive it from the untouched reason and hand the org the permissive
+        "bind any account" behaviour an admin had explicitly overridden.
+        """
+        user, org = await _active_org(db_session)
+        req = OrgIgChangeRequest(
+            org_id=org.id,
+            user_id=user.id,
+            kind="account_switch",
+            current_handle="campusgreeks",
+            requested_handle="campusgreeks",
+            reason=(
+                "Reconnect required by the Instagram-first migration: this "
+                "organization was approved under the retired pending_instagram "
+                "flow and never connected Instagram."
+            ),
+            status="awaiting_connect",
+            decided_kind="account_switch",
+            is_migration_placeholder=True,
+        )
+        db_session.add(req)
+        await db_session.flush()
+        admin = await admin_headers(db_session)
+
+        retargeted = await app_client.post(
+            f"/api/admin/ig-change-requests/{req.id}/retarget",
+            json={"requestedHandle": "renamedclubig"},
+            headers=admin,
+        )
+        assert retargeted.status_code == 200
+
+        await db_session.refresh(req)
+        assert req.is_migration_placeholder is False
+        # The signature the migration keys on is gone.
+        assert "Instagram-first migration" not in (req.reason or "")
+
     async def test_deny_after_approve_is_refused(self, app_client: AsyncClient, db_session):
         """A decided request cannot be decided again.
 

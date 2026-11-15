@@ -445,8 +445,13 @@ async def build_user_response(db: AsyncSession, user: User) -> UserResponse:
         instagram_username=user.instagram_username,
         email=user.edu_email,
         pending_edu_email=user.pending_edu_email,
-        instagram_reconnect_required=connect_action == "switch",
-        instagram_connect_required=connect_action == "initial",
+        # An admin viewing as an org keeps the diagnostic portal access the
+        # credential gate grants it. Reporting "reconnect required" here would
+        # bounce that admin into the Connect flow, which impersonation cannot
+        # complete, and the same session would route differently before and
+        # after this response.
+        instagram_reconnect_required=connect_action == "switch" and not admin_id,
+        instagram_connect_required=connect_action == "initial" and not admin_id,
         impersonated_by=uuid.UUID(admin_id) if admin_id else None,
         impersonation_readonly=impersonation_readonly(user) if admin_id else None,
     )

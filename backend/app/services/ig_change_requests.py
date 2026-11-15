@@ -473,6 +473,12 @@ async def retarget_awaiting_connect(
     # An explicit admin target is enforced even for a former migration ticket,
     # including when recovery points back to the org's original account.
     req.is_migration_placeholder = False
+    # Rewrite the reason too. ``8d1c70e5a942`` recognises a placeholder by its
+    # migration text, so leaving that text here would let a downgrade and
+    # re-upgrade re-derive the flag for a ticket an admin has since retargeted,
+    # silently handing the org the permissive bind behaviour.
+    if req.reason and "Instagram-first migration" in req.reason:
+        req.reason = f"Admin retargeted this reconnect to @{cleaned}."
     await db.flush()
     logger.info("ig_change_request_retargeted request_id=%s handle=%s", req.id, cleaned)
     return _serialize(req)

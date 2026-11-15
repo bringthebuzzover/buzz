@@ -35,4 +35,14 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Deliberately does not try to persist which rows were placeholders. The
+    # flag is dropped, so a later upgrade would have to infer it from ticket
+    # fields again (current_handle == requested_handle, created_at == decided_at,
+    # the migration reason). Those fields are mutable: an admin retarget changes
+    # requested_handle and a bind moves status, so a round trip could either
+    # resurrect the permissive placeholder behaviour for a real switch or lose
+    # it for a genuine legacy ticket. Neither outcome is acceptable, so the
+    # backfill only ever runs against rows the retiring migration itself just
+    # synthesized, and a round trip is expected to leave the flag false. Callers
+    # that must preserve it should not downgrade past this revision.
     op.drop_column("org_ig_change_requests", "is_migration_placeholder")
