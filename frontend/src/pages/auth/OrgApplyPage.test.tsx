@@ -79,7 +79,7 @@ describe("OrgApplyPage Instagram-first onboarding", () => {
     const kicker = Array.from(container.querySelectorAll("p")).find((el) =>
       el.textContent?.includes("Professional Account Required"),
     );
-    expect(kicker?.className).toContain("text-red-400");
+    expect(kicker?.className).toContain("text-buzz-danger");
 
     const button = container.querySelector("button") as HTMLButtonElement;
     expect(button).not.toBeNull();

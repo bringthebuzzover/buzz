@@ -7,12 +7,10 @@ from datetime import timedelta
 from uuid import uuid4
 
 from httpx import AsyncClient
-from sqlalchemy import select
 
 from app import errors
 from app.jobs.token_cleanup import cleanup_tokens
 from app.models.org_apply_prefill import OrgApplyPrefill
-from app.models.user import User
 from app.security.one_shot_tokens import hash_token
 from app.services.org_apply_prefill import (
     deliver_saved_prefill_email,
@@ -21,7 +19,6 @@ from app.services.org_apply_prefill import (
 )
 from app.services.org_apply_prefill_parse import ParsedPrefill, parse_form_row, parse_shipping
 from app.timeutils import utcnow
-from tests.test_org_apply import _APPLY
 
 
 def test_parse_ent_cornell() -> None:

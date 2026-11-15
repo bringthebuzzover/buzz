@@ -186,9 +186,7 @@ async def test_apply_unpublished_drop_id_does_not_create_org(
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
     assert (
-        await db_session.scalar(
-            select(Organization.id).where(Organization.user_id == user.id)
-        )
+        await db_session.scalar(select(Organization.id).where(Organization.user_id == user.id))
         is None
     )
 

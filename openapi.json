@@ -9505,7 +9505,7 @@
       },
       "OrgOnboardingRequest": {
         "additionalProperties": false,
-        "description": "Phase 2: submit org profile after Instagram OAuth (legacy drain).",
+        "description": "Submit an authenticated profile and optional public-drop apply intent.",
         "properties": {
           "category": {
             "$ref": "#/components/schemas/OrgCategory"
@@ -9525,6 +9525,18 @@
             "title": "Contactname",
             "type": "string"
           },
+          "dropId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dropid"
+          },
           "eduEmail": {
             "title": "Eduemail",
             "type": "string"
@@ -9536,6 +9548,18 @@
           "orgName": {
             "title": "Orgname",
             "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
           },
           "prefillToken": {
             "anyOf": [
@@ -18354,7 +18378,7 @@
     },
     "/api/orgs/apply": {
       "post": {
-        "description": "Public apply-first signup (no Instagram OAuth).",
+        "description": "Retired anonymous signup; organization identity requires Instagram OAuth.",
         "operationId": "org_apply_api_orgs_apply_post",
         "requestBody": {
           "content": {

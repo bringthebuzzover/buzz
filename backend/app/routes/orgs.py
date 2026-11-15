@@ -7,8 +7,6 @@ posts surface.
 
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 

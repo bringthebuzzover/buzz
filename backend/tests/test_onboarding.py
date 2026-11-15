@@ -1221,6 +1221,7 @@ async def test_profile_records_public_drop_intent(app_client, db_session, drop_s
 @pytest.mark.parametrize("extra", [{"dropId": "https://example.test"}, {"pitch": "x" * 2001}])
 def test_onboarding_bounds_drop_context(extra):
     from pydantic import ValidationError
+
     from app.schemas.onboarding import OrgOnboardingRequest
 
     with pytest.raises(ValidationError):

@@ -35,7 +35,7 @@ export default function OrgApplyPage() {
     <AuthSplit asideStatement="Join as a student organization and work with brands on real campus campaigns.">
       {isPersonalAccountError ? (
         <div className="space-y-3">
-          <p className="text-xs font-medium text-red-400">
+          <p className="text-xs font-medium text-buzz-danger">
             Professional Account Required
           </p>
           <h1 className={cn(TEXT.h1, "text-primary")}>Account Type Error</h1>
