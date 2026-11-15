@@ -176,6 +176,7 @@ function DropSignupEntry({ nextPath }: { nextPath: string }) {
       <TextArea
         label="Pitch (optional)"
         data-testid="public-drop-pitch"
+        placeholder="e.g. We host weekly mixers and can staff a table at the student center"
         value={pitch}
         onChange={(e) => setPitch(e.target.value)}
         maxLength={DROP_PITCH_MAX_LENGTH}
@@ -383,6 +384,7 @@ function PendingOrgActions({
       <TextArea
         data-testid="intent-pitch"
         label="Pitch (optional)"
+        placeholder="e.g. We host weekly mixers and can staff a table at the student center"
         value={pitch}
         onChange={(e) => setPitch(e.target.value)}
         rows={4}

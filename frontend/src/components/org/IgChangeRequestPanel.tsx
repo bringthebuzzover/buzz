@@ -153,6 +153,7 @@ export default function IgChangeRequestPanel({
                   id="ig-change-requested"
                   label="Requested handle"
                   data-testid="ig-change-requested"
+                  placeholder="@yourorg"
                   value={requested}
                   onChange={(e) => setRequested(e.target.value)}
                 />
@@ -161,6 +162,8 @@ export default function IgChangeRequestPanel({
                   label="Why"
                   rows={4}
                   data-testid="ig-change-reason"
+                  placeholder="e.g. Our social chair changed and the old account is locked"
+                  hint="At least 10 characters."
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />

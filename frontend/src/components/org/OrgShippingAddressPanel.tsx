@@ -119,6 +119,7 @@ export default function OrgShippingAddressPanel({
           <TextField
             id="org-shipping-request-reason"
             label="Reason for change"
+            placeholder="e.g. We moved into a new campus office"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             required

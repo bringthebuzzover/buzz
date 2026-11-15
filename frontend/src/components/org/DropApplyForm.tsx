@@ -33,7 +33,7 @@ export default function DropApplyForm({
       <div className={STACK.default}>
         <TextArea
           label="Pitch (optional)"
-          placeholder="Optional pitch message..."
+          placeholder="e.g. We host weekly mixers and can staff a table at the student center"
           value={pitch}
           onChange={(e) => setPitch(e.target.value)}
           rows={4}

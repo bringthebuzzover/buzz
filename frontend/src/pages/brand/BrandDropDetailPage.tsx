@@ -321,6 +321,7 @@ function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
         <TextArea
           label="Description"
           rows={3}
+          placeholder="e.g. Cold brew for tailgates and study-night tables"
           value={description}
           disabled={patch.isPending}
           onChange={(e) => setDescription(e.target.value)}

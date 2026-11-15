@@ -216,7 +216,7 @@ function RequestForm({
             label="What you're sending"
             required
             rows={3}
-            placeholder="e.g. 200 cans of cold brew + branded koozies"
+            placeholder="e.g. 200 cold brew cans + koozies"
             error={errorFor("product")}
           />
         </Card>
@@ -232,7 +232,6 @@ function RequestForm({
             name="title"
             label={optional("Title")}
             maxLength={120}
-            placeholder="e.g. Fall Cold Brew Launch"
             hint="A short name for your Requests list. BUZZ sets the final drop title."
             error={errorFor("title")}
           />
@@ -242,7 +241,7 @@ function RequestForm({
               name="location"
               label={optional("Campuses or area")}
               maxLength={255}
-              placeholder="e.g. Sample University, or Anywhere"
+              placeholder="City, region, or “Anywhere”"
               error={errorFor("location")}
             />
             <TextField
@@ -264,7 +263,7 @@ function RequestForm({
               min={1}
               max={200}
               label={optional("How many organizations?")}
-              placeholder="e.g. 8"
+              placeholder="8"
               error={errorFor("orgCount")}
             />
             <TextField
@@ -274,7 +273,7 @@ function RequestForm({
               min={1}
               max={10000}
               label={optional("Units per organization")}
-              placeholder="e.g. 24"
+              placeholder="24"
               error={errorFor("unitsPerOrg")}
             />
           </div>
@@ -282,7 +281,8 @@ function RequestForm({
             id="campaignHashtag"
             name="campaignHashtag"
             label={optional("Campaign hashtag")}
-            placeholder="e.g. SampleFallBrew (no # needed)"
+            placeholder="#yourcampaign"
+            hint="A leading # is optional."
             error={errorFor("campaignHashtag")}
           />
           <TextArea

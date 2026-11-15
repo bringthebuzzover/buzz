@@ -66,7 +66,7 @@ export default function ForgotPasswordPage({
           <TextField
             type="email"
             label="Email"
-            placeholder="e.g. you@company.com"
+            placeholder="you@brand.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
