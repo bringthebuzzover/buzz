@@ -102,21 +102,23 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     # the notice went out would tell the visitor "too many requests" about a
     # message the team already received.
     recipient_key = mailbox_identity(payload.email)
-    # A byte-identical retry (lost response, double click) is deduped by the
-    # provider's idempotency key. An already-accepted replay is answered without
-    # reserving anything. A retry that overlaps the first attempt has no accepted
-    # marker yet, so it does reserve — otherwise two in-flight copies would both
-    # deliver and only cost one slot.
-    replay = submission_already_accepted(submission_hash)
-    reserved = False
-    if not replay:
-        if not reserve_account_send("contact_recipient", recipient_key, limit=3, window=3600):
-            raise BuzzAPIException(
-                errors.RATE_LIMITED,
-                "Too many requests. Please slow down and try again shortly.",
-                status_code=429,
-            )
-        reserved = True
+    # A byte-identical retry (lost response, double click) is answered from the
+    # marker without reserving or dispatching again. A retry overlapping the
+    # first attempt has no marker yet, so it does reserve; two in-flight copies
+    # must not both deliver for one slot.
+    if submission_already_accepted(submission_hash):
+        # Already accepted and already delivered. Answering from the marker rather
+        # than dispatching again is what keeps the cap meaningful: the provider's
+        # idempotency keys expire, so a re-dispatch would eventually send a second
+        # real email with no reservation behind it.
+        return api_response(data=ContactAccepted())
+
+    if not reserve_account_send("contact_recipient", recipient_key, limit=3, window=3600):
+        raise BuzzAPIException(
+            errors.RATE_LIMITED,
+            "Too many requests. Please slow down and try again shortly.",
+            status_code=429,
+        )
 
     try:
         notice_sent = await email.send_contact_notice(
@@ -126,20 +128,11 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
             idempotency_key=notice_key,
         )
     except Exception:
-        # Only give back a slot this attempt actually took. Releasing one it
-        # never held would hand a spent budget back to the caller.
-        if reserved:
-            release_account_send("contact_recipient", recipient_key)
-        if replay:
-            # The original was already accepted and the team already has it; a
-            # failing replay must not become a new delivery failure.
-            return api_response(data=ContactAccepted())
+        # Give the reservation back: nothing was delivered.
+        release_account_send("contact_recipient", recipient_key)
         raise
     if not notice_sent:
-        if reserved:
-            release_account_send("contact_recipient", recipient_key)
-        if replay:
-            return api_response(data=ContactAccepted())
+        release_account_send("contact_recipient", recipient_key)
         # No ack: the team never saw this, so claiming we did would be a lie the
         # visitor acts on. They still have their text on screen and can retry.
         logger.error("contact_notice_failed")

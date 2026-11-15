@@ -572,16 +572,22 @@ async def test_contact_idempotency_key_is_actually_built(app_client: AsyncClient
     assert "@" not in ack["idempotency_key"]
 
 
-async def test_contact_same_submission_reuses_one_idempotency_key(
+async def test_contact_same_submission_is_answered_without_resending(
     app_client: AsyncClient, sent
 ) -> None:
-    """An identical double-submit collapses onto the same key."""
-    await app_client.post("/api/contact", json=_VALID)
-    await app_client.post("/api/contact", json=_VALID)
+    """An identical double-submit is answered from the accepted marker.
 
-    keys = [m["idempotency_key"] for m in sent]
-    assert keys[0] == keys[2], keys
-    assert keys[1] == keys[3], keys
+    The first attempt is two sends (notice + ack). A replay must add none: the
+    provider's idempotency keys expire, so a re-dispatch would eventually be a
+    genuine second email with no reservation behind it.
+    """
+    first = await app_client.post("/api/contact", json=_VALID)
+    replay = await app_client.post("/api/contact", json=_VALID)
+
+    assert first.status_code == 200
+    assert replay.status_code == 200
+    # Exactly the first attempt's two sends.
+    assert len(sent) == 2, sent
 
 
 async def test_contact_ack_never_echoes_submitter_text(app_client: AsyncClient, sent) -> None:
