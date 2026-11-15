@@ -152,6 +152,46 @@ async def handle_instagram_callback(
         )
 
     org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    if bind_user_id is not None:
+        open_switches = list(
+            await db.scalars(
+                select(OrgIgChangeRequest).where(
+                    OrgIgChangeRequest.user_id == user.id,
+                    OrgIgChangeRequest.status == "awaiting_connect",
+                    OrgIgChangeRequest.decided_kind == "account_switch",
+                )
+            )
+        )
+        # An approved account switch names the handle the org must bind to. Binding
+        # any other account would hand the org portal access (it stays ``active``
+        # and gains fresh Graph credentials) and close the ticket as done, so the
+        # bind is refused: no credentials are written, the ticket stays
+        # ``awaiting_connect``, and the org can retry with the approved handle.
+        # The attempt is still recorded on the org for admins — the same flag as
+        # the advisory Connect mismatch — and committed before raising, because
+        # the refusal rolls this request's transaction back.
+        #
+        # Only tickets that name a real switch target are enforced. A ticket
+        # whose ``current_handle`` and ``requested_handle`` are the same handle
+        # (see ``_names_switch_target``) carries no admin-approved target: the
+        # pending_instagram retirement synthesizes exactly that shape for orgs
+        # that were approved under the old apply-first flow and never connected.
+        # Those must accept whichever account the org finally binds — enforcing
+        # the handle they typed before ever connecting would re-brick the cohort
+        # the ticket exists to rescue. Real switches always name two different
+        # handles, because ``submit_request`` refuses a no-op switch.
+        #
+        # Legacy ``bind_user_id`` binds with no open switch skip all of this and
+        # behave exactly as before.
+        enforced = _switch_target_handles(open_switches)
+        if enforced and graph_handle.casefold() not in enforced:
+            await _refuse_switch_bind(db, org, graph_handle, enforced, user_id=user.id, now=now)
+        closed_switches = [
+            row for row in open_switches if _switch_satisfied_by_bind(row, graph_handle)
+        ]
+    else:
+        closed_switches = []
+
     if bind_user_id is not None and org is not None:
         claimed = canonical_instagram_handle(org.claimed_instagram_username)
         if claimed and graph_handle and claimed.lower() != graph_handle.lower():
@@ -173,14 +213,13 @@ async def handle_instagram_callback(
         short.permissions,
     )
     user.last_login_at = now
-    if bind_user_id is not None:
+    if closed_switches:
+        # Close only the tickets this bind actually satisfied, so a leftover row
+        # never reports a handle the org did not bind. Empty for a legacy
+        # ``bind_user_id`` bind with no open switch, and for a plain login.
         await db.execute(
             update(OrgIgChangeRequest)
-            .where(
-                OrgIgChangeRequest.user_id == user.id,
-                OrgIgChangeRequest.status == "awaiting_connect",
-                OrgIgChangeRequest.decided_kind == "account_switch",
-            )
+            .where(OrgIgChangeRequest.id.in_([row.id for row in closed_switches]))
             .values(status="approved")
         )
     if org is not None:
@@ -210,6 +249,90 @@ async def handle_instagram_callback(
     if bind_user_id is not None:
         await promote_drop_apply_intents(db, user)
     return user
+
+
+def _names_switch_target(row: OrgIgChangeRequest) -> bool:
+    """Whether *row* names an admin-approved switch target.
+
+    A real approved switch names a handle that differs from the org's previous
+    one, so ``current_handle`` and ``requested_handle`` differ. Tickets whose two
+    handles are identical are placeholders synthesized by the
+    ``pending_instagram`` retirement for orgs approved under the retired
+    apply-first flow that never connected; they carry no admin-approved target.
+    """
+
+    requested = canonical_instagram_handle(row.requested_handle)
+    return (
+        bool(requested)
+        and requested.casefold() != canonical_instagram_handle(row.current_handle).casefold()
+    )
+
+
+def _switch_target_handles(switches: list[OrgIgChangeRequest]) -> set[str]:
+    """Casefolded ``requested_handle`` values a switch bind must match.
+
+    Empty when every open ticket is a placeholder (see
+    :func:`_names_switch_target`), which is the signal to accept any bound
+    account — enforcing the handle such an org typed months before ever
+    connecting would re-brick the cohort the ticket exists to rescue.
+    """
+
+    return {
+        canonical_instagram_handle(row.requested_handle).casefold()
+        for row in switches
+        if _names_switch_target(row)
+    }
+
+
+def _switch_satisfied_by_bind(row: OrgIgChangeRequest, graph_handle: str) -> bool:
+    """Whether *row* is closed by a bind of ``graph_handle``.
+
+    A real switch closes only on its own requested handle. A placeholder ticket
+    (see :func:`_names_switch_target`) is closed by whatever the org binds, which
+    is the only way such an org can finish reconnecting.
+    """
+
+    if not _names_switch_target(row):
+        return True
+    granted = graph_handle.casefold()
+    return bool(granted) and canonical_instagram_handle(row.requested_handle).casefold() == granted
+
+
+async def _refuse_switch_bind(
+    db: AsyncSession,
+    org: Organization | None,
+    graph_handle: str,
+    requested: set[str],
+    *,
+    user_id: uuid.UUID,
+    now: datetime,
+) -> None:
+    """Reject a bind that does not satisfy the approved switch's handle.
+
+    The org keeps its ``awaiting_connect`` ticket, so the portal stays closed
+    (credentials were released at approve) and the org can retry. The org row
+    is flagged for admins like any other Connect mismatch: the flag is written
+    and committed here because raising rolls the caller's transaction back, and
+    the flag must survive that rollback. Never writes Graph credentials.
+    """
+
+    logger.warning(
+        "instagram switch bind refused user_id=%s graph=%s requested=%s",
+        user_id,
+        graph_handle or "(missing)",
+        ",".join(sorted(requested)),
+    )
+    if org is not None and graph_handle:
+        flag_ig_bind_mismatch(org, graph_handle, now)
+        # Durable before the raise: the route rolls this request back.
+        await db.commit()
+    handles = " or ".join(f"@{handle}" for handle in sorted(requested))
+    raise BuzzAPIException(
+        errors.INVALID_ONBOARDING_STATE,
+        f"This Instagram account does not match the approved switch. Connect {handles} "
+        "to finish reconnecting.",
+        status_code=400,
+    )
 
 
 def _apply_callback_follower_count(org: Organization, profile: object) -> None:

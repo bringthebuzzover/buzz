@@ -20,11 +20,13 @@ class OrgIgChangeRequest(Base):
     __tablename__ = "org_ig_change_requests"
     __table_args__ = (
         sa.Index("ix_org_ig_change_requests_org_id", "org_id"),
+        # One *open* ticket per org: pending review and awaiting reconnect are
+        # both live, so a second switch cannot stack behind an unfinished one.
         sa.Index(
-            "uq_org_ig_change_requests_one_pending",
+            "uq_org_ig_change_requests_one_open",
             "org_id",
             unique=True,
-            postgresql_where=sa.text("status = 'pending'"),
+            postgresql_where=sa.text("status IN ('pending', 'awaiting_connect')"),
         ),
     )
 

@@ -98,6 +98,47 @@ async def test_resend_connect_all_only_awaiting_connect(
     approved_mail.assert_not_awaited()
 
 
+async def test_migrated_legacy_org_can_be_reached_by_resend_connect(
+    app_client: AsyncClient, db_session, monkeypatch
+) -> None:
+    """A legacy ``pending_instagram`` org rescued by the migration is reachable.
+
+    The retirement migration turns every unbound legacy org into ``active`` plus
+    a synthesized ``awaiting_connect`` ticket naming the handle it claimed. The
+    admin "resend Connect" action must reach it — before the fix these orgs
+    landed in ``pending_approval``, where ``resend_org_connect`` 400s and every
+    other exit path refuses them.
+    """
+    from app.services.admin import resend_org_connect
+    from app.services.org_connect import org_owes_instagram_reconnect
+
+    switch_mail = AsyncMock(return_value=True)
+    monkeypatch.setattr("app.services.admin.send_org_ig_switch_connect_email", switch_mail)
+
+    user = await persist(
+        db_session,
+        make_user(
+            role=PortalRole.ORG,
+            status=OrgUserStatus.ACTIVE,
+            instagram_user_id=None,
+            instagram_username="legacyclub",
+        ),
+    )
+    user.edu_email = "legacy@test.edu"
+    org = await make_org(db_session, user, org_name="Legacy Apply First")
+    # Exactly the ticket shape the migration synthesizes: no switch target.
+    await make_awaiting_connect(db_session, user, org, current_handle=None)
+    await db_session.flush()
+
+    assert await org_owes_instagram_reconnect(db_session, user) is True
+    out = await resend_org_connect(db_session, org.id)
+    assert out["status"] == OrgUserStatus.ACTIVE.value
+    switch_mail.assert_awaited_once()
+    assert switch_mail.await_args.args[0] == "legacy@test.edu"
+    assert switch_mail.await_args.kwargs["requested_handle"] == "legacyclub"
+    assert switch_mail.await_args.kwargs["connect_token"]
+
+
 async def test_resend_connect_all_acknowledges_queued_send(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:

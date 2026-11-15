@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from unittest.mock import AsyncMock
 from urllib.parse import parse_qs, urlparse
 
@@ -17,7 +18,9 @@ from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.security.token_crypto import encrypt_token
+from app.services.ig_change_requests import approve_request
 from app.services.org_connect import create_org_connect_token, redeem_org_connect_token
+from app.timeutils import utcnow
 from tests.conftest import (
     FakeInstagramClient,
     admin_headers,
@@ -331,6 +334,117 @@ class TestOrgIgChangeRequest:
         )
         assert profile.json()["data"]["previousInstagramHandle"] == "campusgreeks"
         assert profile.json()["data"]["igSwitchedAt"] is not None
+
+    async def test_second_switch_refused_while_one_awaits_connect(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        """An open reconnect must finish before another switch can be approved.
+
+        ``user.status`` stays ``active`` while an org owes a reconnect, so the
+        old active-only guard let a second switch stack a second live
+        ``awaiting_connect`` row; one bind then closed both. Two layers now
+        refuse it: the partial unique index covers both open states, and
+        ``approve_request`` refuses an ``account_switch`` for an org that
+        already owes a reconnect.
+        """
+        monkeypatch.setattr(
+            "app.services.ig_change_requests.send_org_ig_switch_connect_email",
+            AsyncMock(return_value=True),
+        )
+        user, org = await _active_org(db_session)
+        admin = await admin_headers(db_session)
+        first = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(requestedHandle="firstnewclub"),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        assert first.status_code == 200, first.text
+        approved = await app_client.post(
+            f"/api/admin/ig-change-requests/{first.json()['data']['id']}/approve",
+            json={"kind": "account_switch", "testerInviteConfirmed": True},
+            headers=admin,
+        )
+        assert approved.status_code == 200, approved.text
+        await db_session.refresh(user)
+        assert user.status == OrgUserStatus.ACTIVE.value
+
+        # The org cannot submit another request while it owes the reconnect
+        # (the portal is closed by credential absence).
+        second = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(requestedHandle="secondnewclub"),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        assert second.status_code == 403
+
+    async def test_approve_refuses_when_reconnect_already_owed(self, db_session, monkeypatch):
+        """The service guard refuses a switch for an org already owing one.
+
+        A stacked state cannot survive the widened unique index, so the test
+        drops the index inside its own transaction (PostgreSQL DDL is
+        transactional, so teardown restores it) to reproduce the leftover a
+        rolling deploy can see: app code before the index migration.
+        """
+        from sqlalchemy import text
+
+        monkeypatch.setattr(
+            "app.services.ig_change_requests.send_org_ig_switch_connect_email",
+            AsyncMock(return_value=True),
+        )
+        user, org = await _active_org(db_session)
+        await db_session.execute(text("DROP INDEX uq_org_ig_change_requests_one_open"))
+        await db_session.flush()
+        db_session.add_all(
+            [
+                OrgIgChangeRequest(
+                    id=uuid.uuid4(),
+                    org_id=org.id,
+                    user_id=user.id,
+                    kind="account_switch",
+                    current_handle="campusgreeks",
+                    requested_handle="newcampusig",
+                    reason="We lost access to the old club account.",
+                    status="awaiting_connect",
+                    decided_kind="account_switch",
+                    decided_at=utcnow(),
+                ),
+                OrgIgChangeRequest(
+                    id=uuid.uuid4(),
+                    org_id=org.id,
+                    user_id=user.id,
+                    kind="account_switch",
+                    current_handle="newcampusig",
+                    requested_handle="thirdclub",
+                    reason="A second switch stacked behind the open reconnect.",
+                    status="pending",
+                ),
+            ]
+        )
+        await db_session.flush()
+        pending = await db_session.scalar(
+            select(OrgIgChangeRequest).where(
+                OrgIgChangeRequest.org_id == org.id,
+                OrgIgChangeRequest.status == "pending",
+            )
+        )
+        assert pending is not None
+        with pytest.raises(BuzzAPIException) as exc:
+            await approve_request(
+                db_session, pending.id, kind="account_switch", tester_invite_confirmed=True
+            )
+        assert exc.value.status_code == 400
+        assert "finish reconnecting" in exc.value.message
+        await db_session.refresh(pending)
+        assert pending.status == "pending"
+        live = list(
+            await db_session.scalars(
+                select(OrgIgChangeRequest).where(
+                    OrgIgChangeRequest.org_id == org.id,
+                    OrgIgChangeRequest.status == "awaiting_connect",
+                )
+            )
+        )
+        assert len(live) == 1
 
     async def test_deny_writes_nothing(self, app_client: AsyncClient, db_session, monkeypatch):
         deny_mail = AsyncMock(return_value=True)

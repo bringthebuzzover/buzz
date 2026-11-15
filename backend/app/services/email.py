@@ -46,7 +46,6 @@ _IDEMPOTENCY_KEY_MAX = 256
 KIND_VERIFICATION = "verification"
 KIND_BRAND_APPLIED = "brand-applied"
 KIND_BRAND_INVITE = "brand-invite"
-KIND_ORG_APPROVED = "org-approved"
 KIND_ORG_APPROVED_BOUND = "org-approved-bound"
 KIND_IG_SWITCH_CONNECT = "ig-switch-connect"
 KIND_IG_RENAME_APPROVED = "ig-rename-approved"

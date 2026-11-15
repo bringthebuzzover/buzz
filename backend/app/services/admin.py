@@ -289,7 +289,15 @@ async def resend_org_connect(
     raw, connect_token_id = await create_org_connect_token(db, org, user)
     await db.flush()
     switch = await latest_approved_switch(db, org.id)
-    assert switch is not None  # The reconnect helper requires an approved switch.
+    if switch is None:
+        # org_owes_instagram_reconnect() reads the same rows, so this is a
+        # broken invariant, not an expected state. Raise rather than assert:
+        # an ``assert`` disappears under ``python -O``.
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization is not waiting to connect Instagram.",
+            status_code=400,
+        )
     email_queued = await schedule_email(
         background_tasks,
         send_org_ig_switch_connect_email,

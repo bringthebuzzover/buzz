@@ -359,21 +359,35 @@ async def make_org(
     return org
 
 
-async def make_awaiting_connect(db: AsyncSession, user: User, org: Organization):
-    """An approved account switch whose credentials have been released."""
+async def make_awaiting_connect(
+    db: AsyncSession,
+    user: User,
+    org: Organization,
+    *,
+    current_handle: str | None = "oldclub",
+    requested_handle: str | None = None,
+):
+    """An approved account switch whose credentials have been released.
+
+    ``current_handle`` defaults to a real switch (a *different* previous handle),
+    which is enforced on bind. Pass ``current_handle=<the same handle>`` for the
+    placeholder ticket the pending_instagram retirement synthesizes for a legacy
+    org that never connected: it names no switch target, so any bind satisfies it.
+    """
     from app.models.org_ig_change_request import OrgIgChangeRequest
 
     user.instagram_user_id = None
     user.instagram_token_user_id = None
     user.instagram_access_token = None
+    requested = requested_handle or user.instagram_username or "newclub"
     row = OrgIgChangeRequest(
         id=uuid.uuid4(),
         org_id=org.id,
         user_id=user.id,
         kind="account_switch",
         decided_kind="account_switch",
-        current_handle="oldclub",
-        requested_handle=user.instagram_username or "newclub",
+        current_handle=requested if current_handle is None else current_handle,
+        requested_handle=requested,
         reason="Switch to the new organization account.",
         status="awaiting_connect",
         decided_at=datetime.now(timezone.utc),

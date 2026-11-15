@@ -43,7 +43,7 @@ from app.services.org_apply import (
     clear_ig_bind_mismatch,
     normalize_claimed_handle,
 )
-from app.services.org_connect import create_org_connect_token
+from app.services.org_connect import create_org_connect_token, org_owes_instagram_reconnect
 from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -160,16 +160,16 @@ async def submit_request(
             status_code=400,
         )
 
-    existing_pending = await db.scalar(
+    existing_open = await db.scalar(
         select(OrgIgChangeRequest.id).where(
             OrgIgChangeRequest.org_id == org.id,
-            OrgIgChangeRequest.status == "pending",
+            OrgIgChangeRequest.status.in_(("pending", "awaiting_connect")),
         )
     )
-    if existing_pending is not None:
+    if existing_open is not None:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "This organization already has a pending Instagram identity request.",
+            "This organization already has an open Instagram identity request.",
             status_code=409,
         )
 
@@ -324,6 +324,19 @@ async def approve_request(
             errors.VALIDATION_ERROR,
             "Confirm you added the requested handle as an Instagram Tester "
             "before approving a switch.",
+            status_code=400,
+        )
+
+    # ``user.status == active`` also holds for an org already owing a reconnect
+    # (the PR keeps them active and closes the portal by credential absence).
+    # Approving a second switch there would leave two live ``awaiting_connect``
+    # rows: one bind clears both, and ``latest_approved_switch`` could report a
+    # handle the org never bound. Refuse it until the open reconnect finishes.
+    if kind == "account_switch" and await org_owes_instagram_reconnect(db, user):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "This organization must finish reconnecting Instagram before another "
+            "account switch can be approved.",
             status_code=400,
         )
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from urllib.parse import parse_qs, urlparse
 
 from httpx import AsyncClient
@@ -9,6 +10,7 @@ from sqlalchemy import select
 
 from app import errors
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.user import User
 from app.security.token_crypto import encrypt_token
@@ -23,7 +25,16 @@ from tests.conftest import (
 )
 
 
-async def _pending_connect(db_session, *, claimed: str, username: str | None = None):
+async def _pending_connect(
+    db_session, *, claimed: str, username: str | None = None, switch_target: str | None = None
+):
+    """An org owing a reconnect, with the ticket shape under test.
+
+    Defaults to the *placeholder* ticket the ``pending_instagram`` retirement
+    synthesizes (``current_handle`` == ``requested_handle``), which names no
+    switch target and therefore keeps the advisory-only mismatch semantics.
+    Pass ``switch_target`` for a real admin-approved switch to another handle.
+    """
     user = await persist(
         db_session,
         make_user(
@@ -34,7 +45,13 @@ async def _pending_connect(db_session, *, claimed: str, username: str | None = N
         ),
     )
     org = await make_org(db_session, user)
-    await make_awaiting_connect(db_session, user, org)
+    await make_awaiting_connect(
+        db_session,
+        user,
+        org,
+        current_handle=None if switch_target is None else "oldclub",
+        requested_handle=switch_target,
+    )
     org.claimed_instagram_username = claimed
     await db_session.flush()
     return user, org
@@ -191,13 +208,41 @@ async def test_empty_claimed_does_not_flag(
     assert org.ig_bind_mismatched_at is None
 
 
+async def test_placeholder_ticket_accepts_any_bound_handle(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    """A migration-synthesized ticket must not enforce its claimed handle.
+
+    The retirement migration gives each rescued legacy org a ticket whose
+    ``current_handle`` and ``requested_handle`` are the handle the org *claimed*
+    long before ever connecting. Enforcing it would re-brick exactly the cohort
+    the ticket exists to rescue, so any bound account satisfies it (the advisory
+    mismatch flag still fires when the Graph handle differs).
+    """
+
+    fake_instagram.account_type = "BUSINESS"
+    fake_instagram.user_id = "ig_placeholder"
+    fake_instagram.username = "actuallyboundclub"
+    user, org = await _pending_connect(db_session, claimed="legacyclub")
+    await _bind(app_client, user, fake_instagram)
+    await db_session.refresh(user)
+    await db_session.refresh(org)
+    assert user.instagram_user_id == "ig_placeholder"
+    assert user.instagram_username == "actuallyboundclub"
+    assert org.ig_bind_graph_username == "actuallyboundclub"
+    row = await db_session.scalar(
+        select(OrgIgChangeRequest).where(OrgIgChangeRequest.org_id == org.id)
+    )
+    assert row is not None and row.status == "approved"
+
+
 async def test_unknown_attention_rejected(app_client: AsyncClient, db_session) -> None:
     admin = await admin_headers(db_session)
     res = await app_client.get("/api/admin/orgs?attention=bogus", headers=admin)
     assert res.status_code == 400
 
 
-async def test_switch_clears_mismatch_then_rebind_can_flag(
+async def test_switch_clears_mismatch_then_wrong_handle_is_refused(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session, monkeypatch
 ) -> None:
     from unittest.mock import AsyncMock
@@ -233,9 +278,10 @@ async def test_switch_clears_mismatch_then_rebind_can_flag(
         headers=org_headers,
     )
     assert created.status_code == 200, created.text
+    request_id = created.json()["data"]["id"]
     admin = await admin_headers(db_session)
     approved = await app_client.post(
-        f"/api/admin/ig-change-requests/{created.json()['data']['id']}/approve",
+        f"/api/admin/ig-change-requests/{request_id}/approve",
         json={"kind": "account_switch", "testerInviteConfirmed": True},
         headers=admin,
     )
@@ -245,14 +291,45 @@ async def test_switch_clears_mismatch_then_rebind_can_flag(
     assert org.claimed_instagram_username == "newcampusig"
     assert org.ig_bind_mismatched_at is None
 
+    # Binding an account other than the approved target is refused: the switch
+    # must not close as done, and no credentials may be granted.
     fake_instagram.account_type = "BUSINESS"
     fake_instagram.user_id = "ig_switch_b"
     fake_instagram.username = "thirdclub"
-    await _bind(app_client, user, fake_instagram)
+    token = mint_access_token(user)
+    start = await app_client.post(
+        "/api/auth/instagram/bind-start",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert start.status_code == 200, start.text
+    state = parse_qs(urlparse(start.json()["data"]["authorizeUrl"]).query)["state"][0]
+    refused = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "wrong-handle", "state": state},
+    )
+    assert refused.status_code == 400, refused.text
+    assert refused.json()["error"]["code"] == errors.INVALID_ONBOARDING_STATE
+
+    await db_session.refresh(user)
     await db_session.refresh(org)
+    request = await db_session.get(OrgIgChangeRequest, uuid.UUID(request_id))
+    assert request is not None and request.status == "awaiting_connect"
+    assert user.instagram_user_id is None
+    assert user.instagram_access_token is None
+    # The attempt is still reported to admins, like any Connect mismatch.
     assert org.ig_bind_graph_username == "thirdclub"
     assert org.ig_bind_mismatched_at is not None
     assert org.ig_bind_mismatch_acked_at is None
+
+    # The org can retry with the approved handle; that bind closes the ticket.
+    fake_instagram.user_id = "ig_switch_c"
+    fake_instagram.username = "NewCampusIg"
+    await _bind(app_client, user, fake_instagram)
+    await db_session.refresh(user)
+    request = await db_session.get(OrgIgChangeRequest, uuid.UUID(request_id))
+    assert request is not None and request.status == "approved"
+    assert user.instagram_user_id == "ig_switch_c"
+    assert user.instagram_username == "NewCampusIg"
 
 
 async def test_bind_taken_handle_409_does_not_flag(
