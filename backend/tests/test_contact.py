@@ -318,3 +318,56 @@ async def test_contact_counts_against_two_distinct_buckets(
     assert (await app_client.post("/api/contact", json=_VALID)).status_code == 429
     # The 429 came from the hourly bucket, not the minute one.
     assert rate_limit._buckets[minute_key][1] == 2
+
+
+@pytest.mark.parametrize("key", ["Website", "WEBSITE", "webSite"])
+async def test_contact_rejects_unknown_key_casing_instead_of_bypassing_the_honeypot(
+    app_client: AsyncClient, sent, key: str
+) -> None:
+    """A casing variant of the honeypot must not slip past the guard.
+
+    Pydantic ignores unknown keys by default, so before ``extra="forbid"`` a
+    ``Website`` key left the honeypot at its empty default, passed the check,
+    and sent both emails. Rejecting extras closes that and sends nothing.
+    """
+    resp = await app_client.post(
+        "/api/contact",
+        json={
+            "firstName": "Bot",
+            "email": "bot@example.com",
+            "message": "buy my thing",
+            key: "http://spam.example",
+        },
+    )
+
+    assert resp.status_code == 422
+    assert sent == []
+
+
+async def test_contact_idempotency_key_is_actually_built(app_client: AsyncClient, sent) -> None:
+    """The key must survive ``build_idempotency_key``.
+
+    Passing the sender address produced ``None`` every time (a key part with
+    ``@`` is rejected as unsafe), which silently disabled deduplication.
+    """
+    resp = await app_client.post("/api/contact", json=_VALID)
+    assert resp.status_code == 200
+
+    notice, ack = sent
+    assert notice["idempotency_key"], "notice sent without a usable idempotency key"
+    assert ack["idempotency_key"], "ack sent without a usable idempotency key"
+    # The sender's address must not travel in a provider-visible header.
+    assert "@" not in notice["idempotency_key"]
+    assert "@" not in ack["idempotency_key"]
+
+
+async def test_contact_same_submission_reuses_one_idempotency_key(
+    app_client: AsyncClient, sent
+) -> None:
+    """An identical double-submit collapses onto the same key."""
+    await app_client.post("/api/contact", json=_VALID)
+    await app_client.post("/api/contact", json=_VALID)
+
+    keys = [m["idempotency_key"] for m in sent]
+    assert keys[0] == keys[2], keys
+    assert keys[1] == keys[3], keys

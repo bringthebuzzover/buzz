@@ -5491,7 +5491,8 @@
         "type": "object"
       },
       "ContactRequest": {
-        "description": "``POST /api/contact`` body.\n\n``website`` is a **honeypot**: a real browser never fills it because the\nfield is visually hidden, off the tab order, and hidden from assistive\ntech. Anything in it is a bot, and the route answers success while sending\nnothing (see the route for why silence is deliberate).",
+        "additionalProperties": false,
+        "description": "``POST /api/contact`` body.\n\n``website`` is a **honeypot**: a real browser never fills it because the\nfield is visually hidden, off the tab order, and hidden from assistive\ntech. Anything in it is a bot, and the route answers success while sending\nnothing (see the route for why silence is deliberate).\n\n``extra=\"forbid\"`` is load-bearing here, not stylistic. Without it Pydantic\nsilently ignores an unknown key, so a submission carrying ``Website`` or\n``WEBSITE`` left the honeypot at its empty default, passed the guard, and\nsent both emails \u2014 a casing bypass of the spam check. Forbidding extras\nturns every unrecognised key into a 422, which sends nothing.",
         "properties": {
           "email": {
             "title": "Email",

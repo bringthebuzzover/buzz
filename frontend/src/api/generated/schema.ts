@@ -4363,6 +4363,12 @@ export interface components {
          *     field is visually hidden, off the tab order, and hidden from assistive
          *     tech. Anything in it is a bot, and the route answers success while sending
          *     nothing (see the route for why silence is deliberate).
+         *
+         *     ``extra="forbid"`` is load-bearing here, not stylistic. Without it Pydantic
+         *     silently ignores an unknown key, so a submission carrying ``Website`` or
+         *     ``WEBSITE`` left the honeypot at its empty default, passed the guard, and
+         *     sent both emails — a casing bypass of the spam check. Forbidding extras
+         *     turns every unrecognised key into a 422, which sends nothing.
          */
         ContactRequest: {
             /** Email */

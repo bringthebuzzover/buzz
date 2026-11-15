@@ -14,6 +14,7 @@ sender) plus a copy back to the sender. See ``services.email``.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from datetime import datetime, timezone
 
@@ -67,11 +68,15 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
 
     submitted_at = datetime.now(timezone.utc)
     contact_name = " ".join(part for part in (payload.first_name, payload.last_name) if part)
-    # The timestamp is part of the key: the same person sending different text
-    # is a different message, while a double-submit cannot produce two sends.
-    notice_key = email.build_idempotency_key(
-        email.KIND_CONTACT, payload.email, submitted_at.isoformat()
-    )
+    # Key on a hash of the submission, NOT the sender address: a key part
+    # containing ``@`` is rejected as unsafe, so passing the email produced
+    # ``None`` every time and disabled deduplication entirely. The hash keeps
+    # the address out of the key (no PII in a provider-visible header) while
+    # still making an identical double-submit collapse into one send.
+    submission_hash = hashlib.sha256(
+        "\n".join((payload.email, payload.first_name, payload.last_name, payload.message)).encode()
+    ).hexdigest()
+    notice_key = email.build_idempotency_key(email.KIND_CONTACT, submission_hash)
 
     notice_sent = await email.send_contact_notice(
         contact_name=contact_name,
@@ -94,9 +99,7 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         to_email=payload.email,
         contact_name=payload.first_name,
         message=payload.message,
-        idempotency_key=email.build_idempotency_key(
-            email.KIND_CONTACT_ACK, payload.email, submitted_at.isoformat()
-        ),
+        idempotency_key=email.build_idempotency_key(email.KIND_CONTACT_ACK, submission_hash),
     )
     if not ack_sent:
         # Best-effort by design (see the docstring): the notice stands.
