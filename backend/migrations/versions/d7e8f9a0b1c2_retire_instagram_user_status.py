@@ -155,11 +155,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # The label is NOT guaranteed to exist. An earlier migration
-    # (b8c9d0e1f2a3) rebuilt this enum type from an explicit label list that
-    # omitted 'pending_instagram', so any database created fresh from the
-    # migration chain never has it. Writing the value below without adding the
-    # label first fails with InvalidTextRepresentationError.
+    # Defensive: ``b8c9d0e1f2a3`` rebuilds this enum from an explicit label list
+    # that omits 'pending_instagram', and ``b2c3d4e5f6a7`` adds it back later in
+    # the chain. A database built fresh from the migrations therefore has the
+    # label at head — but one restored from an older dump, or one whose chain was
+    # ever stopped between those two revisions, may not. Writing the value below
+    # without the label fails with InvalidTextRepresentationError, so add it
+    # rather than assume the order.
     #
     # ADD VALUE cannot run inside a transaction block on older Postgres, and
     # Alembic wraps migrations in one, so commit the surrounding work first the

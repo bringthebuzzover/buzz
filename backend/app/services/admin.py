@@ -78,6 +78,7 @@ from app.services.org_connect import (
     create_org_connect_token,
     org_awaits_initial_connect,
     org_connect_action,
+    org_has_instagram_credentials,
     org_owes_instagram_reconnect,
 )
 from app.services.seats import lock_drop, set_seat_decision
@@ -899,7 +900,11 @@ async def add_org_to_drop(
     application.decision_at = application.decision_sent_at = utcnow()
     await db.flush()
 
-    portal_ready = org_user.status == OrgUserStatus.ACTIVE.value
+    # An approved switch releases the org's credentials while leaving it active,
+    # so status alone would claim a portal that returns 403 on every request.
+    portal_ready = org_user.status == OrgUserStatus.ACTIVE.value and (
+        org_has_instagram_credentials(org_user)
+    )
     org_name = org.org_name or "an organization"
     email_org_queued: bool | None = None
     email_brand_queued: bool | None = None
