@@ -29,9 +29,14 @@ Legacy rows fall into four cohorts:
    the existing admin "resend Connect" action and the bind flow reach them and
    they can complete the reconnect instead of being stranded.
 4. **Unbound, no switch, and no claimed handle.** There is nothing to bind
-   against, so no ticket is synthesized; the user becomes ``active`` and is
-   left for admin follow-up. Rows without an ``organizations`` row are in the
-   same position (a ticket needs an ``org_id``).
+   against, so no ticket is synthesized. The user becomes ``pending_approval``
+   rather than ``active``: ``active`` would close the portal against a
+   credential gate nothing can satisfy, and no Connect action reaches an active
+   org without a ticket. ``pending_approval`` is reachable — the admin "send
+   Connect link" action mints a token for an unbound pre-approval org, and
+   ``approve_org`` succeeds once it connects. Rows without an
+   ``organizations`` row have no org to mint a token for, so they become
+   ``active``; no action could reach them in any status.
 
 A ticket is only synthesized when the org has no open (``pending`` or
 ``awaiting_connect``) ticket, so this never collides with the widened
@@ -110,8 +115,39 @@ def upgrade() -> None:
               WHERE r.org_id = o.id AND r.status IN ('pending', 'awaiting_connect')
           )
         """)
-    # Cohorts 2-4 plus those just given a ticket: every remaining legacy row is
-    # active. None of them may land in pending_approval (see module docstring).
+    # Cohort 2 (connected): active, nothing outstanding.
+    op.execute("""
+        UPDATE users u SET status = 'active'::org_user_status
+        WHERE u.status = 'pending_instagram'
+          AND u.portal_role = 'org'
+          AND coalesce(u.instagram_user_id, '') <> ''
+          AND coalesce(u.instagram_access_token, '') <> ''
+        """)
+    # Cohort 1, and cohort 3 once it holds the ticket synthesized above: the open
+    # 'awaiting_connect' row is their recovery path, so they stay active.
+    op.execute("""
+        UPDATE users u SET status = 'active'::org_user_status
+        WHERE u.status = 'pending_instagram'
+          AND u.portal_role = 'org'
+          AND EXISTS (
+              SELECT 1 FROM org_ig_change_requests r
+              JOIN organizations o ON o.id = r.org_id
+              WHERE o.user_id = u.id AND r.status = 'awaiting_connect'
+          )
+        """)
+    # Cohort 4 (unbound, no ticket, nothing claimed): there is no handle to bind
+    # and no ticket to redeem, so 'active' would close the portal against a
+    # credential gate that nothing can satisfy. 'pending_approval' is reachable
+    # instead: the admin "send Connect link" action mints a token for an unbound
+    # pre-approval org, and approval succeeds once the org connects.
+    op.execute("""
+        UPDATE users u SET status = 'pending_approval'::org_user_status
+        WHERE u.status = 'pending_instagram'
+          AND u.portal_role = 'org'
+          AND EXISTS (SELECT 1 FROM organizations o WHERE o.user_id = u.id)
+        """)
+    # Anything left has no organizations row, so no Connect action can reach it
+    # whatever its status. Retire the label so none is left writing it.
     op.execute("""
         UPDATE users u SET status = 'active'::org_user_status
         WHERE u.status = 'pending_instagram'

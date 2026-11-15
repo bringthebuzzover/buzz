@@ -446,6 +446,43 @@ class TestOrgIgChangeRequest:
         )
         assert len(live) == 1
 
+    async def test_deny_after_approve_is_refused(self, app_client: AsyncClient, db_session):
+        """A decided request cannot be decided again.
+
+        Approval releases the org's credentials and commits an
+        ``awaiting_connect`` ticket. If a concurrent denial could still write
+        ``denied`` over that row, the org would be active with no credentials
+        and no ticket — a state no Connect action can recover. The decision
+        paths take a row lock so the loser sees the new status and is refused.
+        """
+        user, _org = await _active_org(db_session)
+        created = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        request_id = created.json()["data"]["id"]
+        admin = await admin_headers(db_session)
+
+        approved = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/approve",
+            json={"kind": "account_switch", "testerInviteConfirmed": True},
+            headers=admin,
+        )
+        assert approved.status_code == 200
+
+        denied = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/deny", headers=admin
+        )
+        assert denied.status_code == 400
+
+        row = await db_session.get(OrgIgChangeRequest, request_id)
+        assert row is not None
+        # The approval stands: the recovery path was not overwritten.
+        assert row.status == "awaiting_connect"
+        await db_session.refresh(user)
+        assert user.instagram_user_id is None
+
     async def test_deny_writes_nothing(self, app_client: AsyncClient, db_session, monkeypatch):
         deny_mail = AsyncMock(return_value=True)
         monkeypatch.setattr(

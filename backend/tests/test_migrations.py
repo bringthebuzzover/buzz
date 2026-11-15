@@ -304,7 +304,8 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
     3. unbound, no switch, with a claimed handle → active **plus** a
        migration-synthesized ``awaiting_connect`` ticket, because
        ``pending_approval`` is a dead end for the old apply-first cohort,
-    4. unbound, no switch, no claimed handle → active, no ticket.
+    4. unbound, no switch, no claimed handle → ``pending_approval``, no ticket,
+       so the admin "send Connect link" action can reach it.
     """
     old_revision = "c4d5e6f7a8b9"
     result = _run_alembic(["downgrade", old_revision], parity_url)
@@ -346,7 +347,13 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
         statuses = dict(
             await conn.fetch("SELECT id, status::text FROM users WHERE id = ANY($1)", ids)
         )
-        assert statuses == dict(zip(ids, ("active", "active", "active", "active")))
+        # Cohort 4 (unbound, nothing claimed) lands in pending_approval: there is
+        # no handle to bind and no ticket to redeem, so 'active' would close the
+        # portal with no Connect action able to reopen it. pending_approval is
+        # reachable by the admin "send Connect link" action.
+        assert statuses == dict(
+            zip(ids, ("active", "active", "active", "pending_approval"))
+        )
         assert (
             await conn.fetchval(
                 "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id

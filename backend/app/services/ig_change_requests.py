@@ -279,6 +279,25 @@ async def _risk_context(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     }
 
 
+async def _pending_request_for_update(
+    db: AsyncSession, request_id: UUID
+) -> OrgIgChangeRequest | None:
+    """Load a switch request with a row lock so concurrent decisions serialize.
+
+    Approval and denial both read the request as ``pending`` and then write an
+    unconditional new status. Without a lock, a denial that started first can
+    commit after an approval has already cleared the org's credentials, leaving
+    the org active with no credentials and no ``awaiting_connect`` ticket — a
+    state no Connect path can recover. ``FOR UPDATE`` makes the second decision
+    wait, then see the new status and fail its own ``!= "pending"`` check.
+    """
+    row: OrgIgChangeRequest | None = await db.scalar(
+        select(OrgIgChangeRequest)
+        .where(OrgIgChangeRequest.id == request_id)
+        .with_for_update()
+    )
+    return row
+
 async def approve_request(
     db: AsyncSession,
     request_id: UUID,
@@ -293,7 +312,7 @@ async def approve_request(
             "Approve kind must be rename or account_switch.",
             status_code=400,
         )
-    req = await db.get(OrgIgChangeRequest, request_id)
+    req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
     if req.status != "pending":
@@ -391,7 +410,7 @@ async def approve_request(
 async def deny_request(
     db: AsyncSession, request_id: UUID, *, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
-    req = await db.get(OrgIgChangeRequest, request_id)
+    req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
     if req.status != "pending":
