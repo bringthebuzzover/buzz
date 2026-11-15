@@ -100,9 +100,7 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     # every attempt would let three transient provider failures spend a real
     # sender's whole allowance.
     recipient_key = mailbox_identity(payload.email)
-    if account_limit_reached(
-        "contact_recipient", recipient_key, limit=3, window=3600
-    ):
+    if account_limit_reached("contact_recipient", recipient_key, limit=3, window=3600):
         raise BuzzAPIException(
             errors.RATE_LIMITED,
             "Too many requests. Please slow down and try again shortly.",

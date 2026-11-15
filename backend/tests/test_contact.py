@@ -299,9 +299,7 @@ async def test_contact_minute_bucket_blocks_a_burst(
     # test is about the per-IP minute bucket.
     statuses = [
         (
-            await app_client.post(
-                "/api/contact", json={**_VALID, "email": f"burst{n}@b.co"}
-            )
+            await app_client.post("/api/contact", json={**_VALID, "email": f"burst{n}@b.co"})
         ).status_code
         for n in range(6)
     ]
@@ -324,9 +322,7 @@ async def test_contact_caps_acknowledgements_per_recipient(
 
     statuses = [
         (
-            await app_client.post(
-                "/api/contact", json={**_VALID, "message": f"Message number {n}"}
-            )
+            await app_client.post("/api/contact", json={**_VALID, "message": f"Message number {n}"})
         ).status_code
         for n in range(4)
     ]
@@ -349,9 +345,7 @@ async def test_contact_plus_aliases_share_one_recipient_bucket(
 
     statuses = [
         (
-            await app_client.post(
-                "/api/contact", json={**_VALID, "email": f"victim+{n}@gmail.com"}
-            )
+            await app_client.post("/api/contact", json={**_VALID, "email": f"victim+{n}@gmail.com"})
         ).status_code
         for n in range(4)
     ]
