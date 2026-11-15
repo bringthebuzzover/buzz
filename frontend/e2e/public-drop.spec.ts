@@ -8,11 +8,12 @@ test("public open drop shows signup for anonymous visitors", async ({ page }) =>
   await page.goto(`/d/${E2E_OPEN_DROP_ID}`);
   await expect(page.getByRole("heading", { name: /e2e open drop/i })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /request to join buzz and apply/i }),
+    page.getByRole("heading", { name: /join buzz and apply/i }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /request to join buzz and apply/i }),
-  ).toBeDisabled();
+    page.getByRole("button", { name: "Continue with Instagram" }),
+  ).toBeEnabled();
+  await expect(page.locator("form")).toHaveCount(0);
 });
 
 test("unknown public drop uuid is drop-not-open, not 404 jargon", async ({
@@ -29,7 +30,7 @@ test("active org can apply from the public drop page", async ({ page }) => {
   await page.goto(`/d/${E2E_OPEN_DROP_ID}`);
   await expect(page.getByRole("heading", { name: /e2e open drop/i })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /request to join buzz and apply/i }),
+    page.getByRole("heading", { name: /join buzz and apply/i }),
   ).toHaveCount(0);
 
   const apply = page.getByTestId("apply-button");
@@ -45,50 +46,3 @@ test("active org can apply from the public drop page", async ({ page }) => {
   await expect(page.getByRole("link", { name: "My Campaigns", exact: true })).toHaveAttribute("href", "/org/campaigns");
 });
 
-test("anonymous public drop signup stores intent, not an applicant", async ({
-  page,
-}) => {
-  test.setTimeout(60_000);
-  const eduEmail = `e2e-drop-${Date.now()}@cornell.edu`;
-  const handle = `e2edrop${Date.now().toString().slice(-6)}`;
-
-  await page.goto(`/d/${E2E_OPEN_DROP_ID}`);
-  await expect(
-    page.getByRole("button", { name: /request to join buzz and apply/i }),
-  ).toBeVisible();
-
-  await page.getByTestId("org-apply-org-name").fill("E2E Drop Club");
-  await page.getByTestId("org-apply-university").fill("Cornell University");
-  await page.getByTestId("org-apply-edu-email").fill(eduEmail);
-  await page.getByTestId("org-apply-instagram").fill(handle);
-  await expect(page.getByTestId("org-apply-submit")).toBeEnabled();
-  await page.getByTestId("org-apply-member-count").fill("12");
-  await page.getByTestId("org-apply-category").selectOption("social");
-  await page.getByTestId("org-apply-contact-name").fill("Sam");
-  await page.getByTestId("org-apply-shipping-line1").fill("123 College Ave");
-  await page.getByTestId("org-apply-shipping-city").fill("Ithaca");
-  await page.getByTestId("org-apply-shipping-state").fill("NY");
-  await page.getByTestId("org-apply-shipping-postal").fill("14850");
-  await page.getByTestId("public-drop-pitch").fill("We would love this drop");
-
-  const applyReq = page.waitForRequest(
-    (req) =>
-      req.url().includes("/api/orgs/apply") && req.method() === "POST",
-  );
-  await page.getByTestId("org-apply-submit").click();
-  const req = await applyReq;
-  const body = req.postDataJSON() as {
-    dropId?: string;
-    pitch?: string;
-    instagramHandle?: string;
-  };
-  expect(body.dropId).toBe(E2E_OPEN_DROP_ID);
-  expect(body.pitch).toBe("We would love this drop");
-  expect(body.instagramHandle).toBe(handle);
-  expect(body).not.toHaveProperty("handleConfirmed");
-
-  await expect(page).toHaveURL(/\/onboarding\/verify-email/);
-  await expect(
-    page.getByText(/we'll submit when your organization is approved and connected/i),
-  ).toBeVisible();
-});

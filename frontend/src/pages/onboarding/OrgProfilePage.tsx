@@ -8,12 +8,14 @@
  *
  * Followers are Graph-seeded server-side — not collected here.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
+import { useOrgApplyPrefill, useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
+import { allowlistedOAuthNext, allowlistedPrefill, onboardingQuery } from "../../utils/oauthNext";
+import { clearDropPitch, readDropPitch } from "../../utils/dropSignup";
 import { pathForUser } from "../../utils/landing";
 import {
   Button,
@@ -23,6 +25,7 @@ import {
   TextField,
   fieldClass,
 } from "../../components/forms/controls";
+import AuthPending from "../../components/auth/AuthPending";
 import { AuthHeading, AuthSplit } from "../../components/auth/AuthFrame";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
@@ -44,6 +47,11 @@ export default function OrgProfilePage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const submit = useSubmitOnboarding();
+  const [params] = useSearchParams();
+  const nextPath = allowlistedOAuthNext(params.get("next"));
+  const prefillToken = allowlistedPrefill(params.get("prefill"));
+  const draft = useOrgApplyPrefill(user?.status === "pending_org_profile" ? prefillToken : null);
+  const hydrated = useRef<string | null>(null);
 
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
@@ -55,9 +63,26 @@ export default function OrgProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (!draft.data || hydrated.current === prefillToken) return;
+    hydrated.current = prefillToken;
+    const d = draft.data;
+    setOrgName(d.orgName ?? "");
+    setUniversity(d.university ?? "");
+    setEduEmail(d.eduEmail ?? "");
+    setMemberCount(d.memberCount == null ? "" : String(d.memberCount));
+    setCategory((d.category as OrgCategory) ?? "");
+    setContactName(d.contactName ?? "");
+    setShipping({ line1: d.shippingLine1 ?? "", line2: d.shippingLine2 ?? "",
+      city: d.shippingCity ?? "", state: d.shippingState ?? "",
+      postalCode: d.shippingPostalCode ?? "", placeId: "" });
+  }, [draft.data, prefillToken]);
+
   if (!user || user.status !== "pending_org_profile") {
-    return <Navigate to={pathForUser(user)} replace />;
+    return <Navigate to={pathForUser(user, nextPath)} replace />;
   }
+
+  if (prefillToken && draft.isPending) return <AuthPending />;
 
   const signedInAs = user.instagramUsername
     ? `@${user.instagramUsername.replace(/^@/, "")}`
@@ -65,6 +90,7 @@ export default function OrgProfilePage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (prefillToken && (draft.isPending || draft.isError)) return;
     setError(null);
     setFieldErrors({});
     if (!category) {
@@ -100,6 +126,9 @@ export default function OrgProfilePage() {
     }
     try {
       const result = await submit.mutateAsync({
+        prefillToken: prefillToken ?? undefined,
+        dropId: nextPath?.slice(3),
+        pitch: nextPath ? readDropPitch(nextPath).trim() || undefined : undefined,
         orgName: unwrapParsed(name),
         university: unwrapParsed(uni),
         eduEmail: unwrapParsed(edu),
@@ -108,13 +137,14 @@ export default function OrgProfilePage() {
         contactName: unwrapParsed(contact),
         ...shippingToApi(shipping),
       });
+      clearDropPitch();
       await refreshUser();
       // Durable across hard refresh of the verify-await screen.
       sessionStorage.setItem(
         "buzz.verifyEmailSent",
         result.emailQueued === false ? "0" : "1",
       );
-      navigate("/onboarding/verify-email", {
+      navigate("/onboarding/verify-email" + onboardingQuery(nextPath), {
         replace: true,
         state: { emailQueued: result.emailQueued !== false },
       });
@@ -140,6 +170,8 @@ export default function OrgProfilePage() {
 
       <form onSubmit={(e) => void onSubmit(e)} className="mt-8 space-y-4">
         {error && <ErrorBanner>{error}</ErrorBanner>}
+        {draft.isError && <ErrorBanner>{userFacingApiError(draft.error, "Could not load this application draft. Please reopen your invitation link.").banner}</ErrorBanner>}
+        {draft.data?.shippingRaw && <p className="text-xs text-quiet">You wrote: {draft.data.shippingRaw}</p>}
         <Notice
           tone="success"
           icon={<Check className="h-4 w-4" aria-hidden />}
@@ -234,7 +266,7 @@ export default function OrgProfilePage() {
 
         <Button
           type="submit"
-          disabled={submit.isPending}
+          disabled={submit.isPending || Boolean(prefillToken && (draft.isPending || draft.isError))}
           size="field"
           fullWidth
         >

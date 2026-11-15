@@ -28,6 +28,7 @@ from app.schemas.onboarding import OrgOnboardingRequest
 from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.address import AddressClient, apply_to_org
+from app.services.drop_apply_intents import assert_intent_drop_public, record_drop_apply_intent
 from app.services.email import KIND_VERIFICATION, build_idempotency_key, send_verification_email
 from app.services.email_tasks import schedule_email
 from app.services.instagram import (
@@ -37,6 +38,7 @@ from app.services.instagram import (
     require_instagram_handle,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.org_apply_prefill import get_live_prefill, mark_prefill_used
 from app.timeutils import as_utc, utcnow
 
 logger = logging.getLogger(__name__)
@@ -305,6 +307,12 @@ async def submit_org_onboarding(
             status_code=400,
         )
 
+    if payload.drop_id is not None:
+        await assert_intent_drop_public(db, payload.drop_id)
+
+    if payload.prefill_token:
+        await get_live_prefill(db, payload.prefill_token, lock=True)
+
     await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=payload.edu_email)
 
     # Require OAuth username (org identity) before creating the profile row.
@@ -360,12 +368,19 @@ async def submit_org_onboarding(
             status_code=400,
         ) from exc
 
+    if payload.drop_id is not None:
+        await record_drop_apply_intent(
+            db, org_id=org.id, drop_id=payload.drop_id, pitch=payload.pitch
+        )
+
     await _seed_follower_count_from_graph(org, user, ig)
     await db.flush()
 
     email_queued = await _mint_and_send_verification(
         db, user, payload.edu_email, org_name=payload.org_name, background_tasks=background_tasks
     )
+
+    await mark_prefill_used(db, payload.prefill_token, user.id)
 
     return {
         "org_id": str(org.id),

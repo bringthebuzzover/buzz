@@ -5467,6 +5467,8 @@ export interface components {
             memberCount: number;
             /** Orgname */
             orgName: string;
+            /** Prefilltoken */
+            prefillToken?: string | null;
             /** Shippingcity */
             shippingCity: string;
             /** Shippingline1 */
@@ -5923,6 +5925,8 @@ export interface components {
             access_token: string;
             /** Next */
             next?: string | null;
+            /** Prefill */
+            prefill?: string | null;
             /**
              * Token Type
              * @default bearer
@@ -8371,6 +8375,7 @@ export interface operations {
         parameters: {
             query?: {
                 next?: string | null;
+                prefill?: string | null;
             };
             header?: never;
             path?: never;

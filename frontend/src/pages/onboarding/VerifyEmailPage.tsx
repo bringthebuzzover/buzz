@@ -116,7 +116,7 @@ export default function VerifyEmailPage() {
     return <PublicAwaitVerification />;
   }
 
-  return <Navigate to={pathForUser(user)} replace />;
+  return <Navigate to={pathForUser(user, searchParams.get("next"))} replace />;
 }
 
 type VerifyState =
@@ -130,13 +130,14 @@ type VerifyState =
 function VerifyWithToken({ token }: { token: string }) {
   const { acceptSession, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const verify = useVerifyEmail();
   const resendFromToken = useResendVerificationFromToken();
   const [state, setState] = useState<VerifyState>({ kind: "idle" });
   const inFlightRef = useRef(false);
 
   const finishSuccess = async (sessionUser: AuthUser | null) => {
-    stripTokenFromUrl();
+    stripTokenFromUrl(params.get("next"));
     setState({ kind: "success", user: sessionUser });
   };
 
@@ -199,7 +200,7 @@ function VerifyWithToken({ token }: { token: string }) {
         markEduEmail(sentTo);
       }
       markEmailQueued(true);
-      stripTokenFromUrl();
+      stripTokenFromUrl(params.get("next"));
       setState({ kind: "resent", email: sentTo });
     } catch (err) {
       setState({
@@ -297,7 +298,7 @@ function VerifyWithToken({ token }: { token: string }) {
       : state.user?.status === "pending_approval"
         ? "Your school email is confirmed. Your account is awaiting admin approval."
         : "Thanks! Your account is now pending admin approval. We'll let you in as soon as a Buzz admin reviews it.";
-  const continueTo = state.user ? pathForUser(state.user) : "/login";
+  const continueTo = state.user ? pathForUser(state.user, params.get("next")) : "/login";
 
   return (
     <StatusHero

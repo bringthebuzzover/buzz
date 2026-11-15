@@ -33,6 +33,9 @@ export type AddressSuggestionItem =
 // ── Org onboarding ─────────────────────────────────────────────────────────
 
 export type OrgOnboardingInput = {
+  dropId?: string;
+  pitch?: string;
+  prefillToken?: string;
   orgName: string;
   university: string;
   eduEmail: string;
@@ -52,7 +55,6 @@ export type OrgOnboardingInput = {
 
 export type OrgApplyInput = OrgOnboardingInput & {
   instagramHandle: string;
-  prefillToken?: string;
   dropId?: string;
   pitch?: string;
 };
@@ -73,7 +75,7 @@ export function useOrgApplyPrefill(token: string | null) {
   });
 }
 
-/** Public org apply-first signup (→ pending_email_verification, no IG token). */
+/** Retired signup endpoint; retained for legacy form compatibility. */
 export function useOrgApply() {
   return useMutation({
     mutationFn: async (input: OrgApplyInput) => {

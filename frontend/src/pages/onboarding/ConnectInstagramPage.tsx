@@ -97,7 +97,7 @@ export default function ConnectInstagramPage() {
     if (user?.status === "active" && next) {
       return <Navigate to={next} replace />;
     }
-    return <Navigate to={pathForUser(user)} replace />;
+    return <Navigate to={pathForUser(user, next)} replace />;
   }
 
   const onConnect = async () => {

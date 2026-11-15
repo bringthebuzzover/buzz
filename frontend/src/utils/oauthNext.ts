@@ -20,3 +20,18 @@ export function publicDropAbsUrl(dropId: string): string {
   if (typeof window === "undefined") return publicDropPath(dropId);
   return `${window.location.origin}${publicDropPath(dropId)}`;
 }
+
+/** A bounded draft identifier, never an arbitrary URL or OAuth credential. */
+export function allowlistedPrefill(raw: unknown): string | null {
+  return typeof raw === "string" && /^[A-Za-z0-9_-]{1,256}$/.test(raw) ? raw : null;
+}
+
+export function onboardingQuery(next?: string | null, prefill?: string | null): string {
+  const params = new URLSearchParams();
+  const allowed = allowlistedOAuthNext(next);
+  const draft = allowlistedPrefill(prefill);
+  if (allowed) params.set("next", allowed);
+  if (draft) params.set("prefill", draft);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}

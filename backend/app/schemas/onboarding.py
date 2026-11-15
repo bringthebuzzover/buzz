@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from pydantic import AfterValidator, ConfigDict
+from pydantic import AfterValidator, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.models.enums import OrgCategory
@@ -113,7 +113,11 @@ class OrgApplyPrefillResponse(CamelModel):
 
 
 class OrgOnboardingRequest(_OrgProfileRequest):
-    """Phase 2: submit org profile after Instagram OAuth (legacy drain)."""
+    """Submit an authenticated profile and optional public-drop apply intent."""
+
+    prefill_token: OptionalText = None
+    drop_id: uuid.UUID | None = None
+    pitch: OptionalText = Field(default=None, max_length=2000)
 
     # instagram_handle comes from the OAuth login username and follower_count
     # from Graph, so neither is client-supplied (extra=forbid rejects them).

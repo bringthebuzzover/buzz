@@ -24,7 +24,7 @@ import { LinkButton } from "../../components/forms/controls";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import { pathForUser } from "../../utils/landing";
-import { allowlistedOAuthNext } from "../../utils/oauthNext";
+import { allowlistedOAuthNext, allowlistedPrefill } from "../../utils/oauthNext";
 
 type CallbackState =
   | { kind: "exchanging" }
@@ -92,8 +92,7 @@ export default function InstagramCallbackPage() {
           typeof body.data?.next === "string" ? body.data.next : null,
         );
         const user = authUserFromWire(body.data.user);
-        window.location.href =
-          user.status === "active" ? next ?? pathForUser(user) : pathForUser(user);
+        window.location.href = pathForUser(user, next, allowlistedPrefill(body.data?.prefill));
       } catch {
         setState({ kind: "error", ...INSTAGRAM_CALLBACK_OFFLINE });
       }

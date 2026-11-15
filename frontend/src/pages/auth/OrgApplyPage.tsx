@@ -6,7 +6,7 @@
  * `?error=personal_account`.
  */
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   AuthArrowLink,
@@ -17,15 +17,19 @@ import {
 import { Button } from "../../components/forms/controls";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
-import { allowlistedOAuthNext } from "../../utils/oauthNext";
+import { pathForUser } from "../../utils/landing";
+import { allowlistedOAuthNext, allowlistedPrefill } from "../../utils/oauthNext";
 
 export default function OrgApplyPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [searchParams] = useSearchParams();
   const next = allowlistedOAuthNext(searchParams.get("next"));
+  const prefill = allowlistedPrefill(searchParams.get("prefill"));
   const isPersonalAccountError =
     searchParams.get("error") === "personal_account";
   const [connecting, setConnecting] = useState(false);
+
+  if (user) return <Navigate to={pathForUser(user, next, prefill)} replace />;
 
   return (
     <AuthSplit asideStatement="Join as a student organization and work with brands on real campus campaigns.">
@@ -55,7 +59,7 @@ export default function OrgApplyPage() {
         loadingLabel="Connecting…"
         onClick={() => {
           setConnecting(true);
-          login(next);
+          login(next, prefill);
         }}
       >
         {isPersonalAccountError

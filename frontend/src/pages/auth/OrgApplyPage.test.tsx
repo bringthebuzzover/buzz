@@ -4,16 +4,18 @@
  *
  * Uses react-dom (no @testing-library/react in this package).
  */
+import { Routes, Route, useLocation } from "react-router-dom";
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
 import OrgApplyPage from "./OrgApplyPage";
 
 const mockLogin = jest.fn();
+let mockUser: { id: string; portalRole: "org"; status: string } | null = null;
 
 jest.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({
     status: "error",
-    user: null,
+    user: mockUser,
     login: mockLogin,
   }),
 }));
@@ -21,6 +23,7 @@ jest.mock("../../contexts/AuthContext", () => ({
 describe("OrgApplyPage Instagram-first onboarding", () => {
   beforeEach(() => {
     mockLogin.mockReset();
+    mockUser = null;
   });
 
   it("renders the Instagram-first connect state and starts OAuth on click", () => {
@@ -100,4 +103,22 @@ describe("OrgApplyPage Instagram-first onboarding", () => {
 
     expect(mockLogin).toHaveBeenCalledTimes(1);
   });
+});
+
+function Destination() {
+  const location = useLocation();
+  return <p>{location.pathname + location.search}</p>;
+}
+
+it.each([
+  ["pending_email_verification", "/onboarding/verify-email"],
+  ["pending_approval", "/onboarding/pending-approval"],
+])("resumes %s applicants directly without bypassing approval", (status, path) => {
+  mockUser = { id: "org-1", portalRole: "org", status };
+  const { container } = renderWithProviders(<Routes>
+    <Route path="/org/apply" element={<OrgApplyPage />} />
+    <Route path="/onboarding/*" element={<Destination />} />
+  </Routes>, { route: "/org/apply?next=%2Fd%2F11111111-1111-1111-1111-111111111111&prefill=draft-1" });
+  expect(container.textContent).toBe(`${path}?next=%2Fd%2F11111111-1111-1111-1111-111111111111`);
+  expect(mockLogin).not.toHaveBeenCalled();
 });

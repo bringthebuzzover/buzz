@@ -33,13 +33,14 @@ logger = logging.getLogger(__name__)
 _PREFILL_NOT_FOUND = "This apply link is invalid or expired."
 
 
-async def get_live_prefill(db: AsyncSession, raw_token: str) -> OrgApplyPrefill:
+async def get_live_prefill(
+    db: AsyncSession, raw_token: str, *, lock: bool = False
+) -> OrgApplyPrefill:
     token = (raw_token or "").strip()
     if not token:
         raise BuzzAPIException(errors.NOT_FOUND, _PREFILL_NOT_FOUND, status_code=404)
-    row = await db.scalar(
-        select(OrgApplyPrefill).where(OrgApplyPrefill.token_hash == hash_token(token))
-    )
+    query = select(OrgApplyPrefill).where(OrgApplyPrefill.token_hash == hash_token(token))
+    row = await db.scalar(query.with_for_update() if lock else query)
     if row is None or row.used_at is not None or row.expires_at <= utcnow():
         raise BuzzAPIException(errors.NOT_FOUND, _PREFILL_NOT_FOUND, status_code=404)
     return row
@@ -199,10 +200,13 @@ async def mark_prefill_used(
     if not token:
         return
     row = await db.scalar(
-        select(OrgApplyPrefill).where(OrgApplyPrefill.token_hash == hash_token(token))
+        select(OrgApplyPrefill)
+        .where(OrgApplyPrefill.token_hash == hash_token(token))
+        .with_for_update()
     )
     if row is None or row.used_at is not None or row.expires_at <= utcnow():
         return
     row.used_at = utcnow()
     row.used_by_user_id = user_id
+    await db.flush()
     logger.info("org apply prefill used id=%s user_id=%s", row.id, user_id)

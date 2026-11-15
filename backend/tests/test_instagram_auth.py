@@ -664,3 +664,64 @@ async def test_signup_unique_race_is_explicit_conflict(
         await handle_instagram_callback(db_session, fake_instagram, "signup")
     assert exc.value.status_code == 409
     assert exc.value.code == errors.INSTAGRAM_HANDLE_TAKEN
+
+
+@pytest.mark.parametrize("prefill", ["draft-1", "https://example.com", "x" * 257])
+def test_signed_oauth_prefill_is_bounded(prefill: str) -> None:
+    state = jwt.create_oauth_state_token(
+        next_path="/d/11111111-1111-1111-1111-111111111111", prefill=prefill
+    )
+    decoded = jwt.decode_token(state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE)
+    assert decoded.prefill == (prefill if prefill == "draft-1" else None)
+    assert decoded.next == "/d/11111111-1111-1111-1111-111111111111"
+
+
+async def test_invitation_oauth_returns_signed_draft_and_next(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    import uuid
+
+    from app.models.org_apply_prefill import OrgApplyPrefill
+    from app.security.one_shot_tokens import hash_token
+    from tests.test_onboarding import _VALID_PROFILE
+
+    row = OrgApplyPrefill(
+        token_hash=hash_token("draft-1"),
+        invite_email="org1@example.edu",
+        org_name="Test Org",
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    db_session.add(row)
+    await db_session.flush()
+    destination = "/d/11111111-1111-1111-1111-111111111111"
+    response = await app_client.get(
+        "/api/auth/instagram/login",
+        params={"prefill": "draft-1", "next": destination},
+        follow_redirects=False,
+    )
+    state = parse_qs(urlparse(response.headers["location"]).query)["state"][0]
+    response = await app_client.post(
+        "/api/auth/instagram/callback", json={"code": "fake-code", "state": state}
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["prefill"] == "draft-1"
+    assert response.json()["data"]["next"] == destination
+    assert response.json()["data"]["user"]["status"] == "pending_org_profile"
+
+    data = response.json()["data"]
+    draft = await app_client.get("/api/orgs/apply/prefill", params={"token": data["prefill"]})
+    assert draft.status_code == 200
+    assert draft.json()["data"]["orgName"] == "Test Org"
+    await db_session.refresh(row)
+    assert row.used_at is None
+    submitted = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "prefillToken": data["prefill"]},
+        headers={"Authorization": f"Bearer {data['access_token']}"},
+    )
+    assert submitted.status_code == 200, submitted.text
+    await db_session.refresh(row)
+    assert row.used_by_user_id == uuid.UUID(data["user"]["id"])
+    assert row.used_at is not None
+    reused = await app_client.get("/api/orgs/apply/prefill", params={"token": data["prefill"]})
+    assert reused.status_code == 404

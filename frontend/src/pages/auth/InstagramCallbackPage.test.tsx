@@ -66,9 +66,9 @@ describe("InstagramCallbackPage", () => {
   });
 
   it.each([
-    ["pending_org_profile", "/onboarding/profile"],
-    ["pending_email_verification", "/onboarding/verify-email"],
-    ["pending_approval", "/onboarding/pending-approval"],
+    ["pending_org_profile", "/onboarding/profile?next=%2Fd%2F11111111-1111-1111-1111-111111111111&prefill=draft-1"],
+    ["pending_email_verification", "/onboarding/verify-email?next=%2Fd%2F11111111-1111-1111-1111-111111111111"],
+    ["pending_approval", "/onboarding/pending-approval?next=%2Fd%2F11111111-1111-1111-1111-111111111111"],
     ["active", "/d/11111111-1111-1111-1111-111111111111"],
   ])("lands %s users at %s", async (status, destination) => {
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
@@ -77,6 +77,7 @@ describe("InstagramCallbackPage", () => {
         access_token: "fake-session",
         user: { id: "org-1", portal_role: "org", status },
         next: "/d/11111111-1111-1111-1111-111111111111",
+        prefill: "draft-1",
       } }),
     } as Response);
     renderWithProviders(<InstagramCallbackPage />, {

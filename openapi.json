@@ -9537,6 +9537,17 @@
             "title": "Orgname",
             "type": "string"
           },
+          "prefillToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefilltoken"
+          },
           "shippingCity": {
             "title": "Shippingcity",
             "type": "string"
@@ -10921,6 +10932,17 @@
               }
             ],
             "title": "Next"
+          },
+          "prefill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefill"
           },
           "token_type": {
             "const": "bearer",
@@ -15411,6 +15433,24 @@
                 }
               ],
               "title": "Next"
+            }
+          },
+          {
+            "in": "query",
+            "name": "prefill",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prefill"
             }
           }
         ],

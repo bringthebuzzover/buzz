@@ -84,11 +84,22 @@ async def test_anon_hidden_drop_is_drop_not_open(app_client: AsyncClient, db_ses
 async def test_apply_with_drop_id_writes_intent_not_application(
     app_client: AsyncClient, db_session
 ) -> None:
+    from tests.test_onboarding import _VALID_PROFILE
+
+    user = make_user(
+        status=OrgUserStatus.PENDING_ORG_PROFILE,
+        instagram_user_id="ig_intent_1",
+        instagram_username="intentclub",
+    )
+    await persist(db_session, user)
+    token = mint_access_token(user)
+
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     resp = await app_client.post(
-        "/api/orgs/apply",
-        json={**_APPLY, "dropId": str(drop.id), "pitch": "  We can host  "},
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "dropId": str(drop.id), "pitch": "  We can host  "},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
     org_id = uuid.UUID(resp.json()["data"]["orgId"])
@@ -111,6 +122,16 @@ async def test_apply_with_drop_id_writes_intent_not_application(
 async def test_apply_with_closed_drop_still_creates_expired_intent(
     app_client: AsyncClient, db_session
 ) -> None:
+    from tests.test_onboarding import _VALID_PROFILE
+
+    user = make_user(
+        status=OrgUserStatus.PENDING_ORG_PROFILE,
+        instagram_user_id="ig_closed_intent",
+        instagram_username="closedintent",
+    )
+    await persist(db_session, user)
+    token = mint_access_token(user)
+
     brand = await make_brand(db_session)
     now = datetime.now(timezone.utc)
     drop = await make_drop(
@@ -120,14 +141,14 @@ async def test_apply_with_closed_drop_still_creates_expired_intent(
         apply_close_at=now - timedelta(days=1),
     )
     resp = await app_client.post(
-        "/api/orgs/apply",
+        "/api/orgs/onboarding",
         json={
-            **_APPLY,
+            **_VALID_PROFILE,
             "eduEmail": "closed-intent@cornell.edu",
-            "instagramHandle": "@closedintent",
             "dropId": str(drop.id),
             "pitch": "late",
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
     org_id = uuid.UUID(resp.json()["data"]["orgId"])
@@ -141,22 +162,32 @@ async def test_apply_with_closed_drop_still_creates_expired_intent(
 async def test_apply_unpublished_drop_id_does_not_create_org(
     app_client: AsyncClient, db_session
 ) -> None:
+    from tests.test_onboarding import _VALID_PROFILE
+
+    user = make_user(
+        status=OrgUserStatus.PENDING_ORG_PROFILE,
+        instagram_user_id="ig_draft_intent",
+        instagram_username="draftintent",
+    )
+    await persist(db_session, user)
+    token = mint_access_token(user)
+
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, published_at=None)
     resp = await app_client.post(
-        "/api/orgs/apply",
+        "/api/orgs/onboarding",
         json={
-            **_APPLY,
+            **_VALID_PROFILE,
             "eduEmail": "draft-intent@cornell.edu",
-            "instagramHandle": "@draftintent",
             "dropId": str(drop.id),
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
     assert (
         await db_session.scalar(
-            select(Organization.id).where(Organization.org_name == "Intent Club")
+            select(Organization.id).where(Organization.user_id == user.id)
         )
         is None
     )

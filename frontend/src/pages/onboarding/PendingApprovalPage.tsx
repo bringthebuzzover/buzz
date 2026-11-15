@@ -8,7 +8,7 @@
  */
 import { useEffect } from "react";
 import { Info } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { Notice } from "../../components/forms/controls";
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
@@ -19,6 +19,7 @@ const POLL_INTERVAL_MS = 15_000;
 
 export default function PendingApprovalPage() {
   const { user, refreshUser } = useAuth();
+  const [params] = useSearchParams();
 
   useEffect(() => {
     if (!user || user.status !== "pending_approval") return;
@@ -31,7 +32,7 @@ export default function PendingApprovalPage() {
   if (!user || user.status !== "pending_approval") {
     // Poll resolved (or wrong status / no session): route to where the user
     // belongs — active → portal, denied → denial page, none → login.
-    return <Navigate to={pathForUser(user)} replace />;
+    return <Navigate to={pathForUser(user, params.get("next"))} replace />;
   }
 
   return (
