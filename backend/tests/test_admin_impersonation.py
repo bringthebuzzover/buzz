@@ -82,6 +82,40 @@ class TestAdminLogin:
 
 
 class TestImpersonate:
+    async def test_tokenless_org_portal_requires_admin_impersonation(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        monkeypatch.setattr(settings, "IMPERSONATION_READONLY", True)
+        target = make_user(role=PortalRole.ORG, instagram_user_id=None)
+        target.instagram_access_token = None
+        await persist(db_session, target)
+        await make_org(db_session, target)
+
+        ordinary_headers = {"Authorization": f"Bearer {mint_access_token(target)}"}
+        ordinary = await app_client.get("/api/orgs/me", headers=ordinary_headers)
+        assert ordinary.status_code == 403
+
+        admin = await _admin(db_session)
+        res = await app_client.post(
+            f"/api/admin/impersonate/{target.id}",
+            headers={"Authorization": f"Bearer {mint_access_token(admin)}"},
+        )
+        assert res.status_code == 200, res.text
+        view_as_headers = {"Authorization": f"Bearer {res.json()['data']['accessToken']}"}
+        portal = await app_client.get("/api/orgs/me", headers=view_as_headers)
+        assert portal.status_code == 200, portal.text
+        mutation = await app_client.patch("/api/orgs/me", json={}, headers=view_as_headers)
+        assert mutation.status_code == 403
+        assert mutation.json()["error"]["code"] == "IMPERSONATION_READONLY"
+        # A following ordinary request must not inherit transient impersonation state.
+        ordinary = await app_client.get("/api/orgs/me", headers=ordinary_headers)
+        assert ordinary.status_code == 403
+        # The impersonation claim only works while its actor remains an active admin.
+        admin.portal_role = PortalRole.BRAND.value
+        await db_session.flush()
+        demoted = await app_client.get("/api/orgs/me", headers=view_as_headers)
+        assert demoted.status_code == 401
+
     async def test_mints_token_acting_as_target(self, app_client: AsyncClient, db_session):
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         await make_org(db_session, target)

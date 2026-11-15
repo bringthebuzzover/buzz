@@ -446,8 +446,9 @@ class TestOrgIgChangeRequest:
         )
         assert len(live) == 1
 
+    @pytest.mark.parametrize("target", ["renamedclubig", "campusgreeks"])
     async def test_stuck_switch_can_be_retargeted_and_then_bound(
-        self, app_client: AsyncClient, db_session
+        self, app_client: AsyncClient, db_session, fake_instagram: FakeInstagramClient, target
     ):
         """A renamed handle must not strand an org.
 
@@ -472,19 +473,70 @@ class TestOrgIgChangeRequest:
         )
         assert approved.status_code == 200
 
-        retargeted = await app_client.post(
+        await db_session.refresh(user)
+        bind_headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        unauthorized = await app_client.post(
             f"/api/admin/ig-change-requests/{request_id}/retarget",
-            json={"requestedHandle": "renamedclubig"},
-            headers=admin,
+            json={"requestedHandle": target},
+            headers=bind_headers,
         )
-        assert retargeted.status_code == 200
-        assert retargeted.json()["data"]["requestedHandle"] == "renamedclubig"
+        assert unauthorized.status_code == 403
+        # Repeating the authorized action is idempotent and never opens the portal.
+        for _ in range(2):
+            retargeted = await app_client.post(
+                f"/api/admin/ig-change-requests/{request_id}/retarget",
+                json={"requestedHandle": target},
+                headers=admin,
+            )
+            assert retargeted.status_code == 200, retargeted.text
+            assert retargeted.json()["data"]["requestedHandle"] == target
+            portal = await app_client.get("/api/orgs/me", headers=bind_headers)
+            assert portal.status_code == 403
 
         row = await db_session.get(OrgIgChangeRequest, request_id)
         assert row is not None
         # Still an open recovery path, now aimed at the real account.
         assert row.status == "awaiting_connect"
-        assert row.requested_handle == "renamedclubig"
+        assert row.requested_handle == target
+        assert row.is_migration_placeholder is False
+        assert user.instagram_user_id is None
+        assert user.instagram_access_token is None
+
+        # Even recovery to A must reject an unrelated C and keep the ticket open.
+        fake_instagram.user_id = "ig_c"
+        fake_instagram.username = "thirdclub"
+        start = await app_client.post("/api/auth/instagram/bind-start", headers=bind_headers)
+        assert start.status_code == 200, start.text
+        state = parse_qs(urlparse(start.json()["data"]["authorizeUrl"]).query)["state"][0]
+        refused = await app_client.post(
+            "/api/auth/instagram/callback", json={"code": "bind-c", "state": state}
+        )
+        assert refused.status_code == 400, refused.text
+        await db_session.refresh(row)
+        await db_session.refresh(user)
+        assert row.status == "awaiting_connect"
+        assert user.instagram_user_id is None
+        assert user.instagram_access_token is None
+
+        fake_instagram.user_id = "ig_a" if target == "campusgreeks" else "ig_b"
+        fake_instagram.username = target
+        start = await app_client.post("/api/auth/instagram/bind-start", headers=bind_headers)
+        assert start.status_code == 200, start.text
+        state = parse_qs(urlparse(start.json()["data"]["authorizeUrl"]).query)["state"][0]
+        bound = await app_client.post(
+            "/api/auth/instagram/callback", json={"code": "bind-target", "state": state}
+        )
+        assert bound.status_code == 200, bound.text
+        await db_session.refresh(user)
+        await db_session.refresh(row)
+        assert row.status == "approved"
+        assert user.instagram_user_id == fake_instagram.user_id
+        assert user.instagram_username == target
+        assert user.instagram_access_token
+        portal = await app_client.get(
+            "/api/orgs/me", headers={"Authorization": f"Bearer {mint_access_token(user)}"}
+        )
+        assert portal.status_code == 200, portal.text
 
     async def test_retarget_rejects_a_handle_another_org_holds(
         self, app_client: AsyncClient, db_session
@@ -520,15 +572,6 @@ class TestOrgIgChangeRequest:
         )
         assert taken.status_code == 409
 
-        # Retargeting to the handle the org already had is refused: that shape
-        # makes the ticket read as a migration placeholder, and placeholders
-        # accept whatever account binds — it would remove the switch restriction.
-        own = await app_client.post(
-            f"/api/admin/ig-change-requests/{request_id}/retarget",
-            json={"requestedHandle": "campusgreeks"},
-            headers=admin,
-        )
-        assert own.status_code == 400
         _ = other
 
     async def test_retarget_moves_the_handle_reservation(self, app_client: AsyncClient, db_session):

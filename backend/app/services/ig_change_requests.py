@@ -455,19 +455,6 @@ async def retarget_awaiting_connect(
             "Enter the Instagram handle the organization should connect.",
             status_code=400,
         )
-    # A ticket whose requested handle equals its current handle is read as a
-    # migration placeholder (see ``auth._names_switch_target``), and those
-    # deliberately accept whatever account binds. Letting a retarget produce
-    # that shape would turn an admin-approved switch into a ticket that binds
-    # any account at all, so refuse it: a real switch names two handles.
-    current = canonical_instagram_handle(req.current_handle).casefold()
-    if current and cleaned.casefold() == current:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Choose the new account's handle. Retargeting to the handle it "
-            "already had would remove the switch restriction.",
-            status_code=400,
-        )
     await assert_handle_available(db, cleaned, exclude_user_id=req.user_id)
 
     # Move the handle reservation with the ticket. Ownership is enforced through
@@ -483,6 +470,9 @@ async def retarget_awaiting_connect(
         org.claimed_instagram_username = cleaned
 
     req.requested_handle = cleaned
+    # An explicit admin target is enforced even for a former migration ticket,
+    # including when recovery points back to the org's original account.
+    req.is_migration_placeholder = False
     await db.flush()
     logger.info("ig_change_request_retargeted request_id=%s handle=%s", req.id, cleaned)
     return _serialize(req)

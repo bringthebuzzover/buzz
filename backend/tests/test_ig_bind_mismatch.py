@@ -31,7 +31,7 @@ async def _pending_connect(
     """An org owing a reconnect, with the ticket shape under test.
 
     Defaults to the *placeholder* ticket the ``pending_instagram`` retirement
-    synthesizes (``current_handle`` == ``requested_handle``), which names no
+    synthesizes (explicitly flagged as a migration placeholder), which names no
     switch target and therefore keeps the advisory-only mismatch semantics.
     Pass ``switch_target`` for a real admin-approved switch to another handle.
     """
@@ -51,6 +51,7 @@ async def _pending_connect(
         org,
         current_handle=None if switch_target is None else "oldclub",
         requested_handle=switch_target,
+        is_migration_placeholder=switch_target is None,
     )
     org.claimed_instagram_username = claimed
     await db_session.flush()

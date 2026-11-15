@@ -315,6 +315,7 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
     org_ids = [uuid.uuid4() for _ in ids]
     claimed_handles = [None, None, "legacyclaimed", None]
     switch_id = uuid.uuid4()
+    recovery_id = uuid.uuid4()
     try:
         for index, (user_id, org_id) in enumerate(zip(ids, org_ids)):
             await conn.execute(
@@ -342,6 +343,17 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
             org_ids[0],
             ids[0],
         )
+        # Equality alone must not give an ordinary recovery ticket the migration exemption.
+        await conn.execute(
+            "INSERT INTO org_ig_change_requests "
+            "(id, org_id, user_id, kind, current_handle, requested_handle, reason, "
+            "status, decided_kind, decided_at, created_at) "
+            "VALUES ($1, $2, $3, 'account_switch', 'originalclub', 'originalclub', "
+            "'Return to the original account.', 'approved', 'account_switch', now(), now())",
+            recovery_id,
+            org_ids[1],
+            ids[1],
+        )
         result = _run_alembic(["upgrade", "head"], parity_url)
         assert result.returncode == 0, result.stderr
         statuses = dict(
@@ -358,16 +370,23 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
             )
             == "awaiting_connect"
         )
+        assert (
+            await conn.fetchval(
+                "SELECT bool_or(is_migration_placeholder) FROM org_ig_change_requests "
+                "WHERE id = ANY($1)",
+                [switch_id, recovery_id],
+            )
+            is False
+        )
 
         # The legacy apply-first org gets a synthesized reconnect ticket naming
         # the handle it claimed, which is what ``resend_org_connect`` and
         # bind-start read.
         synthesized = await conn.fetch(
             "SELECT org_id, user_id, kind, status, decided_kind, current_handle, "
-            "requested_handle, reason FROM org_ig_change_requests "
-            "WHERE org_id = ANY($1) AND id <> $2",
-            org_ids,
-            switch_id,
+            "requested_handle, reason, is_migration_placeholder FROM org_ig_change_requests "
+            "WHERE org_id = $1",
+            org_ids[2],
         )
         assert len(synthesized) == 1, synthesized
         ticket = synthesized[0]
@@ -379,6 +398,7 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
         assert ticket["current_handle"] == "legacyclaimed"
         assert ticket["requested_handle"] == "legacyclaimed"
         assert "migration" in (ticket["reason"] or "").lower()
+        assert ticket["is_migration_placeholder"] is True
 
         # No user and no request row was lost, and the enum label is intact.
         assert await conn.fetchval("SELECT count(*) FROM users WHERE id = ANY($1)", ids) == 4
@@ -386,7 +406,7 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
             await conn.fetchval(
                 "SELECT count(*) FROM org_ig_change_requests WHERE org_id = ANY($1)", org_ids
             )
-            == 2
+            == 3
         )
 
         result = _run_alembic(["check"], parity_url)

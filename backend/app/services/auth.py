@@ -194,15 +194,13 @@ async def handle_instagram_callback(
         # the advisory Connect mismatch — and committed before raising, because
         # the refusal rolls this request's transaction back.
         #
-        # Only tickets that name a real switch target are enforced. A ticket
-        # whose ``current_handle`` and ``requested_handle`` are the same handle
-        # (see ``_names_switch_target``) carries no admin-approved target: the
-        # pending_instagram retirement synthesizes exactly that shape for orgs
+        # Only explicitly marked migration placeholders skip target enforcement:
+        # the pending_instagram retirement synthesized those tickets for orgs
         # that were approved under the old apply-first flow and never connected.
         # Those must accept whichever account the org finally binds — enforcing
         # the handle they typed before ever connecting would re-brick the cohort
-        # the ticket exists to rescue. Real switches always name two different
-        # handles, because ``submit_request`` refuses a no-op switch.
+        # the ticket exists to rescue. A real switch may be retargeted back to
+        # its original account; it still enforces that approved target.
         #
         # Legacy ``bind_user_id`` binds with no open switch skip all of this and
         # behave exactly as before.
@@ -280,18 +278,12 @@ async def handle_instagram_callback(
 def _names_switch_target(row: OrgIgChangeRequest) -> bool:
     """Whether *row* names an admin-approved switch target.
 
-    A real approved switch names a handle that differs from the org's previous
-    one, so ``current_handle`` and ``requested_handle`` differ. Tickets whose two
-    handles are identical are placeholders synthesized by the
-    ``pending_instagram`` retirement for orgs approved under the retired
-    apply-first flow that never connected; they carry no admin-approved target.
+    Only explicitly marked tickets synthesized by the ``pending_instagram``
+    retirement carry no target. Equal handles can also mean an admin authorized
+    recovery to the original account, which must still enforce that handle.
     """
 
-    requested = canonical_instagram_handle(row.requested_handle)
-    return (
-        bool(requested)
-        and requested.casefold() != canonical_instagram_handle(row.current_handle).casefold()
-    )
+    return not row.is_migration_placeholder
 
 
 def _switch_target_handles(switches: list[OrgIgChangeRequest]) -> set[str]:

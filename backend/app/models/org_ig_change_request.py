@@ -41,6 +41,10 @@ class OrgIgChangeRequest(Base):
     current_handle: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     requested_handle: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     reason: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    # Only retirement-migration tickets may accept an arbitrary bound account.
+    is_migration_placeholder: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False, server_default=sa.false()
+    )
 
     # pending | awaiting_connect | approved | denied
     status: Mapped[str] = mapped_column(sa.String(32), nullable=False, server_default="pending")

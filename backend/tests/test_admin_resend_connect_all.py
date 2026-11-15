@@ -136,7 +136,9 @@ async def test_migrated_legacy_org_can_be_reached_by_resend_connect(
     user.edu_email = "legacy@test.edu"
     org = await make_org(db_session, user, org_name="Legacy Apply First")
     # Exactly the ticket shape the migration synthesizes: no switch target.
-    await make_awaiting_connect(db_session, user, org, current_handle=None)
+    await make_awaiting_connect(
+        db_session, user, org, current_handle=None, is_migration_placeholder=True
+    )
     await db_session.flush()
 
     assert await org_owes_instagram_reconnect(db_session, user) is True

@@ -366,13 +366,13 @@ async def make_awaiting_connect(
     *,
     current_handle: str | None = "oldclub",
     requested_handle: str | None = None,
+    is_migration_placeholder: bool = False,
 ):
     """An approved account switch whose credentials have been released.
 
     ``current_handle`` defaults to a real switch (a *different* previous handle),
-    which is enforced on bind. Pass ``current_handle=<the same handle>`` for the
-    placeholder ticket the pending_instagram retirement synthesizes for a legacy
-    org that never connected: it names no switch target, so any bind satisfies it.
+    which is enforced on bind. Explicitly set ``is_migration_placeholder`` for
+    a retirement-migration ticket: it names no target, so any bind satisfies it.
     """
     from app.models.org_ig_change_request import OrgIgChangeRequest
 
@@ -388,6 +388,7 @@ async def make_awaiting_connect(
         decided_kind="account_switch",
         current_handle=requested if current_handle is None else current_handle,
         requested_handle=requested,
+        is_migration_placeholder=is_migration_placeholder,
         reason="Switch to the new organization account.",
         status="awaiting_connect",
         decided_at=datetime.now(timezone.utc),
