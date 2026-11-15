@@ -72,7 +72,7 @@ async function fillProfile(page: Page) {
 test("home join CTAs open the Instagram-first org entry and brand apply", async ({ page }) => {
   await page.goto("/");
   const section = page.locator("#home-join");
-  const org = section.getByRole("link", { name: "Apply as an organization" });
+  const org = section.getByRole("link", { name: /join as a student organization|apply as an organization/i });
   await expect(org).toHaveAttribute("href", "/org/apply");
   await expect(section.getByRole("link", { name: "Apply as a brand" })).toHaveAttribute("href", "/brand/apply");
   await org.click();

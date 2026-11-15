@@ -53,7 +53,6 @@ export default function HomePage() {
       <StackCards />
       <CurrentDrops />
       <JoinSplit
-        id="home-join"
         left={{
           kicker: "For organizations",
           title: "Apply with your\nInstagram.",
@@ -69,7 +68,7 @@ export default function HomePage() {
           quiet: { label: "See how brands run a campaign", to: "/for-brands" },
         }}
       />
-      <SiteFooter audience="both" showCta={false} />
+      <SiteFooter audience="both" />
     </MarketingPage>
   );
 }
