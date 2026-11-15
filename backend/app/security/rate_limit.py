@@ -108,3 +108,36 @@ def enforce_account_limit(bucket: str, identity: str, *, limit: int, window: int
         return
     if not _allowed(f"{bucket}:acct:{identity}", limit, window):
         raise _too_many()
+
+
+def account_limit_reached(bucket: str, identity: str, *, limit: int, window: int) -> bool:
+    """Whether ``identity`` has already spent its budget — without spending it.
+
+    For work that must not happen at all once the budget is gone, but where the
+    counter should only advance when the work actually succeeds. Pair with
+    :func:`record_account_send` after the expensive step.
+
+    A rejected attempt must never deliver first and refuse second: the sender
+    would see a 429 for a message the team already received.
+    """
+    if not settings.RATE_LIMIT_ENABLED:
+        return False
+    key = f"{bucket}:acct:{identity}"
+    start, count = _buckets.get(key, (0.0, 0))
+    if time.monotonic() - start >= window:
+        return False
+    return count >= limit
+
+
+def record_account_send(bucket: str, identity: str, *, window: int) -> None:
+    """Advance ``identity``'s counter after a send that really went out."""
+    if not settings.RATE_LIMIT_ENABLED:
+        return
+    key = f"{bucket}:acct:{identity}"
+    now = time.monotonic()
+    if key not in _buckets and len(_buckets) >= _MAX_BUCKETS:
+        _evict_stale(now)
+    start, count = _buckets.get(key, (now, 0))
+    if now - start >= window:
+        start, count = now, 0
+    _buckets[key] = (start, count + 1)

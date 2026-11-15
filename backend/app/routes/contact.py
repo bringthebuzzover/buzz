@@ -24,7 +24,11 @@ from app.exceptions import BuzzAPIException
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.contact import ContactAccepted, ContactRequest
 from app.schemas.email_rules import mailbox_identity
-from app.security.rate_limit import enforce_account_limit, rate_limited
+from app.security.rate_limit import (
+    account_limit_reached,
+    rate_limited,
+    record_account_send,
+)
 from app.services import email
 
 logger = logging.getLogger(__name__)
@@ -83,6 +87,28 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     ).hexdigest()
     notice_key = email.build_idempotency_key(email.KIND_CONTACT, submission_hash)
 
+    # Per-IP limits alone let one address receive up to 20 acknowledgements an
+    # hour, since the idempotency key covers message content and changing a
+    # single character makes a new send. Cap per recipient too, so the ack
+    # cannot be used to flood a stranger's mailbox from the shared sender. Key
+    # on the mailbox identity, not the literal address: plus-tags and Gmail dots
+    # are aliases of one inbox.
+    #
+    # Checked before the notice goes out and recorded only after a send that
+    # actually happened. Refusing afterwards would tell the visitor "too many
+    # requests" about a message the team had already received, and counting
+    # every attempt would let three transient provider failures spend a real
+    # sender's whole allowance.
+    recipient_key = mailbox_identity(payload.email)
+    if account_limit_reached(
+        "contact_recipient", recipient_key, limit=3, window=3600
+    ):
+        raise BuzzAPIException(
+            errors.RATE_LIMITED,
+            "Too many requests. Please slow down and try again shortly.",
+            status_code=429,
+        )
+
     notice_sent = await email.send_contact_notice(
         contact_name=contact_name,
         sender_email=payload.email,
@@ -99,26 +125,14 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
             status_code=502,
         )
 
-    # Per-IP limits alone let one address receive up to 20 acknowledgements an
-    # hour, since the idempotency key covers message content and changing a
-    # single character makes a new send. Cap per recipient too, so the ack
-    # cannot be used to flood a stranger's mailbox from the shared sender. Key
-    # on the mailbox identity, not the literal address: ``victim+1@gmail.com``
-    # and ``victim+2@gmail.com`` are separate strings that land in one inbox.
-    #
-    # Charged here rather than at the top of the handler: an attempt whose notice
-    # never sent delivers nothing, so counting it would let three transient
-    # provider failures lock a real sender out of their own allowance.
-    enforce_account_limit(
-        "contact_recipient", mailbox_identity(payload.email), limit=3, window=3600
-    )
-
     ack_sent = await email.send_contact_ack(
         to_email=payload.email,
         contact_name=payload.first_name,
         idempotency_key=email.build_idempotency_key(email.KIND_CONTACT_ACK, submission_hash),
     )
-    if not ack_sent:
+    if ack_sent:
+        record_account_send("contact_recipient", recipient_key, window=3600)
+    else:
         # Best-effort by design (see the docstring): the notice stands.
         logger.warning("contact_ack_failed")
 

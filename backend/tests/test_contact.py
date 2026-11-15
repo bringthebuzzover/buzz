@@ -360,6 +360,56 @@ async def test_contact_plus_aliases_share_one_recipient_bucket(
     assert statuses[3] == 429
 
 
+async def test_contact_gmail_dot_variants_share_one_recipient_bucket(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """Gmail ignores dots, so campus.team and campusteam are one inbox."""
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    addresses = [
+        "campusteam@gmail.com",
+        "campus.team@gmail.com",
+        "c.a.m.p.u.s.t.e.a.m@gmail.com",
+        "campusteam+x@gmail.com",
+    ]
+    statuses = [
+        (await app_client.post("/api/contact", json={**_VALID, "email": a})).status_code
+        for a in addresses
+    ]
+
+    assert statuses[:3] == [200] * 3
+    assert statuses[3] == 429
+
+
+async def test_refused_recipient_never_gets_the_notice(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """A 429 must mean nothing was delivered.
+
+    The team notice is the expensive, irreversible part: refusing after it sent
+    would tell the visitor "too many requests" about a message BUZZ already
+    received.
+    """
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    recipient = {"email": "repeat@example.edu"}
+    for n in range(3):
+        ok = await app_client.post(
+            "/api/contact", json={**_VALID, **recipient, "message": f"Hello {n}"}
+        )
+        assert ok.status_code == 200
+
+    delivered = len(sent)
+    refused = await app_client.post(
+        "/api/contact", json={**_VALID, **recipient, "message": "One too many"}
+    )
+
+    assert refused.status_code == 429
+    assert len(sent) == delivered, "a refused request sent mail anyway"
+
+
 async def test_failed_notice_does_not_consume_the_recipient_budget(
     app_client: AsyncClient, monkeypatch, sent
 ) -> None:

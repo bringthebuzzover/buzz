@@ -110,6 +110,10 @@ _PLUS_ALIAS_DOMAINS = frozenset(
 )
 
 
+# Providers whose local part ignores dots entirely.
+_DOT_INSENSITIVE_DOMAINS = frozenset({"gmail.com", "googlemail.com"})
+
+
 def mailbox_identity(value: str) -> str:
     """The key under which two addresses reach the same inbox.
 
@@ -123,4 +127,8 @@ def mailbox_identity(value: str) -> str:
     local, _, domain = address.partition("@")
     if domain in _PLUS_ALIAS_DOMAINS:
         local = local.split("+", 1)[0]
+    if domain in _DOT_INSENSITIVE_DOMAINS:
+        # Gmail ignores dots in the local part, so ``campus.team`` and
+        # ``campusteam`` are one inbox.
+        local = local.replace(".", "")
     return f"{local}@{domain}"
