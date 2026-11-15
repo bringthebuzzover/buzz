@@ -46,6 +46,15 @@ export default function PendingApprovalPage() {
           >
             {`Verification link sent to ${user.pendingEduEmail}. Confirm your new school email.`}
           </Notice>
+        ) : user.instagramConnectRequired ? (
+          <Notice
+            tone="accent"
+            icon={<Info className="h-4 w-4" aria-hidden />}
+          >
+            One step is left: connect your organization&apos;s Instagram. BUZZ
+            will email a Connect link, and we review your application once the
+            account is connected.
+          </Notice>
         ) : user.email ? (
           <Notice
             tone="success"

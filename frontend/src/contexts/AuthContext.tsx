@@ -66,6 +66,12 @@ export type AuthUser = {
   status: string;
   instagramUsername?: string;
   instagramReconnectRequired?: boolean;
+  /**
+   * An unbound org still awaiting approval that has never connected Instagram.
+   * Distinct from a reconnect: nothing is closed, one onboarding step is left,
+   * and approval stays blocked until it is done.
+   */
+  instagramConnectRequired?: boolean;
   /** Live .edu (org) or company email (brand/admin) from `/me`. */
   email?: string;
   /** Pending-swap .edu while rotate verification is outstanding. */

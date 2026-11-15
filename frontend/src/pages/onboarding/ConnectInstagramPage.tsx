@@ -1,8 +1,11 @@
 /**
- * /onboarding/connect-instagram — reconnect an approved Instagram account switch.
+ * /onboarding/connect-instagram — bind Instagram before approval or after an
+ * approved account switch.
  *
- * Approval email carries ?token= for one-shot session mint when the org has no
- * live cookie; then they start bind OAuth via bind-start.
+ * The email carries ?token= for a one-shot session mint when the org has no
+ * live cookie; then they start bind OAuth via bind-start. For an org that has
+ * never connected (pre-approval), connecting does not activate anything — an
+ * admin still has to approve.
  */
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
@@ -92,7 +95,11 @@ export default function ConnectInstagramPage() {
     );
   }
 
-  if (!user || !user.instagramReconnectRequired) {
+  const needsConnect = Boolean(
+    user?.instagramReconnectRequired || user?.instagramConnectRequired,
+  );
+
+  if (!user || !needsConnect) {
     if (user?.status === "active" && next) {
       return <Navigate to={next} replace />;
     }

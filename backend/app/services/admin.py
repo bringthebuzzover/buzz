@@ -50,6 +50,7 @@ from app.services.email import (
     KIND_LATE_ADD_BRAND,
     KIND_LATE_ADD_ORG,
     KIND_ORG_APPROVED_BOUND,
+    KIND_ORG_CONNECT_BEFORE_APPROVAL,
     _ops_cc,
     build_idempotency_key,
     send_admin_compose_email,
@@ -61,6 +62,7 @@ from app.services.email import (
     send_late_add_brand_email,
     send_late_add_org_email,
     send_org_approved_email,
+    send_org_connect_before_approval_email,
     send_org_denied_email,
     send_org_ig_switch_connect_email,
     send_org_undenied_email,
@@ -72,7 +74,12 @@ from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.lifecycle import ENDED_DECISIONS, drop_stage, require_drop, seat_is_live
 from app.services.org_apply import ig_bind_mismatch_open
-from app.services.org_connect import create_org_connect_token, org_owes_instagram_reconnect
+from app.services.org_connect import (
+    create_org_connect_token,
+    org_awaits_initial_connect,
+    org_connect_action,
+    org_owes_instagram_reconnect,
+)
 from app.services.seats import lock_drop, set_seat_decision
 from app.timeutils import utcnow
 
@@ -81,6 +88,14 @@ logger = logging.getLogger(__name__)
 _ORG_STATUSES = frozenset(member.value for member in OrgUserStatus)
 _BRAND_STATUSES = frozenset(member.value for member in BrandStatus)
 _ORG_ATTENTIONS = frozenset({"ig_bind_mismatch"})
+
+# Refusal copy for the pre-approval Connect action. It names the other action so
+# an admin who picked the wrong button for a switch holder is told where to go.
+_CONNECT_LINK_REFUSAL = (
+    "This organization is not waiting to connect Instagram for the first time. "
+    "It is either already connected, no longer in a pre-approval state, or waiting "
+    "on an approved account switch (use Resend connect email for that case)."
+)
 
 
 async def list_orgs(
@@ -128,8 +143,8 @@ async def list_orgs(
     rows = list(await db.execute(stmt))
     listed = []
     for user, org in rows:
-        reconnect_required = await org_owes_instagram_reconnect(db, user)
-        if status == "awaiting_connect" and not reconnect_required:
+        connect_action = await org_connect_action(db, user)
+        if status == "awaiting_connect" and connect_action != "switch":
             continue
         erased = user.status == OrgUserStatus.ERASED.value
         listed.append(
@@ -166,7 +181,8 @@ async def list_orgs(
                 "member_count": None if erased else (org.member_count if org is not None else None),
                 "category": None if erased else (org.category if org is not None else None),
                 "status": user.status,
-                "instagram_reconnect_required": reconnect_required,
+                "instagram_reconnect_required": connect_action == "switch",
+                "instagram_connect_required": connect_action == "initial",
                 "edu_email": None if erased else user.edu_email,
                 "email_verified_at": None if erased else user.email_verified_at,
                 "approved_at": None if erased else (org.approved_at if org is not None else None),
@@ -310,21 +326,91 @@ async def resend_org_connect(
     return {"org_id": str(org.id), "status": user.status, "email_queued": email_queued}
 
 
+async def send_org_connect_link(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
+    """Mint a Connect Instagram link for an unbound org in a pre-approval state.
+
+    Signup is Instagram-first and ``approve_org`` requires live credentials, so
+    an org that verified its ``.edu`` under the retired apply-first flow — and
+    never did the OAuth handshake — cannot be approved and cannot recover on its
+    own: a plain Instagram login collides with the handle already claimed on its
+    own row (409), its ``.edu`` is uniquely indexed, and ``bind-start`` needs a
+    reconnect ticket it does not have. This is the admin exit: the org connects,
+    then approval succeeds.
+
+    Deliberately *not* ``resend_org_connect``: that action describes an approved
+    account switch and says so in its email. This one keeps the credential gate
+    on approval and mints an ordinary ``org_connect_tokens`` row, which
+    ``redeem_org_connect_token`` accepts because the org is unbound and
+    pre-approval. Nothing here changes ``user.status``.
+    """
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    user = await db.get(User, org.user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    _refuse_erased_org(user)
+    if not org_awaits_initial_connect(user):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            _CONNECT_LINK_REFUSAL,
+            status_code=400,
+        )
+    if not (user.edu_email or "").strip():
+        # The token is emailed; without an address the link would be minted and
+        # then silently discarded. Refuse rather than claim success.
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This organization has no school email on file.",
+            status_code=400,
+        )
+
+    raw, connect_token_id = await create_org_connect_token(db, org, user)
+    await db.flush()
+    email_queued = await schedule_email(
+        background_tasks,
+        send_org_connect_before_approval_email,
+        user.edu_email or "",
+        org_name=org.org_name,
+        connect_token=raw,
+        claimed_handle=org.claimed_instagram_username or user.instagram_username or "",
+        idempotency_key=build_idempotency_key(KIND_ORG_CONNECT_BEFORE_APPROVAL, connect_token_id),
+    )
+    return {"org_id": str(org.id), "status": user.status, "email_queued": email_queued}
+
+
 async def resend_all_awaiting_instagram_connect(
     db: AsyncSession, *, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
-    """Email orgs with an approved account switch still awaiting reconnect."""
+    """Email every org that still has to connect Instagram, either cohort.
+
+    Two independent reasons to owe a Connect: an approved account switch on an
+    active org, and an unbound org that verified its ``.edu`` under the retired
+    apply-first flow and never connected. Both are emailed here, because both
+    are stuck without the link and the admin button says "awaiting Instagram".
+
+    Excludes orgs still verifying school email or awaiting a profile (no
+    Connect action applies), bound active orgs, and erased tombstones.
+    """
     rows = await db.execute(
         select(Organization, User)
         .join(User, User.id == Organization.user_id)
-        .where(User.portal_role == PortalRole.ORG.value, User.status == OrgUserStatus.ACTIVE.value)
+        .where(
+            User.portal_role == PortalRole.ORG.value,
+            User.status != OrgUserStatus.ERASED.value,
+        )
     )
     targeted = 0
     queued = 0
     failed = 0
     skipped = 0
     for org, user in rows.all():
-        if not await org_owes_instagram_reconnect(db, user):
+        action = await org_connect_action(db, user)
+        if action is None:
             continue
         org_id, edu_email = org.id, user.edu_email
         targeted += 1
@@ -332,7 +418,10 @@ async def resend_all_awaiting_instagram_connect(
             skipped += 1
             continue
         try:
-            out = await resend_org_connect(db, org_id, background_tasks=background_tasks)
+            if action == "switch":
+                out = await resend_org_connect(db, org_id, background_tasks=background_tasks)
+            else:
+                out = await send_org_connect_link(db, org_id, background_tasks=background_tasks)
         except BuzzAPIException:
             logger.warning("Bulk connect email skipped failed org %s", org_id)
             failed += 1

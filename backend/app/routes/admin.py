@@ -104,6 +104,7 @@ from app.services.admin import (
     resend_all_awaiting_instagram_connect,
     resend_brand_invite,
     resend_org_connect,
+    send_org_connect_link,
     sync_and_autolink_drop,
     undeny_brand,
     undeny_org,
@@ -306,9 +307,12 @@ async def resend_all_awaiting_instagram_connect_endpoint(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Email Connect Instagram to every org awaiting an approved switch reconnect.
+    """Email Connect Instagram to every org that still has to connect.
 
-    Does not email orgs still verifying school email or awaiting approval.
+    Covers both cohorts: an approved account switch awaiting its bind, and an
+    org that verified its ``.edu`` but never connected Instagram (it must connect
+    before an admin can approve it). Does not email orgs still verifying school
+    email, orgs without a profile, already-connected orgs, or erased accounts.
     """
     result = await resend_all_awaiting_instagram_connect(db, background_tasks=background_tasks)
     return api_response(data=AdminResendConnectAllResponse.model_validate(result))
@@ -324,7 +328,33 @@ async def resend_org_connect_endpoint(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
+    """Re-send the Connect link for an **approved account switch**.
+
+    Switch holders only. For an org that has never connected Instagram, use
+    ``send-connect-link`` instead.
+    """
     result = await resend_org_connect(db, org_id, background_tasks=background_tasks)
+    return api_response(data=AdminOrgStatusResponse.model_validate(result))
+
+
+@router.post(
+    "/orgs/{org_id}/send-connect-link",
+    response_model=DataResponse[AdminOrgStatusResponse],
+)
+async def send_org_connect_link_endpoint(
+    org_id: uuid.UUID,
+    _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Email a Connect Instagram link to an unbound org that has never connected.
+
+    For orgs that verified their ``.edu`` under the apply-first flow and were
+    never approved: they have no credentials, so approval refuses and
+    ``resend-connect`` (switch holders) refuses too. The link lets them bind
+    first; they stay ``pending_approval`` until an admin approves them.
+    """
+    result = await send_org_connect_link(db, org_id, background_tasks=background_tasks)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 

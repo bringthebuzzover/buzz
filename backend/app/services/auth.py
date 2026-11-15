@@ -36,7 +36,7 @@ from app.services.instagram import (
 )
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import assert_handle_available, flag_ig_bind_mismatch
-from app.services.org_connect import org_owes_instagram_reconnect
+from app.services.org_connect import org_connect_action, org_may_connect_instagram
 from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,7 @@ async def handle_instagram_callback(
                 "Organization account not found.",
                 status_code=404,
             )
-        if not await org_owes_instagram_reconnect(db, target):
+        if not await org_may_connect_instagram(db, target):
             raise BuzzAPIException(
                 errors.INVALID_ONBOARDING_STATE,
                 "This account is not waiting to connect Instagram.",
@@ -246,7 +246,10 @@ async def handle_instagram_callback(
             ) from exc
         raise
     await db.refresh(user)
-    if bind_user_id is not None:
+    if bind_user_id is not None and user.status == OrgUserStatus.ACTIVE.value:
+        # A bind that happens before approval must not promote signup intents:
+        # the org has no portal yet, and approval is what releases the seat.
+        # ``approve_org`` promotes them once an admin approves.
         await promote_drop_apply_intents(db, user)
     return user
 
@@ -418,6 +421,7 @@ async def build_user_response(db: AsyncSession, user: User) -> UserResponse:
     # import would be circular.
     from app.deps.auth import impersonated_by, impersonation_readonly
 
+    connect_action = await org_connect_action(db, user)
     admin_id = impersonated_by(user)
     return UserResponse(
         id=user.id,
@@ -426,7 +430,8 @@ async def build_user_response(db: AsyncSession, user: User) -> UserResponse:
         instagram_username=user.instagram_username,
         email=user.edu_email,
         pending_edu_email=user.pending_edu_email,
-        instagram_reconnect_required=await org_owes_instagram_reconnect(db, user),
+        instagram_reconnect_required=connect_action == "switch",
+        instagram_connect_required=connect_action == "initial",
         impersonated_by=uuid.UUID(admin_id) if admin_id else None,
         impersonation_readonly=impersonation_readonly(user) if admin_id else None,
     )

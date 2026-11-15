@@ -22,7 +22,7 @@ export type QueueMeta = {
 export const QUEUE_META: Record<string, QueueMeta> = {
   orgs_pending_approval: {
     label: "Organizations awaiting approval",
-    note: "Verified their email and are waiting on a decision",
+    note: "Verified their email and are waiting on a decision. An organization that has not connected Instagram cannot be approved yet — open it and send a Connect link.",
     to: "/admin/orgs?status=pending_approval",
     owner: "us",
   },

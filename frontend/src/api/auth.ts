@@ -508,6 +508,7 @@ export function authUserFromWire(u: UserWire): AuthUser {
     status: u.status,
     instagramUsername: u.instagram_username ?? undefined,
     instagramReconnectRequired: u.instagram_reconnect_required ?? false,
+    instagramConnectRequired: u.instagram_connect_required ?? false,
     email: u.email ?? undefined,
     pendingEduEmail: u.pending_edu_email ?? undefined,
     impersonatedBy: u.impersonated_by ?? undefined,

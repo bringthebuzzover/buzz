@@ -1,4 +1,4 @@
-"""Bulk Connect email: awaiting_connect only (not unverified / awaiting approval)."""
+"""Bulk Connect email: both connect cohorts, not unverified / profileless orgs."""
 
 from __future__ import annotations
 
@@ -36,13 +36,15 @@ async def _org(
     return user, org
 
 
-async def test_resend_connect_all_only_awaiting_connect(
+async def test_resend_connect_all_targets_both_cohorts(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:
     approved_mail = AsyncMock(return_value=True)
     switch_mail = AsyncMock(return_value=True)
+    initial_mail = AsyncMock(return_value=True)
     monkeypatch.setattr("app.services.admin.send_org_approved_email", approved_mail)
     monkeypatch.setattr("app.services.admin.send_org_ig_switch_connect_email", switch_mail)
+    monkeypatch.setattr("app.services.admin.send_org_connect_before_approval_email", initial_mail)
 
     await _org(
         db_session,
@@ -57,6 +59,8 @@ async def test_resend_connect_all_only_awaiting_connect(
         email="unverified@test.edu",
         name="Unverified",
     )
+    # Verified .edu under the apply-first flow, never connected: approval is
+    # blocked until it does, so the bulk action has to reach it.
     await _org(
         db_session,
         status=OrgUserStatus.PENDING_APPROVAL,
@@ -87,14 +91,19 @@ async def test_resend_connect_all_only_awaiting_connect(
     resp = await app_client.post("/api/admin/orgs/resend-connect-all", headers=headers)
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
-    assert data["targeted"] == 2
-    assert data["queued"] == 1
+    assert data["targeted"] == 3
+    assert data["queued"] == 2
     assert data["failed"] == 0
     assert data["skipped"] == 1
 
+    # Switch holder still hears from the switch sender; the never-connected org
+    # hears the honest pre-approval copy. Each cohort gets exactly one email.
     assert switch_mail.await_count == 1
     assert switch_mail.await_args.args[0] == "connect-me@test.edu"
     assert switch_mail.await_args.kwargs["connect_token"]
+    assert initial_mail.await_count == 1
+    assert initial_mail.await_args.args[0] == "awaiting@test.edu"
+    assert initial_mail.await_args.kwargs["connect_token"]
     approved_mail.assert_not_awaited()
 
 

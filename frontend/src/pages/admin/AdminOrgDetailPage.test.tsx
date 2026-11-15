@@ -18,6 +18,7 @@ const mockEraseMutateAsync = jest.fn();
 const mockSendEmailMutateAsync = jest.fn();
 const mockAckMutateAsync = jest.fn();
 const mockApprove = jest.fn();
+const mockSendConnectLink = jest.fn();
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminOrg: (...args: unknown[]) => mockUseAdminOrg(...args),
@@ -37,6 +38,10 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     isError: false,
   }),
   useResendOrgConnect: () => idleMutation(),
+  useSendOrgConnectLink: () => ({
+    ...idleMutation(),
+    mutateAsync: mockSendConnectLink,
+  }),
   useSendOrgEmail: () => ({
     mutate: jest.fn(),
     mutateAsync: mockSendEmailMutateAsync,
@@ -107,6 +112,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
   beforeEach(() => {
     mockUseAdminOrg.mockReset();
     mockApprove.mockReset().mockResolvedValue({});
+    mockSendConnectLink.mockReset().mockResolvedValue({});
     mockEraseMutateAsync.mockReset();
     mockAckMutateAsync.mockReset();
     mockAckMutateAsync.mockResolvedValue({});
@@ -398,6 +404,68 @@ describe("AdminOrgDetailPage erase confirm", () => {
     renderPage();
     expect(container.querySelector('[data-testid="resend-connect"]') !== null).toBe(required);
     expect(container.textContent?.includes("Awaiting Instagram connect")).toBe(required);
+  });
+
+  it("offers Send Connect link to an unbound pre-approval org", async () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        status: "pending_approval",
+        instagramHandleConfirmed: false,
+        instagramTokenExpiresAt: null,
+        instagramConnectRequired: true,
+        instagramReconnectRequired: false,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    // Switch-holder action is not offered; the pre-approval one is.
+    expect(container.querySelector('[data-testid="resend-connect"]')).toBeNull();
+    expect(container.textContent).not.toContain("Instagram Tester");
+    expect(container.textContent).toContain("never connected Instagram");
+
+    const hero = container.querySelector(
+      '[data-testid="send-connect-link"]',
+    ) as HTMLButtonElement;
+    expect(hero).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="send-connect-link-panel"]'),
+    ).toBeTruthy();
+
+    expect(container.querySelector('[data-testid="approve-org"]')).not.toBeNull();
+    expect(
+      (
+        container.querySelector('[data-testid="approve-org"]') as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+
+    await act(async () => hero.click());
+    expect(mockSendConnectLink).toHaveBeenCalledWith(
+      "22222222-2222-2222-2222-222222222222",
+    );
+    expect(container.textContent).toContain(
+      "They stay awaiting approval until they connect and you approve.",
+    );
+  });
+
+  it("keeps the tester-invite confirm for a bound pre-approval org", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        status: "pending_approval",
+        instagramHandleConfirmed: false,
+        instagramConnectRequired: false,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    expect(container.querySelector('[data-testid="send-connect-link"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="tester-invite-confirmed"]'),
+    ).not.toBeNull();
   });
 
   it("opens compose with locked To/CC and requires a subject", async () => {

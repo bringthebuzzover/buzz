@@ -25,6 +25,12 @@ from app.models.user import User
 from app.security.one_shot_tokens import hash_token
 from app.timeutils import utcnow
 
+# Statuses in which an org that never connected Instagram can still be rescued by
+# a Connect link. ``pending_approval`` is the backlog of orgs that verified their
+# ``.edu`` under the apply-first flow, which never ran OAuth. A denied org gets
+# here through ``undeny_org`` first, so it is not listed.
+CONNECT_BEFORE_APPROVAL_STATUSES = frozenset({OrgUserStatus.PENDING_APPROVAL.value})
+
 
 async def org_owes_instagram_reconnect(db: AsyncSession, user: User) -> bool:
     """Whether an active org has an approved switch still awaiting its bind."""
@@ -41,6 +47,58 @@ async def org_owes_instagram_reconnect(db: AsyncSession, user: User) -> bool:
             .limit(1)
         )
     )
+
+
+def org_has_instagram_credentials(user: User) -> bool:
+    """Whether the org row holds a Graph identity *and* a token."""
+    return bool(user.instagram_user_id and user.instagram_access_token)
+
+
+def org_awaits_initial_connect(user: User) -> bool:
+    """Whether an unbound org still has to connect Instagram before approval.
+
+    Signup is Instagram-first, so approval requires live credentials. These orgs
+    verified their ``.edu`` under the retired apply-first flow and never did the
+    handshake; they are the cohort a "send Connect link" admin action exists for.
+    """
+
+    return (
+        user.portal_role == PortalRole.ORG.value
+        and user.status in CONNECT_BEFORE_APPROVAL_STATUSES
+        and not org_has_instagram_credentials(user)
+    )
+
+
+async def org_may_connect_instagram(db: AsyncSession, user: User) -> bool:
+    """Whether this org may start a bind OAuth / redeem a Connect link.
+
+    Two cohorts qualify: an active org whose approved account switch released
+    its credentials, and an unbound pre-approval org that never connected. Both
+    need a bind; neither gains portal access from it (see
+    :func:`redeem_org_connect_token`).
+    """
+
+    return org_awaits_initial_connect(user) or await org_owes_instagram_reconnect(db, user)
+
+
+async def org_connect_action(db: AsyncSession, user: User) -> str | None:
+    """Which admin Connect action reaches *user*, if any.
+
+    ``"switch"`` — an active org whose approved switch released its credentials;
+    the existing ``resend_org_connect`` path applies.
+    ``"initial"`` — an unbound pre-approval org that has not connected yet;
+    ``send_org_connect_link`` applies.
+    ``None`` — nobody to email.
+
+    Kept beside the two predicates so the bulk action and the per-org actions
+    cannot drift about who they reach.
+    """
+
+    if await org_owes_instagram_reconnect(db, user):
+        return "switch"
+    if org_awaits_initial_connect(user):
+        return "initial"
+    return None
 
 
 async def create_org_connect_token(
@@ -76,7 +134,28 @@ async def create_org_connect_token(
 
 
 async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:
-    """Consume a connect token; return an org still owing a reconnect."""
+    """Consume a connect token; return an org that may now bind Instagram.
+
+    Two cohorts may redeem, and they are told apart by *current account state*,
+    never by the token row:
+
+    * **Switch holder** — ``active`` with an approved ``awaiting_connect``
+      ticket. Its portal is already closed by the released credentials, so this
+      session can only be used to finish the bind.
+    * **Unbound before approval** — still ``pending_approval`` and holding no
+      Graph identity or token because it verified its ``.edu`` under the
+      retired apply-first flow. It never had portal access to lose.
+
+    Neither cohort gains anything beyond a session from redeeming. The token
+    grants no approval and no portal access: every ``/api/orgs`` route sits
+    behind ``CurrentOrg`` (role *and* ``active``), the redemption writes no
+    status, and an unbound pre-approval org therefore stays ``pending_approval``
+    after it binds. Only ``approve_org`` — an admin action — moves it to
+    ``active``, and it does so exactly because the bind supplied the credentials
+    approval requires. A denied, erased, or otherwise non-eligible account is
+    refused at redeem time even if it still holds an unused token, because the
+    check below reads the live row.
+    """
     now = utcnow()
     row = await db.scalar(
         select(OrgConnectToken)
@@ -105,7 +184,7 @@ async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:
     user = await db.get(User, row.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
-    if not await org_owes_instagram_reconnect(db, user):
+    if not await org_may_connect_instagram(db, user):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "This account is not waiting to connect Instagram.",

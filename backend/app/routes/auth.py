@@ -83,7 +83,7 @@ from app.services.onboarding import (
     rotate_edu_email,
     verify_email,
 )
-from app.services.org_connect import org_owes_instagram_reconnect
+from app.services.org_connect import org_may_connect_instagram
 from app.services.password_reset import request_password_reset, reset_password
 
 logger = logging.getLogger(__name__)
@@ -161,12 +161,18 @@ async def instagram_bind_start(
     next_path: str | None = Query(default=None, alias="next"),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Mint OAuth state with bind claim for orgs awaiting a switch reconnect."""
+    """Mint OAuth state with bind claim for any org that must connect Instagram.
 
-    if user.portal_role != PortalRole.ORG.value or not await org_owes_instagram_reconnect(db, user):
+    Two cohorts may bind: an active org whose approved account switch released
+    its credentials, and an unbound org still awaiting approval that never
+    connected Instagram. A bind never activates the latter — ``approve_org``
+    stays the only path to ``active``.
+    """
+
+    if user.portal_role != PortalRole.ORG.value or not await org_may_connect_instagram(db, user):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "Only organizations awaiting Instagram connect can start a bind login.",
+            "Only organizations waiting to connect Instagram can start a bind login.",
             status_code=400,
         )
     state = jwt.create_oauth_state_token(bind_user_id=user.id, next_path=next_path)

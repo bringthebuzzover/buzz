@@ -16,6 +16,7 @@ const mockAuthValue: {
     status: string;
     email?: string;
     pendingEduEmail?: string;
+    instagramConnectRequired?: boolean;
   };
   refreshUser: typeof mockRefreshUser;
 } = {
@@ -71,5 +72,20 @@ describe("PendingApprovalPage", () => {
     expect(container.textContent).toContain(
       "Verification link sent to next@test.edu. Confirm your new school email.",
     );
+  });
+
+  it("tells a never-connected org its Connect step is what is left", () => {
+    mockAuthValue.user = {
+      ...mockAuthValue.user,
+      instagramConnectRequired: true,
+    };
+    const { container } = renderWithProviders(<PendingApprovalPage />, {
+      route: "/onboarding/pending-approval",
+    });
+
+    expect(container.textContent).toContain(
+      "One step is left: connect your organization's Instagram.",
+    );
+    expect(container.textContent).not.toContain("We're reviewing your application.");
   });
 });
