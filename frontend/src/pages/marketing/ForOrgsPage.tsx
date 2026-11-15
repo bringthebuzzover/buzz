@@ -1,5 +1,5 @@
 /**
- * /for-orgs — how student organizations join. Apply-first; Instagram after approval.
+ * /for-orgs — how student organizations join. Instagram-first signup.
  */
 import { MarketingPage } from "../../components/marketing/MarketingPage";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
@@ -7,7 +7,6 @@ import { SideBySideHow } from "../../components/marketing/SideBySideHow";
 import {
   CurrentDrops,
   FaqList,
-  JoinSplit,
   MarketingHero,
   Statement,
 } from "../../components/marketing/sections";
@@ -20,11 +19,11 @@ const ORG_FAQ = [
   },
   {
     q: "Can we use a personal Instagram account?",
-    a: "No. Buzz needs the organization’s Business or Creator account, not a member’s personal profile.",
+    a: "No. Use your organization’s account. Switch it to a free Business or Creator account in Instagram Settings, then retry your application.",
   },
   {
     q: "When do we connect Instagram?",
-    a: "After Buzz approves you. Connect Instagram binds the organization account. It does not create a new one.",
+    a: "Connect your organization’s Business or Creator account first, then complete your campus profile and verify your .edu email. BUZZ reviews your application before opening portal access.",
   },
   {
     q: "We didn’t get the verification email.",
@@ -55,7 +54,7 @@ export default function ForOrgsPage() {
       <MarketingHero
         media={{ src: yerba.image, alt: yerba.title }}
         title={"Brand drops\nfor student\norganizations."}
-        sub="You apply on the website first. Instagram comes after BUZZ approves you."
+        sub="Connect Instagram, complete your campus profile, and verify your .edu email. BUZZ reviews your application."
         primary={{ label: "Join Us!", to: "/org/apply" }}
         aside={{ kicker: "Collaboration", line: "Yerba Madre x Cornell University" }}
       />
@@ -66,16 +65,9 @@ export default function ForOrgsPage() {
       />
       <SideBySideHow kind="org" />
       <CurrentDrops />
-      <FaqList items={ORG_FAQ} />
-      <JoinSplit
-        left={{
-          kicker: "For organizations",
-          title: "Apply with your\ncampus .edu.",
-          support: "You apply on the website first.",
-          action: { label: "Apply as an organization", to: "/org/apply" },
-          quiet: { label: "Already connected? Log in", to: "/login" },
-        }}
-      />
+      <div id="instagram-guide">
+        <FaqList items={ORG_FAQ} />
+      </div>
       <SiteFooter audience="org" />
     </MarketingPage>
   );

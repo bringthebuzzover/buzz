@@ -55,11 +55,20 @@ async def _bind(app_client: AsyncClient, user: User, fake: FakeInstagramClient) 
 
 
 async def test_apply_writes_claimed(app_client: AsyncClient, db_session) -> None:
-    from tests.test_org_apply import _APPLY
+    from tests.test_onboarding import _VALID_PROFILE
+
+    user = make_user(
+        status=OrgUserStatus.PENDING_ORG_PROFILE,
+        instagram_user_id="ig_claimed_1",
+        instagram_username="campusgreeks",
+    )
+    await persist(db_session, user)
+    token = mint_access_token(user)
 
     resp = await app_client.post(
-        "/api/orgs/apply",
-        json={**_APPLY, "eduEmail": "claimed@cornell.edu"},
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "eduEmail": "claimed@cornell.edu"},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200, resp.text
     org = await db_session.scalar(

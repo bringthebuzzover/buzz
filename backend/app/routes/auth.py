@@ -138,6 +138,7 @@ def _clear_state_cookie(response: Response) -> None:
 async def instagram_login(
     ig: InstagramClient = Depends(get_instagram_client),
     next_path: str | None = Query(default=None, alias="next"),
+    prefill: str | None = Query(default=None, max_length=256, pattern=r"^[A-Za-z0-9_-]+$"),
 ) -> RedirectResponse:
     """Redirect (302) to the Instagram OAuth authorize URL (§3.4 Phase 1).
 
@@ -145,7 +146,7 @@ async def instagram_login(
     (authenticated) which returns an authorize URL with bind state.
     """
 
-    state = jwt.create_oauth_state_token(next_path=next_path)
+    state = jwt.create_oauth_state_token(next_path=next_path, prefill=prefill)
     redirect = RedirectResponse(ig.build_authorize_url(state), status_code=302)
     _set_state_cookie(redirect, state)
     return redirect
@@ -197,12 +198,14 @@ async def instagram_callback(
     state_ok = bool(cookie_state) and cookie_state == payload.state
     bind_user_id: uuid.UUID | None = None
     oauth_next: str | None = None
+    oauth_prefill: str | None = None
     if state_ok:
         try:
             state_payload = jwt.decode_token(
                 payload.state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE
             )
             oauth_next = jwt.allowlisted_oauth_next(state_payload.next)
+            oauth_prefill = state_payload.prefill
             if state_payload.bind:
                 try:
                     bind_user_id = uuid.UUID(state_payload.bind)
@@ -238,7 +241,12 @@ async def instagram_callback(
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(
-        data=TokenResponse(access_token=access, user=build_user_response(user), next=oauth_next)
+        data=TokenResponse(
+            access_token=access,
+            user=build_user_response(user),
+            next=oauth_next,
+            prefill=oauth_prefill,
+        )
     )
 
 

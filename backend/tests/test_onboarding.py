@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from httpx import AsyncClient
@@ -22,7 +24,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
-from tests.conftest import make_brand, make_user, mint_access_token, persist
+from tests.conftest import admin_headers, make_brand, make_user, mint_access_token, persist
 
 # --- Org onboarding: profile submit -----------------------------------------
 
@@ -1051,3 +1053,176 @@ async def test_me_exposes_pending_edu_email(app_client: AsyncClient, db_session)
     data = resp.json()["data"]
     assert data["email"] == "me-live@test.edu"
     assert data["pending_edu_email"] == "me-pend@test.edu"
+
+
+async def test_instagram_signup_through_approval(
+    app_client: AsyncClient, db_session, fake_instagram, monkeypatch
+) -> None:
+    from app.models.org_connect_token import OrgConnectToken
+
+    queued_verification = AsyncMock(return_value=True)
+    queued_approval = AsyncMock(return_value=True)
+    monkeypatch.setattr("app.services.onboarding.schedule_email", queued_verification)
+    monkeypatch.setattr("app.services.admin.schedule_email", queued_approval)
+    login = await app_client.get("/api/auth/instagram/login", follow_redirects=False)
+    state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
+    signup = await app_client.post(
+        "/api/auth/instagram/callback", json={"code": "signup", "state": state}
+    )
+    assert signup.status_code == 200, signup.text
+    session = signup.json()["data"]
+    assert session["user"]["status"] == "pending_org_profile"
+    headers = {"Authorization": f"Bearer {session['access_token']}"}
+    profile = await app_client.post("/api/orgs/onboarding", json=_VALID_PROFILE, headers=headers)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["data"]["status"] == "pending_email_verification"
+    assert profile.json()["data"]["emailQueued"] is True
+    org = await db_session.scalar(select(Organization))
+    assert org is not None
+    assert org.instagram_handle_confirmed is True
+    assert org.follower_count == 1000
+    raw_verification = queued_verification.await_args.args[4]
+    verified = await app_client.post("/api/auth/verify-email", json={"token": raw_verification})
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["data"]["status"] == "pending_approval"
+    approved = await app_client.post(
+        f"/api/admin/orgs/{org.id}/approve",
+        headers=await admin_headers(db_session),
+        json={},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["data"]["status"] == "active"
+    assert await db_session.scalar(select(OrgConnectToken)) is None
+    assert "connect_token" not in queued_approval.await_args.kwargs
+    refreshed = await app_client.post("/api/auth/refresh")
+    assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["data"]["user"]["status"] == "active"
+
+
+@pytest.mark.parametrize("failure", ["validation", "address", "used", "expired", "missing"])
+async def test_onboarding_prefill_failure_and_retry(
+    app_client: AsyncClient, db_session, monkeypatch, failure: str
+) -> None:
+    from app.models.org_apply_prefill import OrgApplyPrefill
+    from app.services.address import FormatFallbackAddressClient
+
+    raw = "fake-invitation-draft"
+    row = OrgApplyPrefill(
+        token_hash=hash_token(raw),
+        invite_email="org1@example.edu",
+        org_name="Test Org",
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    user = make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_prefill")
+    await persist(db_session, user)
+    db_session.add(row)
+    await db_session.flush()
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    draft = await app_client.get("/api/orgs/apply/prefill", params={"token": raw})
+    assert draft.status_code == 200
+    assert draft.json()["data"]["orgName"] == "Test Org"
+    payload = {**_VALID_PROFILE, "prefillToken": raw}
+    if failure == "validation":
+        payload["orgName"] = ""
+    elif failure == "address":
+
+        async def invalid_address(*args, **kwargs):
+            from app import errors
+            from app.exceptions import BuzzAPIException
+
+            raise BuzzAPIException(errors.NOT_FOUND, "Invalid test address.", status_code=400)
+
+        monkeypatch.setattr(FormatFallbackAddressClient, "validate", invalid_address)
+    elif failure == "used":
+        row.used_at = datetime.now(timezone.utc)
+    elif failure == "expired":
+        row.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+    else:
+        payload["prefillToken"] = "missing-draft"
+    await db_session.flush()
+    response = await app_client.post("/api/orgs/onboarding", json=payload, headers=headers)
+    assert response.status_code in {400, 404, 422}
+    await db_session.refresh(row)
+    await db_session.refresh(user)
+    assert user.status == "pending_org_profile"
+    assert row.used_by_user_id is None
+    assert (
+        await db_session.scalar(select(Organization).where(Organization.user_id == user.id)) is None
+    )
+    if failure not in {"validation", "address"}:
+        return
+    assert row.used_at is None
+    monkeypatch.undo()
+    response = await app_client.post(
+        "/api/orgs/onboarding", json={**_VALID_PROFILE, "prefillToken": raw}, headers=headers
+    )
+    assert response.status_code == 200, response.text
+    await db_session.refresh(row)
+    assert row.used_at is not None
+    assert row.used_by_user_id == user.id
+    reused = await app_client.get("/api/orgs/apply/prefill", params={"token": raw})
+    assert reused.status_code == 404
+
+
+@pytest.mark.parametrize("drop_state", ["open", "closed", "upcoming", "hidden", "draft", "unknown"])
+async def test_profile_records_public_drop_intent(app_client, db_session, drop_state):
+    from app.models.application import DropApplication
+    from app.models.drop_apply_intent import DropApplyIntent
+    from tests.conftest import make_drop
+
+    user = await persist(db_session, make_user(status=OrgUserStatus.PENDING_ORG_PROFILE))
+    brand = await make_brand(db_session)
+    now = datetime.now(timezone.utc)
+    drop = await make_drop(db_session, brand)
+    if drop_state == "closed":
+        drop.apply_close_at = now - timedelta(hours=1)
+    elif drop_state == "upcoming":
+        drop.apply_open_at = now + timedelta(hours=1)
+    elif drop_state == "hidden":
+        drop.hidden_at = now
+    elif drop_state == "draft":
+        drop.published_at = None
+    await db_session.flush()
+    drop_id = uuid.uuid4() if drop_state == "unknown" else drop.id
+    payload = {**_VALID_PROFILE, "dropId": str(drop_id), "pitch": "  Test pitch  "}
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    response = await app_client.post("/api/orgs/onboarding", json=payload, headers=headers)
+    if drop_state in {"hidden", "draft", "unknown"}:
+        assert response.json()["error"]["code"] == "DROP_NOT_OPEN"
+        assert (
+            await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
+            is None
+        )
+        assert list(await db_session.scalars(select(DropApplyIntent))) == []
+        return
+    assert response.status_code == 200, response.text
+    intent = await db_session.scalar(
+        select(DropApplyIntent).where(DropApplyIntent.drop_id == drop_id)
+    )
+    assert intent is not None
+    assert intent.pitch == "Test pitch"
+    assert intent.status == ("expired" if drop_state == "closed" else "open")
+    assert list(await db_session.scalars(select(DropApplication))) == []
+    retry = await app_client.post("/api/orgs/onboarding", json=payload, headers=headers)
+    assert retry.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
+    assert len(list(await db_session.scalars(select(DropApplyIntent)))) == 1
+    assert (
+        len(
+            list(
+                await db_session.scalars(
+                    select(Organization).where(Organization.user_id == user.id)
+                )
+            )
+        )
+        == 1
+    )
+
+
+@pytest.mark.parametrize("extra", [{"dropId": "https://example.test"}, {"pitch": "x" * 2001}])
+def test_onboarding_bounds_drop_context(extra):
+    from pydantic import ValidationError
+
+    from app.schemas.onboarding import OrgOnboardingRequest
+
+    with pytest.raises(ValidationError):
+        OrgOnboardingRequest.model_validate({**_VALID_PROFILE, **extra})

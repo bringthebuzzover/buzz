@@ -51,21 +51,33 @@ async def _begin_login(client: AsyncClient) -> str:
     return parse_qs(urlparse(location).query)["state"][0]
 
 
-async def test_callback_unknown_ig_requires_apply(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+@pytest.mark.parametrize("account_type", ["BUSINESS", "Media_Creator"])
+async def test_callback_creates_pending_org_once(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session, account_type: str
 ) -> None:
-    """Unknown Graph id must not INSERT — apply-first (LAUNCH Phase A)."""
-    fake_instagram.account_type = "BUSINESS"
-    fake_instagram.user_id = "ig_business_1"
-    state = await _begin_login(app_client)
-    resp = await app_client.post(
-        "/api/auth/instagram/callback",
-        json={"code": "oauth-code", "state": state},
-    )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == errors.ORG_APPLY_REQUIRED
-    user = await db_session.scalar(select(User).where(User.instagram_user_id == "ig_business_1"))
-    assert user is None
+    fake_instagram.account_type = account_type
+    fake_instagram.user_id = "ig_signup"
+    user_id = None
+    for _ in range(2):
+        state = await _begin_login(app_client)
+        resp = await app_client.post(
+            "/api/auth/instagram/callback",
+            json={"code": "oauth-code", "state": state},
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["access_token"]
+        assert data["user"]["status"] == "pending_org_profile"
+        assert data["user"]["portal_role"] == "org"
+        assert data["user"]["email"] is None
+        if user_id is not None:
+            assert data["user"]["id"] == user_id
+        user_id = data["user"]["id"]
+    users = (await db_session.scalars(select(User))).all()
+    assert len(users) == 1
+    assert users[0].instagram_user_id == "ig_signup"
+    assert users[0].instagram_token_user_id == "ig_signup"
+    assert users[0].instagram_access_token
 
 
 async def test_callback_denied_user_forbidden(
@@ -88,19 +100,6 @@ async def test_callback_denied_user_forbidden(
     )
     assert resp.status_code == 403
     assert resp.json()["error"]["code"] == "ACCOUNT_DENIED"
-
-
-async def test_callback_media_creator_unknown_requires_apply(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient
-) -> None:
-    fake_instagram.account_type = "Media_Creator"
-    state = await _begin_login(app_client)
-    resp = await app_client.post(
-        "/api/auth/instagram/callback",
-        json={"code": "c", "state": state},
-    )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == errors.ORG_APPLY_REQUIRED
 
 
 async def test_callback_personal_account_rejected(
@@ -595,3 +594,134 @@ async def test_relogin_succeeds_when_follower_count_read_fails(
     assert org.follower_count == 321
     assert user.instagram_user_id == "ig_foll_boom"
     assert user.instagram_username == "boomorg"
+
+
+@pytest.mark.parametrize("identity", ["handle", "erased", "conflicting_ids", "missing_handle"])
+async def test_signup_identity_conflicts_do_not_create_user(
+    app_client: AsyncClient,
+    fake_instagram: FakeInstagramClient,
+    db_session,
+    identity: str,
+    monkeypatch,
+) -> None:
+    from app.models.enums import OrgUserStatus
+    from app.services.instagram import ShortLivedToken
+    from tests.conftest import make_user, persist
+
+    expected = errors.INSTAGRAM_HANDLE_TAKEN
+    status = 409
+    if identity == "handle":
+        fake_instagram.username = "TESTORG"
+    if identity == "missing_handle":
+        fake_instagram.username = ""
+        expected = errors.INVALID_ONBOARDING_STATE
+        status = 400
+    else:
+        peer = await persist(db_session, make_user(instagram_username="testorg"))
+        if identity == "erased":
+            peer.instagram_user_id = fake_instagram.user_id
+            peer.status = OrgUserStatus.ERASED.value
+            expected = errors.ACCOUNT_DENIED
+            status = 403
+        elif identity == "conflicting_ids":
+            peer.instagram_user_id = fake_instagram.user_id
+            other = make_user(instagram_username="peerorg")
+            other.instagram_token_user_id = "other_token_id"
+            await persist(db_session, other)
+
+            async def exchange(_code: str) -> ShortLivedToken:
+                return ShortLivedToken(access_token="fake-short", user_id="other_token_id")
+
+            monkeypatch.setattr(fake_instagram, "exchange_code", exchange)
+    await db_session.commit()
+    before = len((await db_session.scalars(select(User))).all())
+    state = await _begin_login(app_client)
+    resp = await app_client.post("/api/auth/instagram/callback", json={"code": "c", "state": state})
+    assert resp.status_code == status
+    assert resp.json()["error"]["code"] == expected
+    assert len((await db_session.scalars(select(User))).all()) == before
+
+
+@pytest.mark.parametrize(
+    "constraint",
+    ["uq_users_org_instagram_username_lower", "instagram_user_id", "instagram_token_user_id"],
+)
+async def test_signup_unique_race_is_explicit_conflict(
+    db_session, fake_instagram: FakeInstagramClient, monkeypatch, constraint: str
+) -> None:
+    from unittest.mock import AsyncMock
+
+    from sqlalchemy.exc import IntegrityError
+
+    from app.services.auth import handle_instagram_callback
+
+    monkeypatch.setattr(
+        db_session,
+        "flush",
+        AsyncMock(side_effect=IntegrityError("insert", {}, Exception(constraint))),
+    )
+    with pytest.raises(BuzzAPIException) as exc:
+        await handle_instagram_callback(db_session, fake_instagram, "signup")
+    assert exc.value.status_code == 409
+    assert exc.value.code == errors.INSTAGRAM_HANDLE_TAKEN
+
+
+@pytest.mark.parametrize("prefill", ["draft-1", "https://example.com", "x" * 257])
+def test_signed_oauth_prefill_is_bounded(prefill: str) -> None:
+    state = jwt.create_oauth_state_token(
+        next_path="/d/11111111-1111-1111-1111-111111111111", prefill=prefill
+    )
+    decoded = jwt.decode_token(state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE)
+    assert decoded.prefill == (prefill if prefill == "draft-1" else None)
+    assert decoded.next == "/d/11111111-1111-1111-1111-111111111111"
+
+
+async def test_invitation_oauth_returns_signed_draft_and_next(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    import uuid
+
+    from app.models.org_apply_prefill import OrgApplyPrefill
+    from app.security.one_shot_tokens import hash_token
+    from tests.test_onboarding import _VALID_PROFILE
+
+    row = OrgApplyPrefill(
+        token_hash=hash_token("draft-1"),
+        invite_email="org1@example.edu",
+        org_name="Test Org",
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    db_session.add(row)
+    await db_session.flush()
+    destination = "/d/11111111-1111-1111-1111-111111111111"
+    response = await app_client.get(
+        "/api/auth/instagram/login",
+        params={"prefill": "draft-1", "next": destination},
+        follow_redirects=False,
+    )
+    state = parse_qs(urlparse(response.headers["location"]).query)["state"][0]
+    response = await app_client.post(
+        "/api/auth/instagram/callback", json={"code": "fake-code", "state": state}
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["prefill"] == "draft-1"
+    assert response.json()["data"]["next"] == destination
+    assert response.json()["data"]["user"]["status"] == "pending_org_profile"
+
+    data = response.json()["data"]
+    draft = await app_client.get("/api/orgs/apply/prefill", params={"token": data["prefill"]})
+    assert draft.status_code == 200
+    assert draft.json()["data"]["orgName"] == "Test Org"
+    await db_session.refresh(row)
+    assert row.used_at is None
+    submitted = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "prefillToken": data["prefill"]},
+        headers={"Authorization": f"Bearer {data['access_token']}"},
+    )
+    assert submitted.status_code == 200, submitted.text
+    await db_session.refresh(row)
+    assert row.used_by_user_id == uuid.UUID(data["user"]["id"])
+    assert row.used_at is not None
+    reused = await app_client.get("/api/orgs/apply/prefill", params={"token": data["prefill"]})
+    assert reused.status_code == 404

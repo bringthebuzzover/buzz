@@ -13,37 +13,46 @@ export type SiteFooterMode = "public" | "signed-in";
 export default function SiteFooter({
   audience = "both",
   mode = "public",
+  showCta = true,
 }: {
   audience?: SiteFooterAudience;
   mode?: SiteFooterMode;
+  showCta?: boolean;
 }) {
   const { contact } = siteIdentity;
   const isSignedIn = mode === "signed-in";
+  const hasCta = !isSignedIn && showCta;
   const isBrand = audience === "brand";
+  const isOrg = audience === "org";
   const primary = isBrand
     ? { label: "Apply as a brand", to: "/brand/apply" }
     : { label: "Join as a student organization", to: "/org/apply" };
+  const headingText = isBrand
+    ? "Request a campaign"
+    : isOrg
+      ? "Bring your org."
+      : "Want to join?";
 
   return (
     <footer
-      id={!isSignedIn && audience === "both" ? "home-join" : undefined}
+      id={!isSignedIn && showCta && audience === "both" ? "home-join" : undefined}
       data-reveal-group
       role="contentinfo"
       data-nav-surface="ink"
       className={cn(
         "flex flex-col bg-page text-primary",
-        isSignedIn
-          ? "px-6 py-10 md:px-12 md:py-10"
-          : "min-h-[844px] px-4 pb-28 pt-24 md:min-h-[900px] md:px-12 md:pb-16 md:pt-[135px]",
+        hasCta
+          ? "min-h-[844px] px-4 pb-28 pt-24 md:min-h-[900px] md:px-12 md:pb-16 md:pt-[135px]"
+          : "px-6 py-10 md:px-12 md:py-10",
       )}
     >
-      {!isSignedIn ? (
+      {hasCta ? (
         <>
           <h2
             data-reveal-line
             className="max-w-full text-[40px] font-medium leading-none tracking-tight md:text-buzzDisplay"
           >
-            {isBrand ? "Request a campaign" : "Want to join?"}
+            {headingText}
           </h2>
           {isBrand ? (
             <p className="mt-5 text-base text-muted">
@@ -57,6 +66,11 @@ export default function SiteFooter({
             {audience === "both" ? (
               <Link to="/brand/apply" className={cn("text-sm text-primary", footerLinkClass)}>
                 Apply as a brand
+              </Link>
+            ) : null}
+            {audience === "org" ? (
+              <Link to="/login" className={cn("text-sm text-primary", footerLinkClass)}>
+                Already connected? Log in
               </Link>
             ) : null}
           </div>
@@ -77,7 +91,7 @@ export default function SiteFooter({
       <div
         className={cn(
           "mt-auto grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-5 md:gap-8",
-          !isSignedIn && "pt-16",
+          hasCta && "pt-16",
         )}
       >
         <div>

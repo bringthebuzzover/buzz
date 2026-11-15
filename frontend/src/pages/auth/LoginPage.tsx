@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Navigate, useSearchParams } from "react-router-dom";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import { pathForUser } from "../../utils/landing";
-import { allowlistedOAuthNext } from "../../utils/oauthNext";
+import { allowlistedOAuthNext, allowlistedPrefill, onboardingQuery } from "../../utils/oauthNext";
 import {
   AuthArrowLink,
   AuthHeading,
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const { status, user, login } = useAuth();
   const [searchParams] = useSearchParams();
   const next = allowlistedOAuthNext(searchParams.get("next"));
+  const prefill = allowlistedPrefill(searchParams.get("prefill"));
   const [connecting, setConnecting] = useState(false);
 
   if (status === "idle" || status === "authenticating") {
@@ -27,7 +28,7 @@ export default function LoginPage() {
   }
 
   if (status === "authenticated") {
-    return <Navigate to={next ?? pathForUser(user)} replace />;
+    return <Navigate to={pathForUser(user, next, prefill)} replace />;
   }
 
   if (status === "needs_instagram_reconnect") {
@@ -60,7 +61,7 @@ export default function LoginPage() {
         loadingLabel="Connecting…"
         onClick={() => {
           setConnecting(true);
-          login(next);
+          login(next, prefill);
         }}
       >
         Continue with Instagram
@@ -68,7 +69,7 @@ export default function LoginPage() {
 
       <div className="space-y-3">
         <AuthLinkRow quiet="New organization?">
-          <AuthArrowLink to="/org/apply">Apply here.</AuthArrowLink>
+          <AuthArrowLink to={"/org/apply" + onboardingQuery(next, prefill)}>Apply here</AuthArrowLink>
         </AuthLinkRow>
         <p>
           <AuthArrowLink to="/for-orgs">See how it works</AuthArrowLink>

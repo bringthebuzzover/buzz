@@ -1,11 +1,11 @@
 /**
- * Public `/d/:dropId` — same-page signup or Apply (PRODUCT §6.3.4).
+ * Public `/d/:dropId` — Instagram-first signup or Apply (PRODUCT §6.3.4).
  *
- * No PortalGuard: pending orgs must open the brand link. Form mode follows
+ * No PortalGuard: pending orgs must open the brand link. Entry mode follows
  * `useAuth()`. Notify Me stays feed-only.
  */
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   useDropDetail,
@@ -15,9 +15,8 @@ import {
 import { ApiError } from "../../api/errors";
 import { closedChipLabel, getDropFeedStatus, isDropFull } from "../../utils/dropStatus";
 import { allowlistedOAuthNext, publicDropPath } from "../../utils/oauthNext";
-import OrgApplyForm, {
-  goToVerifyEmailWait,
-} from "../../components/org/OrgApplyForm";
+import { pathForUser } from "../../utils/landing";
+import { DROP_PITCH_MAX_LENGTH, readDropPitch, saveDropPitch } from "../../utils/dropSignup";
 import DropApplyForm from "../../components/org/DropApplyForm";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import StatusHero, { HomeLoginActions } from "../../components/site/StatusHero";
@@ -43,7 +42,6 @@ export default function PublicDropPage() {
   const { dropId } = useParams<{ dropId: string }>();
   const { status, user, login } = useAuth();
   const drop = useDropDetail(dropId);
-  const navigate = useNavigate();
 
   if (drop.isLoading || status === "authenticating" || status === "idle") {
     return (
@@ -91,6 +89,7 @@ export default function PublicDropPage() {
   const activeOrg = orgUser && user.status === "active";
   const pendingOrg =
     orgUser &&
+    user.status !== "pending_org_profile" &&
     user.status !== "active" &&
     user.status !== "denied" &&
     user.status !== "erased";
@@ -137,28 +136,8 @@ export default function PublicDropPage() {
         </p>
       ) : null}
 
-      {anonymous && feedStatus === "open" ? (
-        <div className={cn(SURFACE.card, PAD.card, "flex flex-col gap-5")}>
-          <div className="flex flex-col gap-2">
-            <h2 className={TEXT.h3}>Request to join BUZZ and apply</h2>
-            <p className={cn(TEXT.body, "text-muted")}>
-              Same application as joining Buzz. We&apos;ll submit this drop when
-              your organization is approved and connected — you&apos;re not applied yet.
-            </p>
-          </div>
-          <OrgApplyForm
-            dropId={dropId}
-            paired
-            className="space-y-4"
-            submitLabel="Request to join Buzz and apply"
-            loginHref={loginHref}
-            onSuccess={(result, eduEmail) => {
-              goToVerifyEmailWait(navigate, result, eduEmail, {
-                dropIntent: true,
-              });
-            }}
-          />
-        </div>
+      {(anonymous || (orgUser && user.status === "pending_org_profile")) && feedStatus === "open" ? (
+        <DropSignupEntry key={dropId} nextPath={nextPath!} />
       ) : null}
 
       {anonymous && feedStatus !== "open" ? (
@@ -170,6 +149,48 @@ export default function PublicDropPage() {
         </p>
       ) : null}
       </PublicDropLayout>
+    </div>
+  );
+}
+
+function DropSignupEntry({ nextPath }: { nextPath: string }) {
+  const { user, login } = useAuth();
+  const [pitch, setPitch] = useState(() => readDropPitch(nextPath));
+  const [error, setError] = useState<string | null>(null);
+  const save = () => {
+    try {
+      saveDropPitch(nextPath, pitch);
+      return true;
+    } catch {
+      setError("Could not save your pitch. Enable session storage and try again.");
+      return false;
+    }
+  };
+  return (
+    <div className={cn(SURFACE.card, PAD.card, "flex flex-col gap-5")}>
+      <h2 className={TEXT.h3}>Join BUZZ and apply</h2>
+      <p className={cn(TEXT.body, "text-muted")}>
+        Connect an Instagram Business or Creator account, then complete your campus profile.
+        We&apos;ll submit this drop when your organization is approved. You&apos;re not applied yet.
+      </p>
+      <TextArea
+        label="Pitch (optional)"
+        data-testid="public-drop-pitch"
+        value={pitch}
+        onChange={(e) => setPitch(e.target.value)}
+        maxLength={DROP_PITCH_MAX_LENGTH}
+        rows={4}
+      />
+      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {user?.status === "pending_org_profile" ? (
+        <LinkButton to={pathForUser(user, nextPath)} onClick={(e) => { if (!save()) e.preventDefault(); }}>
+          Continue onboarding
+        </LinkButton>
+      ) : (
+        <Button type="button" onClick={() => { if (save()) login(nextPath); }}>
+          Continue with Instagram
+        </Button>
+      )}
     </div>
   );
 }
@@ -333,7 +354,8 @@ function PendingOrgActions({
   const [pitch, setPitch] = useState(drop.intentPitch ?? "");
   const [notice, setNotice] = useState<string | null>(null);
   const expired = drop.intentStatus === "expired";
-  const connectHref = `/onboarding/connect-instagram?next=${encodeURIComponent(publicDropPath(dropId))}`;
+  const { user } = useAuth();
+  const connectHref = pathForUser(user, publicDropPath(dropId));
 
   const onSave = async () => {
     setNotice(null);
@@ -364,6 +386,7 @@ function PendingOrgActions({
         value={pitch}
         onChange={(e) => setPitch(e.target.value)}
         rows={4}
+        maxLength={DROP_PITCH_MAX_LENGTH}
       />
       <Button
         type="button"

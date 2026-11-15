@@ -1,6 +1,6 @@
 /* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
 /**
- * /for-orgs tour: apply-first copy, Instagram after approval, apply CTA.
+ * /for-orgs tour: Instagram-first copy and apply CTA.
  */
 import { act } from "react";
 import { Route, Routes } from "react-router-dom";
@@ -9,13 +9,15 @@ import { renderWithProviders } from "../../testUtils";
 import ForOrgsPage from "./ForOrgsPage";
 
 describe("ForOrgsPage", () => {
-  it("shows Business or Creator, Instagram after approval, and apply CTA", () => {
+  it("shows Instagram-first requirements and apply CTA", () => {
     const { container } = renderWithProviders(<ForOrgsPage />);
     const text = container.textContent ?? "";
     expect(text).toMatch(/Business or Creator/);
     expect(text).not.toMatch(/Confirm this is our organization's account/);
     expect(text).not.toMatch(/confirm card/i);
-    expect(text).toMatch(/Connect Instagram/);
+    expect(text).toMatch(/Connect Instagram, complete your campus profile/);
+    expect(text).not.toMatch(/after BUZZ approves you/i);
+    expect(container.querySelector("#instagram-guide")).not.toBeNull();
     expect(text).not.toMatch(/placehold\.co/i);
     const hero = container.querySelector('img[alt="Kappa Alpha Theta x Yerba Madre"]');
     expect(hero).not.toBeNull();
@@ -25,10 +27,6 @@ describe("ForOrgsPage", () => {
     expect(apply?.textContent).toMatch(/apply as an organization|join us|join as a student organization/i);
     const login = container.querySelector('a[href="/login"]');
     expect(login).not.toBeNull();
-    const joinHeading = Array.from(container.querySelectorAll("h2")).find((heading) =>
-      heading.textContent?.includes("Apply with your"),
-    );
-    expect(joinHeading?.closest("section")?.textContent).not.toContain("Request a campaign");
     expect(container.querySelectorAll("footer")).toHaveLength(1);
   });
 
@@ -42,7 +40,7 @@ describe("ForOrgsPage", () => {
       "3 Apply to collaborate with your favorite brands",
     ]);
     expect(Array.from(steps, (step) => step.querySelector("h3 + p")?.textContent)).toEqual([
-      "Apply with your campus .edu email and verify your student organization profile.",
+      "Connect Instagram, complete your campus profile, and verify your .edu email.",
       "Browse active drops tailored for your campus and see what products are available.",
       "Submit your pitch in one click and follow campaign status in My Campaigns.",
     ]);
@@ -56,7 +54,7 @@ describe("ForOrgsPage", () => {
 
   it.each([
     ["Join Us!", "/org/apply"],
-    ["Already connected? Log in", "/login"],
+    ["Login", "/login"],
   ])("routes %s to %s", (label, destination) => {
     const { container } = renderWithProviders(<Routes>
       <Route path="/" element={<ForOrgsPage />} />

@@ -1,316 +1,124 @@
+/* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
 /**
- * Typed Instagram handle (§6.1.1): submit stays disabled until a handle is
- * entered, then the form posts that handle unconfirmed. Other field checks
- * still block submit.
+ * /org/apply — Instagram-first connect screen and personal-account error state.
  *
  * Uses react-dom (no @testing-library/react in this package).
  */
+import { Routes, Route, useLocation } from "react-router-dom";
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
-
 import OrgApplyPage from "./OrgApplyPage";
 
-const mockApply = jest.fn();
-const mockPrefill = {
-  data: undefined as
-    | {
-        orgName: string;
-        university: string;
-        eduEmail: string;
-        instagramHandle: string;
-        memberCount: number;
-        category: string;
-        contactName: string;
-        shippingLine1: string;
-        shippingLine2: string | null;
-        shippingCity: string;
-        shippingState: string;
-        shippingPostalCode: string;
-        shippingRaw: string;
-      }
-    | undefined,
-  isError: false,
-  isPending: false,
-  isSuccess: false,
-};
+const mockLogin = jest.fn();
+let mockUser: { id: string; portalRole: "org"; status: string } | null = null;
 
-jest.mock("../../api/hooks/useOnboardingHooks", () => ({
-  useOrgApply: () => ({
-    mutateAsync: mockApply,
-    isPending: false,
-  }),
-  useOrgApplyPrefill: () => mockPrefill,
-  useAddressSuggest: () => ({
-    mutateAsync: async () => ({ suggestions: [] }),
-    isPending: false,
-  }),
-  useAddressPreview: () => ({
-    mutateAsync: async () => {
-      throw new Error("preview unused in this test");
-    },
-    isPending: false,
+jest.mock("../../contexts/AuthContext", () => ({
+  useAuth: () => ({
+    status: "error",
+    user: mockUser,
+    login: mockLogin,
   }),
 }));
 
-describe("OrgApplyPage typed Instagram handle", () => {
-  let container: HTMLDivElement;
-
+describe("OrgApplyPage Instagram-first onboarding", () => {
   beforeEach(() => {
-    mockApply.mockReset();
-    mockPrefill.data = undefined;
-    mockPrefill.isError = false;
+    mockLogin.mockReset();
+    mockUser = null;
   });
 
-  function renderPage() {
-    container = renderWithProviders(<OrgApplyPage />).container;
-  }
-
-  function fillRequiredFieldsExceptHandle() {
-    const inputs = Array.from(
-      container.querySelectorAll("input, textarea, select"),
-    ) as HTMLElement[];
-    const byLabel = (text: string) => {
-      const label = Array.from(container.querySelectorAll("label")).find((el) =>
-        el.textContent?.includes(text),
-      );
-      const id = label?.getAttribute("for");
-      if (id) {
-        // getElementById accepts React useId() values (`:r0:`); `#:r0:` is not a valid selector.
-        const el = container.ownerDocument.getElementById(id);
-        return (el && container.contains(el) ? el : null) as
-          | HTMLInputElement
-          | HTMLTextAreaElement
-          | HTMLSelectElement
-          | null;
-      }
-      return label?.parentElement?.querySelector(
-        "input, textarea, select",
-      ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
-    };
-
-    const set = (
-      el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null,
-      value: string,
-    ) => {
-      if (!el) throw new Error("missing field");
-      act(() => {
-        const proto =
-          el.tagName === "SELECT"
-            ? HTMLSelectElement.prototype
-            : el.tagName === "TEXTAREA"
-              ? HTMLTextAreaElement.prototype
-              : HTMLInputElement.prototype;
-        const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
-        setter?.call(el, value);
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-    };
-
-    set(byLabel("Organization name"), "Campus Greeks");
-    set(byLabel("University"), "Cornell University");
-    set(byLabel("School (.edu) email"), "greeks@cornell.edu");
-    set(byLabel("Number of members"), "40");
-    set(byLabel("Organization type"), "sorority");
-    set(byLabel("Contact name"), "Alex");
-    set(byLabel("Street"), "123 College Ave");
-    set(byLabel("City"), "Ithaca");
-    set(byLabel("State"), "NY");
-    set(byLabel("ZIP"), "14850");
-    void inputs;
-  }
-
-  function setHandle(value: string) {
-    const handleInput = container.querySelector(
-      '[data-testid="org-apply-instagram"]',
-    ) as HTMLInputElement;
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(handleInput, value);
-      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
+  it("renders the Instagram-first connect state and starts OAuth on click", () => {
+    const { container } = renderWithProviders(<OrgApplyPage />, {
+      route: "/org/apply",
     });
-  }
 
-  it("keeps submit disabled until a handle is typed, then allows submit unconfirmed", async () => {
-    mockApply.mockResolvedValue({ emailQueued: true });
-    renderPage();
-    fillRequiredFieldsExceptHandle();
-
-    expect(container.textContent).toContain(
-      "Use your organization’s Instagram Business or Creator account, not a personal account.",
-    );
-    const noticeIcon = container.querySelector(".lucide-info");
-    expect(noticeIcon).not.toBeNull();
-    expect(noticeIcon?.parentElement?.className).toContain("mt-[2px]");
     expect(container.textContent).toContain(
       "Join as a student organization and work with brands on real campus campaigns.",
     );
-
-    const submit = container.querySelector(
-      'button[type="submit"]',
-    ) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
-    expect(container.textContent).not.toMatch(/confirm this is our organization/i);
-    expect(container.textContent).toMatch(/Contact name/);
-    expect(container.textContent).toMatch(/Shipping address/);
-
-    const form = container.querySelector("form")!;
-    const fieldOrder = [
-      '[data-testid="org-apply-contact-name"]',
-      '[data-testid="org-apply-edu-email"]',
-      '[data-testid="org-apply-org-name"]',
-      '[data-testid="org-apply-university"]',
-      '[data-testid="org-apply-category"]',
-      '[data-testid="org-apply-member-count"]',
-      '[data-testid="org-apply-instagram"]',
-      '[data-testid="org-apply-shipping-line1"]',
-    ].map((selector) => form.querySelector(selector));
-    expect(fieldOrder.every(Boolean)).toBe(true);
-    expect(fieldOrder).toEqual(
-      [...fieldOrder].sort((a, b) => {
-        if (!a || !b) return 0;
-        return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
-          ? -1
-          : 1;
-      }),
+    expect(container.textContent).toContain("Apply as a");
+    expect(container.textContent).toContain("Student Organization");
+    expect(container.textContent).toContain(
+      "Connect your organization's Instagram to get started. BUZZ verifies your handle and audience metrics directly with Meta.",
     );
 
-    setHandle("@campusgreeks");
-    expect(submit.disabled).toBe(false);
-    await act(async () => {
-      form.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
-      await Promise.resolve();
-    });
+    const button = container.querySelector("button") as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    expect(button.textContent).toBe("Continue with Instagram");
 
-    expect(mockApply).toHaveBeenCalledWith(
-      expect.objectContaining({
-        instagramHandle: "campusgreeks",
-      }),
+    const hrefs = Array.from(container.querySelectorAll("a")).map((a) => ({
+      text: a.textContent,
+      href: a.getAttribute("href"),
+    }));
+    expect(hrefs).toEqual(
+      expect.arrayContaining([
+        { text: "Log in with Instagram", href: "/login" },
+        { text: "See how it works", href: "/for-orgs" },
+        { text: "Brand login", href: "/brand/login" },
+      ]),
     );
-    expect(mockApply.mock.calls[0][0]).not.toHaveProperty("handleConfirmed");
-  });
 
-  it("hydrates fields from a prefill draft without auto-confirming Instagram", () => {
-    mockPrefill.data = {
-      orgName: "Epsilon Nu Tau",
-      university: "Cornell University",
-      eduEmail: "ae101@example.edu",
-      instagramHandle: "test_org_1",
-      memberCount: 60,
-      category: "sorority",
-      contactName: "Avery Example",
-      shippingLine1: "101 Example St",
-      shippingLine2: null,
-      shippingCity: "Ithaca",
-      shippingState: "NY",
-      shippingPostalCode: "14850",
-      shippingRaw: "101 Example St, Ithaca, NY 14850",
-    };
-    renderPage();
-    const org = container.querySelector(
-      '[data-testid="org-apply-org-name"]',
-    ) as HTMLInputElement;
-    expect(org.value).toBe("Epsilon Nu Tau");
-    expect(
-      (container.querySelector('[data-testid="org-apply-contact-name"]') as HTMLInputElement)
-        .value,
-    ).toBe("Avery Example");
-    expect(container.textContent).toMatch(/You wrote:/);
-    const submit = container.querySelector(
-      'button[type="submit"]',
-    ) as HTMLButtonElement;
-    expect(submit.disabled).toBe(false);
-    expect(container.textContent).not.toMatch(/confirm this is our organization/i);
-  });
-
-  it("does not submit a Gmail address", async () => {
-    mockApply.mockResolvedValue({ emailQueued: true });
-    renderPage();
-    fillRequiredFieldsExceptHandle();
-    setHandle("campusgreeks");
-
-    const email = container.querySelector(
-      '[data-testid="org-apply-edu-email"]',
-    ) as HTMLInputElement;
     act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(email, "president@gmail.com");
-      email.dispatchEvent(new Event("input", { bubbles: true }));
+      button.click();
     });
 
-    const form = container.querySelector("form") as HTMLFormElement;
-    await act(async () => {
-      form.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
-      await Promise.resolve();
-    });
-
-    expect(mockApply).not.toHaveBeenCalled();
-    expect(container.textContent).toMatch(/Must be a valid \.edu email address/);
+    expect(mockLogin).toHaveBeenCalledTimes(1);
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toBe("Connecting…");
   });
 
-  it("does not submit a decimal member count", async () => {
-    renderPage();
-    fillRequiredFieldsExceptHandle();
-    setHandle("softfailorg");
+  it("renders the personal account error state when ?error=personal_account is set", () => {
+    const { container } = renderWithProviders(<OrgApplyPage />, {
+      route: "/org/apply?error=personal_account",
+    });
 
-    const members = container.querySelector(
-      '[data-testid="org-apply-member-count"]',
-    ) as HTMLInputElement;
+    expect(container.textContent).toContain("Professional Account Required");
+    expect(container.textContent).toContain("Account Type Error");
+    expect(container.textContent).toContain(
+      "Your Instagram account is set to Personal. Switch to a free Business or Creator account in Instagram Settings, then retry below.",
+    );
+
+    const kicker = Array.from(container.querySelectorAll("p")).find((el) =>
+      el.textContent?.includes("Professional Account Required"),
+    );
+    expect(kicker?.className).toContain("text-buzz-danger");
+
+    const button = container.querySelector("button") as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    expect(button.textContent).toBe("Try Again with Instagram");
+
+    const hrefs = Array.from(container.querySelectorAll("a")).map((a) => ({
+      text: a.textContent,
+      href: a.getAttribute("href"),
+    }));
+    expect(hrefs).toEqual(
+      expect.arrayContaining([
+        { text: "View Instagram guide", href: "/for-orgs#instagram-guide" },
+        { text: "See how it works", href: "/for-orgs" },
+        { text: "Brand login", href: "/brand/login" },
+      ]),
+    );
+
     act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(members, "12.5");
-      members.dispatchEvent(new Event("input", { bubbles: true }));
+      button.click();
     });
 
-    const form = container.querySelector("form") as HTMLFormElement;
-    await act(async () => {
-      form.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
-      await Promise.resolve();
-    });
-    expect(mockApply).not.toHaveBeenCalled();
-    expect(container.textContent).toMatch(/Enter a valid member count/);
+    expect(mockLogin).toHaveBeenCalledTimes(1);
   });
+});
 
-  it("does not submit a whitespace-only org name", async () => {
-    renderPage();
-    fillRequiredFieldsExceptHandle();
-    setHandle("softfailorg");
+function Destination() {
+  const location = useLocation();
+  return <p>{location.pathname + location.search}</p>;
+}
 
-    const org = container.querySelector(
-      '[data-testid="org-apply-org-name"]',
-    ) as HTMLInputElement;
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(org, "   ");
-      org.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-
-    const form = container.querySelector("form") as HTMLFormElement;
-    await act(async () => {
-      form.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
-      await Promise.resolve();
-    });
-    expect(mockApply).not.toHaveBeenCalled();
-    expect(container.textContent).toMatch(/Must not be empty/);
-  });
+it.each([
+  ["pending_email_verification", "/onboarding/verify-email"],
+  ["pending_approval", "/onboarding/pending-approval"],
+])("resumes %s applicants directly without bypassing approval", (status, path) => {
+  mockUser = { id: "org-1", portalRole: "org", status };
+  const { container } = renderWithProviders(<Routes>
+    <Route path="/org/apply" element={<OrgApplyPage />} />
+    <Route path="/onboarding/*" element={<Destination />} />
+  </Routes>, { route: "/org/apply?next=%2Fd%2F11111111-1111-1111-1111-111111111111&prefill=draft-1" });
+  expect(container.textContent).toBe(`${path}?next=%2Fd%2F11111111-1111-1111-1111-111111111111`);
+  expect(mockLogin).not.toHaveBeenCalled();
 });

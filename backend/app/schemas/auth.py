@@ -61,6 +61,7 @@ class TokenResponse(BaseModel):
     token_type: Literal["bearer"] = "bearer"
     user: UserResponse
     next: str | None = None
+    prefill: str | None = None
 
 
 class RefreshResponse(BaseModel):

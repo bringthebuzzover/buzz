@@ -67,6 +67,7 @@ class TokenPayload(BaseModel):
     imp_readonly: bool | None = None  # impersonation session may not mutate
     bind: str | None = None  # user id for Connect Instagram OAuth bind
     next: str | None = None  # allowlisted post-OAuth SPA path (public drop)
+    prefill: str | None = None
 
 
 def _encode(claims: dict[str, Any]) -> str:
@@ -195,6 +196,7 @@ def create_oauth_state_token(
     *,
     bind_user_id: uuid.UUID | str | None = None,
     next_path: str | None = None,
+    prefill: str | None = None,
 ) -> str:
     """Mint a signed, short-lived CSRF ``state`` for the OAuth round-trip.
 
@@ -217,6 +219,8 @@ def create_oauth_state_token(
     allowed_next = allowlisted_oauth_next(next_path)
     if allowed_next is not None:
         claims["next"] = allowed_next
+    if prefill and re.fullmatch(r"[A-Za-z0-9_-]{1,256}", prefill):
+        claims["prefill"] = prefill
     return _encode(claims)
 
 

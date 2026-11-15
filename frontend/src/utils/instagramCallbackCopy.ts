@@ -13,7 +13,7 @@ export const INSTAGRAM_CALLBACK_NETWORK =
   "Could not reach the server. Please try again.";
 
 export const INSTAGRAM_CALLBACK_APPLY_FIRST =
-  "Buzz doesn't create accounts from Instagram login anymore. Apply as a student organization first, then connect Instagram after approval.";
+  "Start your organization application by connecting its Instagram Business or Creator account.";
 
 export const INSTAGRAM_CALLBACK_LOGIN_EXPIRED =
   "This login expired. Go back and try Instagram again — stay in this window.";

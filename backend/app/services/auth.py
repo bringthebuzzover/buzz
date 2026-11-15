@@ -1,9 +1,8 @@
 """Auth / onboarding orchestration (buzz-ops engineering/architecture.md §3.4).
 
 Pure service functions — no FastAPI types — that the route layer calls.
-Instagram OAuth: returning users refresh tokens; Connect binds an existing
-apply-first user; unknown Graph ids without bind context do **not** insert
-(``ORG_APPLY_REQUIRED`` — buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A).
+Instagram OAuth creates pending profile users, refreshes returning users, and
+binds existing applications through the legacy Connect flow.
 """
 
 from __future__ import annotations
@@ -31,6 +30,7 @@ from app.services.instagram import (
     InstagramClient,
     canonical_instagram_handle,
     merge_follower_count,
+    require_instagram_handle,
     storable_follower_count,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
@@ -47,11 +47,11 @@ async def handle_instagram_callback(
     *,
     bind_user_id: uuid.UUID | None = None,
 ) -> User:
-    """OAuth handshake: bind existing user, refresh returning user, or reject insert.
+    """OAuth handshake: bind, refresh, or create a pending org identity.
 
     * ``bind_user_id`` set (Connect flow) → update that pending_instagram user.
     * Graph id already on a user → refresh tokens (returning login).
-    * Unknown Graph id, no bind → ``ORG_APPLY_REQUIRED`` (no INSERT).
+    * Unknown Graph id, no bind → org user awaiting their initial profile.
 
     When an org row exists and Graph sent ``followers_count``, it is stored
     on that org. A missing or failed count leaves the stored value alone.
@@ -79,16 +79,25 @@ async def handle_instagram_callback(
 
     now = utcnow()
     expires_at = now + timedelta(seconds=long.expires_in)
-    existing = await db.scalar(
-        select(User).where(
-            or_(
-                User.instagram_user_id == profile.id,
-                User.instagram_token_user_id == short.user_id,
-                User.instagram_user_id == short.user_id,
-                User.instagram_token_user_id == profile.id,
+    matches = (
+        await db.scalars(
+            select(User).where(
+                or_(
+                    User.instagram_user_id == profile.id,
+                    User.instagram_token_user_id == short.user_id,
+                    User.instagram_user_id == short.user_id,
+                    User.instagram_token_user_id == profile.id,
+                )
             )
         )
-    )
+    ).all()
+    if len(matches) > 1:
+        raise BuzzAPIException(
+            errors.INSTAGRAM_HANDLE_TAKEN,
+            "This Instagram identity is linked to conflicting accounts. Contact Buzz.",
+            status_code=409,
+        )
+    existing = matches[0] if matches else None
 
     if bind_user_id is not None:
         target = await db.get(User, bind_user_id)
@@ -112,13 +121,11 @@ async def handle_instagram_callback(
             )
         user = target
     elif existing is None:
-        raise BuzzAPIException(
-            code=errors.ORG_APPLY_REQUIRED,
-            message=(
-                "No Buzz organization is linked to this Instagram account. "
-                "Apply first at /org/apply, then connect Instagram after approval."
-            ),
-            status_code=400,
+        require_instagram_handle(profile.username)
+        user = User(
+            id=uuid.uuid4(),
+            portal_role=PortalRole.ORG.value,
+            status=OrgUserStatus.PENDING_ORG_PROFILE.value,
         )
     else:
         user = existing
@@ -135,19 +142,24 @@ async def handle_instagram_callback(
     if graph_handle:
         await assert_handle_available(db, graph_handle, exclude_user_id=user.id)
 
-    org = None
-    if user.portal_role == PortalRole.ORG.value:
-        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-        if bind_user_id is not None and org is not None:
-            claimed = canonical_instagram_handle(org.claimed_instagram_username)
-            if claimed and graph_handle and claimed.lower() != graph_handle.lower():
-                logger.info(
-                    "instagram bind handle overwrite user_id=%s claimed=%s graph=%s",
-                    user.id,
-                    claimed,
-                    graph_handle,
-                )
-                flag_ig_bind_mismatch(org, graph_handle, now)
+    if user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "This Instagram identity is not linked to an organization.",
+            status_code=400,
+        )
+
+    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    if bind_user_id is not None and org is not None:
+        claimed = canonical_instagram_handle(org.claimed_instagram_username)
+        if claimed and graph_handle and claimed.lower() != graph_handle.lower():
+            logger.info(
+                "instagram bind handle overwrite user_id=%s claimed=%s graph=%s",
+                user.id,
+                claimed,
+                graph_handle,
+            )
+            flag_ig_bind_mismatch(org, graph_handle, now)
 
     _apply_ig_credentials(
         user,
@@ -168,6 +180,7 @@ async def handle_instagram_callback(
         # Graph-owned. Missing/failed counts must not fail the login.
         _apply_callback_follower_count(org, profile)
 
+    db.add(user)
     try:
         await db.flush()
     except IntegrityError as exc:
@@ -176,6 +189,12 @@ async def handle_instagram_callback(
             raise BuzzAPIException(
                 errors.INSTAGRAM_HANDLE_TAKEN,
                 "That Instagram handle is already claimed by another organization.",
+                status_code=409,
+            ) from exc
+        if "instagram_user_id" in detail or "instagram_token_user_id" in detail:
+            raise BuzzAPIException(
+                errors.INSTAGRAM_HANDLE_TAKEN,
+                "This Instagram account is already linked. Try logging in again.",
                 status_code=409,
             ) from exc
         raise

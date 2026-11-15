@@ -7,12 +7,10 @@ from datetime import timedelta
 from uuid import uuid4
 
 from httpx import AsyncClient
-from sqlalchemy import select
 
 from app import errors
 from app.jobs.token_cleanup import cleanup_tokens
 from app.models.org_apply_prefill import OrgApplyPrefill
-from app.models.user import User
 from app.security.one_shot_tokens import hash_token
 from app.services.org_apply_prefill import (
     deliver_saved_prefill_email,
@@ -21,7 +19,6 @@ from app.services.org_apply_prefill import (
 )
 from app.services.org_apply_prefill_parse import ParsedPrefill, parse_form_row, parse_shipping
 from app.timeutils import utcnow
-from tests.test_org_apply import _APPLY
 
 
 def test_parse_ent_cornell() -> None:
@@ -431,23 +428,51 @@ async def test_prefill_get_and_apply_marks_used(app_client: AsyncClient, db_sess
     again = await app_client.get("/api/orgs/apply/prefill", params={"token": raw})
     assert again.status_code == 200
 
-    resp = await app_client.post("/api/orgs/apply", json={**_APPLY, "prefillToken": raw})
+    from app.models.enums import OrgUserStatus
+    from tests.conftest import make_user, mint_access_token, persist
+    from tests.test_onboarding import _VALID_PROFILE
+
+    user = make_user(
+        status=OrgUserStatus.PENDING_ORG_PROFILE,
+        instagram_user_id="ig_prefill_test",
+        instagram_username="campusgreeks",
+    )
+    await persist(db_session, user)
+    token = mint_access_token(user)
+
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "eduEmail": "greeks@cornell.edu", "prefillToken": raw},
+        headers={"Authorization": f"Bearer {token}"},
+    )
     assert resp.status_code == 200
-    await db_session.flush()
+    await db_session.refresh(row)
     assert row.used_at is not None
-    user = await db_session.scalar(select(User).where(User.edu_email == "greeks@cornell.edu"))
     assert row.used_by_user_id == user.id
 
     spent = await app_client.get("/api/orgs/apply/prefill", params={"token": raw})
     assert spent.status_code == 404
 
 
-async def test_apply_ignores_bad_prefill_token(app_client: AsyncClient, db_session) -> None:
-    resp = await app_client.post(
-        "/api/orgs/apply",
-        json={**_APPLY, "eduEmail": "other@cornell.edu", "prefillToken": "spent-or-fake"},
+async def test_onboarding_rejects_bad_prefill_token(app_client: AsyncClient, db_session) -> None:
+    from app.models.enums import OrgUserStatus
+    from tests.conftest import make_user, mint_access_token, persist
+    from tests.test_onboarding import _VALID_PROFILE
+
+    user = make_user(
+        status=OrgUserStatus.PENDING_ORG_PROFILE,
+        instagram_user_id="ig_bad_prefill_test",
+        instagram_username="otherclub",
     )
-    assert resp.status_code == 200
+    await persist(db_session, user)
+    token = mint_access_token(user)
+
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "eduEmail": "other@cornell.edu", "prefillToken": "spent-or-fake"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 404
 
 
 async def test_cleanup_sweeps_org_apply_prefills(db_session) -> None:

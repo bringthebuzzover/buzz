@@ -7,8 +7,6 @@ posts surface.
 
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,11 +41,9 @@ from app.schemas.orgs import (
 from app.schemas.posts import PostResponse
 from app.security.rate_limit import rate_limited
 from app.services.address import AddressClient, get_address_client
-from app.services.drop_apply_intents import assert_intent_drop_public, record_drop_apply_intent
 from app.services.ig_change_requests import get_request_state, submit_request
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import submit_org_onboarding
-from app.services.org_apply import apply_org
 from app.services.org_apply_prefill import get_live_prefill, prefill_to_public
 from app.services.orgs import (
     build_org_profile,
@@ -69,22 +65,13 @@ router = APIRouter(prefix="/orgs", tags=["orgs"])
 )
 async def org_apply(
     payload: OrgApplyRequest,
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
-    addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
-    """Public apply-first signup (no Instagram OAuth)."""
-    if payload.drop_id is not None:
-        await assert_intent_drop_public(db, payload.drop_id)
-    result = await apply_org(db, payload, addresses, background_tasks=background_tasks)
-    if payload.drop_id is not None:
-        await record_drop_apply_intent(
-            db,
-            org_id=uuid.UUID(result["org_id"]),
-            drop_id=payload.drop_id,
-            pitch=payload.pitch,
-        )
-    return api_response(data=OrgOnboardingResponse.model_validate(result))
+    """Retired anonymous signup; organization identity requires Instagram OAuth."""
+    raise BuzzAPIException(
+        errors.INVALID_ONBOARDING_STATE,
+        "Continue with Instagram before completing your organization profile.",
+        status_code=410,
+    )
 
 
 @router.get(

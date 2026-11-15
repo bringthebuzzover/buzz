@@ -1,6 +1,6 @@
 /**
- * Shared org apply-first fields (PRODUCT §6.1 / §6.1.1). Used by `/org/apply`
- * and the public drop page. Do not nest `OrgApplyPage`.
+ * Legacy profile form and verification helpers. Public signup uses Instagram
+ * OAuth followed by OrgProfilePage; the anonymous submit endpoint is retired.
  */
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";

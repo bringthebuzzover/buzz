@@ -45,22 +45,22 @@ export const SAMPLE = {
 
 // Home shows four onboarding screens; portal pages use condensed three-step tours from the pen.
 export const ORG_STEPS = [
-  { caption: "Apply with your campus .edu email.", side: "left" },
-  { caption: "Use the Business or Creator account.", side: "right" },
-  { caption: "Connect Instagram after approval.", side: "left" },
+  { caption: "Connect your organization’s Instagram.", side: "left" },
+  { caption: "Complete your campus profile.", side: "right" },
+  { caption: "Verify your campus .edu email.", side: "left" },
   { caption: "Apply when a drop is Open.", side: "right" },
 ] as const;
 
 export const PORTAL_STEPS = {
   org: [
     {
-      title: "Apply with your .edu email",
-      body: "Tell BUZZ about your organization and campus.",
+      title: "Connect Instagram",
+      body: "Start with your organization’s Business or Creator account.",
       screen: 0,
     },
     {
-      title: "Connect Instagram",
-      body: "After approval, connect your Business or Creator account.",
+      title: "Complete your campus profile",
+      body: "Tell BUZZ about your organization and verify your .edu email.",
       screen: 2,
     },
     {
@@ -91,7 +91,7 @@ export const PORTAL_STEPS = {
 export const ORG_LAPTOP_STEPS = [
   {
     title: "Create your student organization’s profile",
-    body: "Apply with your campus .edu email and verify your student organization profile.",
+    body: "Connect Instagram, complete your campus profile, and verify your .edu email.",
     videoMp4: publicAsset("videos/org-step1-apply.mp4"),
     videoWebm: publicAsset("videos/org-step1-apply.webm"),
     poster: publicAsset("videos/org-step1-apply-poster.webp"),

@@ -14,6 +14,7 @@ const ASIDE_AUTH_PATHS = new Set([
   "/brand/setup",
   "/brand/apply",
   "/org/apply",
+  "/onboarding/profile",
   "/reconnect-instagram",
 ]);
 

@@ -10,8 +10,8 @@
  * Erase (PRODUCT §3.1.2) is confirm-by-IG-handle; confirmation email is
  * best-effort after wipe.
  *
- * Approve requires tester-invite confirmation (buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A) and moves the
- * org to pending_instagram until they Connect.
+ * Instagram-first applications activate on approval. Legacy unbound
+ * applications still require tester confirmation and Connect.
  */
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -101,6 +101,7 @@ export default function AdminOrgDetailPage() {
   const hasIgToken =
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined;
+  const alreadyConnected = Boolean(data?.instagramHandleConfirmed && hasIgToken);
   const canErase = Boolean(data?.instagramHandle) && !erased;
   const liveHandle =
     data?.instagramUsername?.replace(/^@/, "") ||
@@ -139,12 +140,16 @@ export default function AdminOrgDetailPage() {
         testerInviteConfirmed,
       });
       setTesterInviteConfirmed(false);
-      setActionNotice("Approved — organization moved to awaiting Instagram connect.");
+      setActionNotice(
+        alreadyConnected
+          ? "Approved — organization is active."
+          : "Approved — organization moved to awaiting Instagram connect.",
+      );
     } catch (err) {
       setActionError(
         err instanceof ApiError
           ? err.message
-          : "Approve failed. Confirm the tester invite checkbox and try again.",
+          : "Approve failed. Please try again.",
       );
     }
   }
@@ -246,7 +251,7 @@ export default function AdminOrgDetailPage() {
                     <ActionButton
                       variant="primary"
                       testId="approve-org"
-                      disabled={busy || !testerInviteConfirmed}
+                      disabled={busy || (!alreadyConnected && !testerInviteConfirmed)}
                       onClick={() => void onApprove()}
                     >
                       Approve
@@ -395,7 +400,7 @@ export default function AdminOrgDetailPage() {
             </ErrorNote>
           )}
 
-          {!erased && data.status === "pending_approval" && claimedHandle && (
+          {!erased && data.status === "pending_approval" && !alreadyConnected && claimedHandle && (
             <Panel title="Before you approve">
               <div className="px-4 py-4">
                 <Checkbox

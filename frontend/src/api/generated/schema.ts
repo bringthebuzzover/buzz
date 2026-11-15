@@ -2198,7 +2198,7 @@ export interface paths {
         put?: never;
         /**
          * Org Apply
-         * @description Public apply-first signup (no Instagram OAuth).
+         * @description Retired anonymous signup; organization identity requires Instagram OAuth.
          */
         post: operations["org_apply_api_orgs_apply_post"];
         delete?: never;
@@ -5453,7 +5453,7 @@ export interface components {
         };
         /**
          * OrgOnboardingRequest
-         * @description Phase 2: submit org profile after Instagram OAuth (legacy drain).
+         * @description Submit an authenticated profile and optional public-drop apply intent.
          */
         OrgOnboardingRequest: {
             category: components["schemas"]["OrgCategory"];
@@ -5461,12 +5461,18 @@ export interface components {
             city?: string | null;
             /** Contactname */
             contactName: string;
+            /** Dropid */
+            dropId?: string | null;
             /** Eduemail */
             eduEmail: string;
             /** Membercount */
             memberCount: number;
             /** Orgname */
             orgName: string;
+            /** Pitch */
+            pitch?: string | null;
+            /** Prefilltoken */
+            prefillToken?: string | null;
             /** Shippingcity */
             shippingCity: string;
             /** Shippingline1 */
@@ -5923,6 +5929,8 @@ export interface components {
             access_token: string;
             /** Next */
             next?: string | null;
+            /** Prefill */
+            prefill?: string | null;
             /**
              * Token Type
              * @default bearer
@@ -8371,6 +8379,7 @@ export interface operations {
         parameters: {
             query?: {
                 next?: string | null;
+                prefill?: string | null;
             };
             header?: never;
             path?: never;

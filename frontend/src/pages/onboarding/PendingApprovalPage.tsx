@@ -7,17 +7,19 @@
  * (PRODUCT §3.1) so officers can correct the campus email before approval.
  */
 import { useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Info } from "lucide-react";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { Notice } from "../../components/forms/controls";
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
-import AuthShell from "../../components/site/AuthShell";
-import { AuthHeading } from "../../components/auth/AuthFrame";
+import StatusHero from "../../components/site/StatusHero";
 import { pathForUser } from "../../utils/landing";
 
 const POLL_INTERVAL_MS = 15_000;
 
 export default function PendingApprovalPage() {
   const { user, refreshUser } = useAuth();
+  const [params] = useSearchParams();
 
   useEffect(() => {
     if (!user || user.status !== "pending_approval") return;
@@ -30,24 +32,41 @@ export default function PendingApprovalPage() {
   if (!user || user.status !== "pending_approval") {
     // Poll resolved (or wrong status / no session): route to where the user
     // belongs — active → portal, denied → denial page, none → login.
-    return <Navigate to={pathForUser(user)} replace />;
+    return <Navigate to={pathForUser(user, params.get("next"))} replace />;
   }
 
   return (
-    <AuthShell align="stack">
-      <div className="mb-8">
-        <AuthHeading kicker="Application received" title="Awaiting approval">
-          We&apos;re reviewing your organization. We&apos;ll email when Instagram
-          is ready to connect. Campus inboxes often put first-time BUZZ mail in
-          Junk.
-        </AuthHeading>
-      </div>
-
-      <EduEmailRotatePanel
-        liveEmail={user.email}
-        pendingEmail={user.pendingEduEmail}
-        onChanged={() => refreshUser()}
-      />
-    </AuthShell>
+    <StatusHero
+      title="Application Received"
+      notice={
+        user.pendingEduEmail ? (
+          <Notice
+            tone="accent"
+            icon={<Info className="h-4 w-4" aria-hidden />}
+          >
+            {`Verification link sent to ${user.pendingEduEmail}. Confirm your new school email.`}
+          </Notice>
+        ) : user.email ? (
+          <Notice
+            tone="success"
+            icon={<Info className="h-4 w-4" aria-hidden />}
+          >
+            {`Verified campus email: ${user.email}. We're reviewing your application.`}
+          </Notice>
+        ) : undefined
+      }
+      action={
+        <div className="w-full">
+          <EduEmailRotatePanel
+            liveEmail={user.email}
+            pendingEmail={user.pendingEduEmail}
+            onChanged={() => refreshUser()}
+          />
+        </div>
+      }
+    >
+      We&apos;re reviewing your organization. BUZZ curates vetted campus
+      communities to guarantee high-quality brand collaborations.
+    </StatusHero>
   );
 }
