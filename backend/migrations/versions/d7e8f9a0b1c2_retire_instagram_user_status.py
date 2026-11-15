@@ -56,6 +56,18 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # The label is NOT guaranteed to exist. An earlier migration
+    # (b8c9d0e1f2a3) rebuilt this enum type from an explicit label list that
+    # omitted 'pending_instagram', so any database created fresh from the
+    # migration chain never has it. Writing the value below without adding the
+    # label first fails with InvalidTextRepresentationError.
+    #
+    # ADD VALUE cannot run inside a transaction block on older Postgres, and
+    # Alembic wraps migrations in one, so commit the surrounding work first the
+    # same way b2c3d4e5f6a7 does.
+    op.execute("COMMIT")
+    op.execute("ALTER TYPE org_user_status ADD VALUE IF NOT EXISTS 'pending_instagram'")
+    op.execute("BEGIN")
     op.execute("""
         UPDATE users u SET status = 'pending_instagram'
         WHERE u.portal_role = 'org' AND u.status = 'active'
