@@ -325,7 +325,6 @@ export default function BrandSettingsPage() {
                 name="currentPassword"
                 type="password"
                 autoComplete="current-password"
-                
                 value={currentPassword}
                 onChange={(event) => {
                   setCurrentPassword(event.target.value);

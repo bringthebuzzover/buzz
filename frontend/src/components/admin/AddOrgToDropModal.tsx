@@ -111,7 +111,7 @@ export default function AddOrgToDropModal({
               id="add-org-search"
               data-testid="add-org-search"
               label="Search organizations"
-              placeholder="Search by name or @handle"
+              placeholder="Name or @handle"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"

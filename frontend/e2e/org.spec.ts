@@ -52,7 +52,7 @@ test("org can apply to an open drop", async ({ page }) => {
   const applyForm = page.getByRole("heading", { name: /apply to drop/i });
   await expect(applyForm).toBeVisible();
   await expect(page.getByLabel("Pitch (optional)")).toBeVisible();
-  await page.getByPlaceholder(/optional pitch/i).fill("E2E pitch");
+  await page.getByLabel("Pitch (optional)").fill("E2E pitch");
   await page.getByTestId("apply-submit").click();
 
   // Success has explicit feedback and a link to the updated campaign list.

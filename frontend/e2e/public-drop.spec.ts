@@ -40,7 +40,7 @@ test("active org can apply from the public drop page", async ({ page }) => {
   }
   await apply.click();
   await expect(page.getByRole("heading", { name: /apply to drop/i })).toBeVisible();
-  await page.getByPlaceholder(/optional pitch/i).fill("Public page pitch");
+  await page.getByLabel("Pitch (optional)").fill("Public page pitch");
   await page.getByTestId("apply-submit").click();
   await expect(page.getByText(/application submitted/i)).toBeVisible();
   await expect(page.getByRole("link", { name: "My Campaigns", exact: true })).toHaveAttribute("href", "/org/campaigns");

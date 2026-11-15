@@ -232,7 +232,6 @@ function RequestForm({
             name="title"
             label={optional("Title")}
             maxLength={120}
-            placeholder="Your campaign title"
             hint="A short name for your Requests list. BUZZ sets the final drop title."
             error={errorFor("title")}
           />
@@ -282,7 +281,8 @@ function RequestForm({
             id="campaignHashtag"
             name="campaignHashtag"
             label={optional("Campaign hashtag")}
-            placeholder="springdrop (no # needed)"
+            placeholder="#yourcampaign"
+            hint="A leading # is optional."
             error={errorFor("campaignHashtag")}
           />
           <TextArea
@@ -291,7 +291,7 @@ function RequestForm({
             label={optional("Anything else")}
             rows={3}
             maxLength={4000}
-            placeholder="Links to brand assets, launches, campuses you care about"
+            placeholder="e.g. Links to brand assets, launches, campuses you care about"
             error={errorFor("notes")}
           />
         </Card>

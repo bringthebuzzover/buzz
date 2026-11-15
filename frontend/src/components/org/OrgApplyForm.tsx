@@ -337,7 +337,7 @@ export default function OrgApplyForm({
           value={pitch}
           onChange={(e) => setPitch(e.target.value)}
           rows={4}
-          placeholder="Optional pitch message..."
+          placeholder="e.g. We host weekly mixers and can staff a table at the student center"
         />
       ) : null}
 

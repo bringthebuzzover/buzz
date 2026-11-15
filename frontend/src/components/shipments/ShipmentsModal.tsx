@@ -178,7 +178,6 @@ export function ShipmentsModal({
             <TextField
               data-testid={`add-shipment-tn-${applicant.id}`}
               aria-label="Tracking number"
-              placeholder="Tracking number"
               size="compact"
               value={tn}
               onChange={(e) => setTn(e.target.value)}
