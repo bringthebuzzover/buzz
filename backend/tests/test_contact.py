@@ -378,6 +378,36 @@ async def test_contact_gmail_dot_variants_share_one_recipient_bucket(
     assert statuses[3] == 429
 
 
+async def test_failing_replay_does_not_release_a_slot_it_never_took(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """A replay is already accepted, so it must not refund the allowance.
+
+    Nothing is reserved for an accepted replay. Releasing on its failure would
+    hand a spent unit back, letting a fourth distinct message through inside the
+    same hour.
+    """
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    for n in range(3):
+        ok = await app_client.post("/api/contact", json={**_VALID, "message": f"Message {n}"})
+        assert ok.status_code == 200
+
+    # Now the provider starts failing, and the first message is replayed.
+    async def _fail(to_email, subject, body, **kwargs):
+        return False
+
+    monkeypatch.setattr(email, "_dispatch", _fail)
+    replay = await app_client.post("/api/contact", json={**_VALID, "message": "Message 0"})
+    # Accepted replay: the original landed, so this is still a success.
+    assert replay.status_code == 200
+
+    # The budget is still spent; a fourth distinct message is refused.
+    fresh = await app_client.post("/api/contact", json={**_VALID, "message": "Message 3"})
+    assert fresh.status_code == 429
+
+
 async def test_reservation_holds_under_concurrent_submissions(
     app_client: AsyncClient, sent, monkeypatch
 ) -> None:
