@@ -77,7 +77,7 @@ export default function ResetPasswordPage({
           type="password"
           minLength={8}
           label="New password"
-          placeholder="At least 8 characters"
+          hint="At least 8 characters"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -87,7 +87,6 @@ export default function ResetPasswordPage({
           type="password"
           minLength={8}
           label="Confirm password"
-          placeholder="Repeat the password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           required

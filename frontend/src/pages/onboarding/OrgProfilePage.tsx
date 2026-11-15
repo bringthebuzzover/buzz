@@ -184,7 +184,7 @@ export default function OrgProfilePage() {
           label="Contact name"
           value={contactName}
           onChange={(e) => setContactName(e.target.value)}
-          placeholder="Test Officer"
+          placeholder="First Last"
           required
           error={fieldErrors.contactName}
         />
@@ -196,7 +196,7 @@ export default function OrgProfilePage() {
             label="School (.edu) email"
             value={eduEmail}
             onChange={(e) => setEduEmail(e.target.value)}
-            placeholder="org1@example.edu"
+            placeholder="you@university.edu"
             required
             error={fieldErrors.eduEmail}
           />
@@ -211,7 +211,7 @@ export default function OrgProfilePage() {
             label="Organization name"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
-            placeholder="Test Student Organization"
+            placeholder="Your Organization"
             required
             error={fieldErrors.orgName}
           />
@@ -221,7 +221,7 @@ export default function OrgProfilePage() {
             label="University"
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
-            placeholder="Test University"
+            placeholder="Your University"
             required
             error={fieldErrors.university}
           />
@@ -249,7 +249,7 @@ export default function OrgProfilePage() {
             label="Active members"
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
-            placeholder="120"
+            placeholder="24"
             required
             error={fieldErrors.memberCount}
           />

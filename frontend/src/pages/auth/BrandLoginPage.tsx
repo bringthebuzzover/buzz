@@ -93,7 +93,7 @@ export default function BrandLoginPage() {
         <TextField
           type="email"
           label="Email"
-          placeholder="e.g. you@company.com"
+          placeholder="you@company.com"
           data-testid="brand-email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

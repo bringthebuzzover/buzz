@@ -91,7 +91,7 @@ export default function AdminLoginPage() {
         <TextField
           type="email"
           label="Email"
-          placeholder="e.g. you@company.com"
+          placeholder="you@company.com"
           data-testid="admin-email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

@@ -115,7 +115,6 @@ export default function BrandSetupPage() {
           label="Password"
           value={password}
           onChange={(e) => setPasswordValue(e.target.value)}
-          placeholder="Choose a password"
           hint="At least 8 characters"
           required
           autoComplete="new-password"
@@ -126,7 +125,6 @@ export default function BrandSetupPage() {
           label="Confirm password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          placeholder="Repeat the password"
           required
           autoComplete="new-password"
         />

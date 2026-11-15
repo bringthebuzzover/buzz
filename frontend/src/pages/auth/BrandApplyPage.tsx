@@ -119,7 +119,7 @@ export default function BrandApplyPage() {
         <div className="grid gap-6 sm:grid-cols-2">
           <TextField
             label="Your name"
-            placeholder="e.g. Ada Lovelace"
+            placeholder="First Last"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             autoComplete="name"
@@ -129,7 +129,7 @@ export default function BrandApplyPage() {
 
           <TextField
             label="Company name"
-            placeholder="e.g. Sample Brand"
+            placeholder="Your Brand"
             value={brandName}
             onChange={(e) => setBrandName(e.target.value)}
             required

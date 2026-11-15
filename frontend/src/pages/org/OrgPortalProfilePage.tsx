@@ -256,7 +256,7 @@ export default function OrgPortalProfilePage() {
                 }
                 value={tiktokHandle}
                 onChange={(e) => setTiktokHandle(e.target.value)}
-                placeholder="@yourclub"
+                placeholder="@yourorg"
               />
 
               <div>

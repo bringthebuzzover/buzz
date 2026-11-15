@@ -67,7 +67,7 @@ export default function ComposeEmailModal({
           id="compose-email-subject"
           data-testid="compose-email-subject"
           label="Subject"
-          placeholder="e.g. Your BUZZ application"
+          placeholder="Your BUZZ application"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
         />
