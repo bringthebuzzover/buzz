@@ -163,6 +163,7 @@ export default function IgChangeRequestPanel({
                   rows={4}
                   data-testid="ig-change-reason"
                   placeholder="e.g. Our social chair changed and the old account is locked"
+                  hint="At least 10 characters."
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />

@@ -241,7 +241,7 @@ function RequestForm({
               name="location"
               label={optional("Campuses or area")}
               maxLength={255}
-              placeholder="Campus or metro area"
+              placeholder="City, region, or “Anywhere”"
               error={errorFor("location")}
             />
             <TextField

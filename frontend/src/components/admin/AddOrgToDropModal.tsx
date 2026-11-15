@@ -26,7 +26,6 @@ function orgMatches(org: AdminOrgRow, query: string): boolean {
   // match. Strip leading "@" tokens so the advertised shape actually works.
   const q = query.trim().toLowerCase().replace(/(^|\s)@+/g, "$1");
   if (!q) return true;
-  if (!q) return true;
   return [org.orgName, org.university, org.eduEmail, org.instagramHandle]
     .filter(Boolean)
     .some((value) => String(value).toLowerCase().includes(q));
