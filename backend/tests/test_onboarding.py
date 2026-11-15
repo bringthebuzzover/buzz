@@ -926,7 +926,7 @@ async def test_rotate_edu_email_pending_swap_then_verify(
     assert user.status == OrgUserStatus.ACTIVE.value
 
 
-async def test_rotate_edu_email_pending_approval_eligible(
+async def test_rotate_edu_email_refused_while_pending_approval(
     app_client: AsyncClient, db_session
 ) -> None:
     user = await _seed_verified_org(
@@ -940,10 +940,50 @@ async def test_rotate_edu_email_pending_approval_eligible(
         json={"eduEmail": "pend-new@test.edu"},
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
-    assert resp.status_code == 200, resp.text
+    assert resp.status_code == 400
+    body = resp.json()["error"]
+    assert body["code"] == "INVALID_ONBOARDING_STATE"
+    assert body["message"] == "Your school email is locked while we review your application."
     await db_session.refresh(user)
     assert user.edu_email == "pend@test.edu"
-    assert user.pending_edu_email == "pend-new@test.edu"
+    assert user.pending_edu_email is None
+    assert user.status == OrgUserStatus.PENDING_APPROVAL.value
+
+
+async def test_latched_swap_verifies_after_move_to_pending_approval(
+    app_client: AsyncClient, db_session
+) -> None:
+    """A swap latched while active still redeems after status moves to pending_approval."""
+    user = await _seed_verified_org(db_session, email="live-lock@test.edu", suffix="rlock")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    started = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "next-lock@test.edu"},
+        headers=headers,
+    )
+    assert started.status_code == 200, started.text
+
+    user.status = OrgUserStatus.PENDING_APPROVAL.value
+    tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+        )
+    )
+    assert len(tokens) == 1
+    raw = uuid.uuid4().hex
+    tokens[0].token_hash = hash_token(raw)
+    await db_session.flush()
+
+    verify = await app_client.post("/api/auth/verify-email", json={"token": raw})
+    assert verify.status_code == 200, verify.text
+    assert verify.json()["data"]["status"] == OrgUserStatus.PENDING_APPROVAL.value
+
+    await db_session.refresh(user)
+    assert user.edu_email == "next-lock@test.edu"
+    assert user.pending_edu_email is None
     assert user.status == OrgUserStatus.PENDING_APPROVAL.value
 
 

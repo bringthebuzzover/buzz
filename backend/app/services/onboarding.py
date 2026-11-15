@@ -1,6 +1,10 @@
 """Org onboarding orchestration (architecture §3.3, §3.4).
 
 Service functions the route layer calls.
+
+School-email rotate is for approved orgs only. An org awaiting admin approval
+is locked and cannot start a new swap. A swap already latched can still be
+finished so the address is not stranded.
 """
 
 from __future__ import annotations
@@ -44,13 +48,31 @@ from app.timeutils import as_utc, utcnow
 logger = logging.getLogger(__name__)
 
 
+# Who may *start* or *cancel* a school-email rotate. Approved orgs (and the
+# still-real pending_instagram status) only. pending_approval is locked: an org
+# waiting on review cannot change its school email. Finishing a swap that is
+# already latched is separate — see _latched_rotate_may_finish.
 _ROTATE_ELIGIBLE_STATUSES = frozenset(
     {
         OrgUserStatus.ACTIVE.value,
-        OrgUserStatus.PENDING_APPROVAL.value,
         OrgUserStatus.PENDING_INSTAGRAM.value,
     }
 )
+
+
+def _latched_rotate_may_finish(user: User) -> bool:
+    """Whether an already-latched swap may be redeemed or resent.
+
+    Starting a rotate uses ``_ROTATE_ELIGIBLE_STATUSES``. ``pending_approval``
+    is not in that set, but a latch made while active (or before the lock)
+    must still complete if status later sits here. Key off the latch, not
+    status membership alone, or that swap is stranded.
+    """
+    if not user.pending_edu_email:
+        return False
+    return user.status in _ROTATE_ELIGIBLE_STATUSES or (
+        user.status == OrgUserStatus.PENDING_APPROVAL.value
+    )
 
 
 async def _assert_pending_edu_available(
@@ -394,8 +416,9 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     """Redeem a one-time .edu verification token.
 
     Onboarding (``pending_email_verification``): advance to ``pending_approval``.
-    Pending-swap (active / pending_approval with ``pending_edu_email``): swap the
-    live address, clear the latch, refresh ``email_verified_at``, keep status.
+    Pending-swap (latched ``pending_edu_email`` on an approved org, or on
+    ``pending_approval`` when the swap was already started): swap the live
+    address, clear the latch, refresh ``email_verified_at``, keep status.
 
     Returns ``session_minted: True`` on the onboarding branch so the route can
     issue a JWT + refresh cookie (apply-first has no prior IG session).
@@ -438,11 +461,9 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
 
     token_email = (evt.email or "").strip().lower()
 
-    if (
-        user.status in _ROTATE_ELIGIBLE_STATUSES
-        and user.pending_edu_email
-        and token_email == user.pending_edu_email
-    ):
+    # Latch, not only rotate-eligible status: a pending_approval org must still
+    # redeem a swap that was started before the lock (or while active).
+    if _latched_rotate_may_finish(user) and token_email == user.pending_edu_email:
         evt.used_at = now
         user.edu_email = user.pending_edu_email
         user.pending_edu_email = None
@@ -487,7 +508,9 @@ async def resend_verification_email(
     if user.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         target = user.edu_email
         kind = "signup"
-    elif user.status in _ROTATE_ELIGIBLE_STATUSES and user.pending_edu_email:
+    elif _latched_rotate_may_finish(user):
+        # Requires a latched pending_edu_email. pending_instagram resends stay
+        # allowed. pending_approval with no swap does not start resending.
         target = user.pending_edu_email
         kind = "rotate"
     else:
@@ -527,15 +550,21 @@ async def resend_verification_email(
 async def rotate_edu_email(
     db: AsyncSession, user: User, edu_email: str, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
-    """Start a pending-swap rotate for an active or pending_approval org.
+    """Start a pending-swap rotate for an approved org.
 
     Keeps the live ``edu_email`` until the new address is verified. Does not
-    demote status or gate the portal.
+    demote status or gate the portal. An org awaiting approval is locked.
     """
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Only organization users verify a .edu email.",
+            status_code=400,
+        )
+    if user.status == OrgUserStatus.PENDING_APPROVAL.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Your school email is locked while we review your application.",
             status_code=400,
         )
     if user.status not in _ROTATE_ELIGIBLE_STATUSES:
@@ -613,6 +642,8 @@ async def cancel_pending_edu_email(db: AsyncSession, user: User) -> dict[str, An
             "Only organization users verify a .edu email.",
             status_code=400,
         )
+    # pending_approval is locked out of cancel too, even with a latch. They
+    # finish that swap through verify_email; they do not clear it here.
     if user.status not in _ROTATE_ELIGIBLE_STATUSES:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -700,11 +731,9 @@ async def resend_verification_from_token(
     if user.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         target = user.edu_email
         kind = "signup"
-    elif (
-        user.status in _ROTATE_ELIGIBLE_STATUSES
-        and user.pending_edu_email
-        and token_email == user.pending_edu_email
-    ):
+    elif _latched_rotate_may_finish(user) and token_email == user.pending_edu_email:
+        # Same latch rule as verify_email: an expired link for a swap started
+        # before pending_approval can still be re-sent. No latch, no resend.
         target = user.pending_edu_email
         kind = "rotate"
     else:

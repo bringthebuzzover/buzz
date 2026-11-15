@@ -15908,7 +15908,7 @@
     },
     "/api/auth/verify-email/rotate": {
       "post": {
-        "description": "Start a pending-swap .edu rotate (active / pending_approval orgs).",
+        "description": "Start a pending-swap .edu rotate (approved orgs only; awaiting approval is locked).",
         "operationId": "rotate_edu_email_endpoint_api_auth_verify_email_rotate_post",
         "parameters": [
           {

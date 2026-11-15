@@ -13,8 +13,6 @@ const mockUser = {
   instagramUsername: "testorg",
 };
 
-jest.mock("../../components/org/EduEmailRotatePanel", () => () => null);
-
 jest.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ user: mockUser, refreshUser: mockRefresh }),
 }));
