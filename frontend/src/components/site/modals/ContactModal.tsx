@@ -234,15 +234,15 @@ export default function ContactModal({ onClose }: ContactModalProps) {
 
           {/*
             Honeypot. Hidden from people and from screen readers, and off the tab
-            order, so only an automated filler ever puts text here. Not `display:
-            none` — some bots skip that; this stays focus-inert but present.
+            order, so only an automated filler ever puts text here. Uses the
+            shared TextField primitive (the primitives lint rule requires the
+            field components); the wrapper stays focus-inert but present,
+            because `display: none` is skipped by some bots.
           */}
-          <div aria-hidden="true" className="absolute h-0 w-0 overflow-hidden opacity-0">
-            <label htmlFor="contact-website">Website</label>
-            <input
+          <div aria-hidden="true" className="h-0 w-0 overflow-hidden opacity-0">
+            <TextField
               id="contact-website"
-              name="website"
-              type="text"
+              label="Website"
               tabIndex={-1}
               autoComplete="off"
               value={website}
