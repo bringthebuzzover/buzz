@@ -2018,9 +2018,12 @@ export interface paths {
          *     leave alone, and an operator chasing false positives gets nothing useful
          *     from a louder failure. The rejection is logged with no message body.
          *
-         *     The ack to the sender is best-effort. If it fails, the ops notice still
-         *     stands and the person simply gets no copy — a normal, acceptable outcome,
-         *     so it must not fail the request.
+         *     The two sends are **not** symmetric. If the ops notice fails, nothing
+         *     reached the team, so the request fails with a 502 the visitor can act on
+         *     and the ack is *not* sent — a "we got your message" copy for a message no
+         *     one at BUZZ ever saw is worse than an honest error. If the notice landed
+         *     and only the sender's copy failed, that is a normal, acceptable outcome
+         *     (the team can still reply), so it must not fail the request.
          */
         post: operations["submit_contact_api_contact_post"];
         delete?: never;
