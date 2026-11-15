@@ -420,6 +420,18 @@ async def retarget_awaiting_connect(
     portal and no Connect path. This is the admin exit: rewrite the approved
     target on the open ticket, keeping the recovery path intact.
     """
+    # Take the user row first. The bind callback locks user -> request rows, so
+    # retargeting in the opposite order (request -> user) would let the two
+    # paths deadlock against each other.
+    peek = await db.get(OrgIgChangeRequest, request_id)
+    if peek is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
+    await db.scalar(
+        select(User)
+        .where(User.id == peek.user_id)
+        .execution_options(populate_existing=True)
+        .with_for_update()
+    )
     req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)

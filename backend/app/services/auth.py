@@ -108,7 +108,18 @@ async def handle_instagram_callback(
         # from the stale eligibility result and the org ends up active on an
         # account nobody approved. Holding the row serializes the check with the
         # credential write below.
-        target = await db.scalar(select(User).where(User.id == bind_user_id).with_for_update())
+        # ``populate_existing`` matters: the identity query above may already hold
+        # this user in the session. Without it, ``with_for_update`` takes the lock
+        # but returns the cached attributes, so a callback racing a completed bind
+        # would still see the old unbound state, pass eligibility, and write its
+        # credentials over a fresh account's id — pairing one account's id with
+        # another's token.
+        target = await db.scalar(
+            select(User)
+            .where(User.id == bind_user_id)
+            .execution_options(populate_existing=True)
+            .with_for_update()
+        )
         if target is None or target.portal_role != PortalRole.ORG.value:
             raise BuzzAPIException(
                 errors.NOT_FOUND,
