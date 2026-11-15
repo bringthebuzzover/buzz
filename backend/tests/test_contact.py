@@ -295,25 +295,60 @@ async def test_contact_minute_bucket_blocks_a_burst(
     monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
     rate_limit.reset()
 
-    statuses = [(await app_client.post("/api/contact", json=_VALID)).status_code for _ in range(6)]
+    # Vary the address so the per-recipient cap does not answer first; this
+    # test is about the per-IP minute bucket.
+    statuses = [
+        (
+            await app_client.post(
+                "/api/contact", json={**_VALID, "email": f"burst{n}@b.co"}
+            )
+        ).status_code
+        for n in range(6)
+    ]
 
     assert statuses[:5] == [200] * 5
     assert statuses[5] == 429
 
 
-async def test_contact_counts_against_two_distinct_buckets(
+async def test_contact_caps_acknowledgements_per_recipient(
     app_client: AsyncClient, sent, monkeypatch
 ) -> None:
-    """Both limits must be attached and keyed separately, or one never binds."""
+    """One address must not be floodable by varying the message text.
+
+    The idempotency key covers message content, so editing one character makes
+    a new send and the per-IP budgets alone would allow 20 an hour to the same
+    inbox.
+    """
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    statuses = [
+        (
+            await app_client.post(
+                "/api/contact", json={**_VALID, "message": f"Message number {n}"}
+            )
+        ).status_code
+        for n in range(4)
+    ]
+
+    assert statuses[:3] == [200] * 3
+    assert statuses[3] == 429
+
+
+async def test_contact_counts_against_distinct_buckets(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """Every limit must be attached and keyed separately, or one never binds."""
     monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
     rate_limit.reset()
 
     assert (await app_client.post("/api/contact", json=_VALID)).status_code == 200
 
     keys = sorted(rate_limit._buckets)
-    assert len(keys) == 2, keys
+    assert len(keys) == 3, keys
     minute_key = next(k for k in keys if k.startswith("contact_minute:ip:"))
     hour_key = next(k for k in keys if k.startswith("contact_hour:ip:"))
+    recipient_key = next(k for k in keys if k.startswith("contact_recipient:acct:"))
 
     # Minute budget is untouched, but the hourly one is one short of its cap.
     start, _ = rate_limit._buckets[hour_key]
@@ -321,6 +356,8 @@ async def test_contact_counts_against_two_distinct_buckets(
     assert (await app_client.post("/api/contact", json=_VALID)).status_code == 429
     # The 429 came from the hourly bucket, not the minute one.
     assert rate_limit._buckets[minute_key][1] == 2
+    # The recipient bucket is keyed on the address, not the IP.
+    assert recipient_key.endswith(_VALID["email"])
 
 
 @pytest.mark.parametrize("key", ["Website", "WEBSITE", "webSite"])
@@ -384,9 +421,14 @@ async def test_contact_ack_never_echoes_submitter_text(app_client: AsyncClient, 
     also carries verification mail. Nothing the submitter typed may appear.
     """
     marker = "UNIQUE-MARKER-do-not-echo-9f3a"
+    name_marker = "JordanPhish9f3a"
     resp = await app_client.post(
         "/api/contact",
-        json={"firstName": "Jordan", "email": "jordan@example.edu", "message": marker},
+        json={
+            "firstName": name_marker,
+            "email": "jordan@example.edu",
+            "message": marker,
+        },
     )
     assert resp.status_code == 200
 
@@ -396,4 +438,8 @@ async def test_contact_ack_never_echoes_submitter_text(app_client: AsyncClient, 
     # The sender gets assurance and nothing else.
     assert marker not in ack["body"]
     assert marker not in ack["subject"]
+    # The name is submitter-controlled too (100 chars of arbitrary text), and it
+    # is interpolated into mail sent to an address nobody has verified.
+    assert name_marker not in ack["body"]
+    assert name_marker not in ack["subject"]
     assert "received your message" in ack["body"].lower()

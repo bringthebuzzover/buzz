@@ -205,9 +205,8 @@ export default function ContactModal({ onClose }: ContactModalProps) {
             <h2 className={cn(TEXT.h2, "text-primary")}>Thanks — we got it.</h2>
           </div>
           <p className={cn(TEXT.bodyLong, "max-w-[46ch] text-muted")}>
-            We&apos;ve sent a confirmation to{" "}
-            <span className="text-primary">{form.email}</span> and will reply
-            there.
+            We&apos;ll reply to{" "}
+            <span className="text-primary">{form.email}</span> soon.
           </p>
           <Button type="button" onClick={onClose} className="mt-2">
             Done
@@ -277,6 +276,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
               required
               maxLength={MAX_LENGTH.firstName}
               value={form.firstName}
+              disabled={submit.isPending}
               onChange={onChange("firstName")}
               error={fieldErrors.firstName}
             />
@@ -286,6 +286,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
               autoComplete="family-name"
               maxLength={MAX_LENGTH.lastName}
               value={form.lastName}
+              disabled={submit.isPending}
               onChange={onChange("lastName")}
               error={fieldErrors.lastName}
             />
@@ -298,6 +299,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
                 required
                 maxLength={MAX_LENGTH.email}
                 value={form.email}
+                disabled={submit.isPending}
                 onChange={onChange("email")}
                 error={fieldErrors.email}
               />
@@ -306,12 +308,12 @@ export default function ContactModal({ onClose }: ContactModalProps) {
               <TextArea
                 id="contact-message"
                 label="Message"
-                placeholder="Write your message..."
-                required
+                                required
                 rows={5}
                 resizable
                 maxLength={MAX_LENGTH.message}
                 value={form.message}
+                disabled={submit.isPending}
                 onChange={onChange("message")}
                 error={fieldErrors.message}
               />

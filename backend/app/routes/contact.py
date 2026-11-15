@@ -23,7 +23,7 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.contact import ContactAccepted, ContactRequest
-from app.security.rate_limit import rate_limited
+from app.security.rate_limit import enforce_account_limit, rate_limited
 from app.services import email
 
 logger = logging.getLogger(__name__)
@@ -64,6 +64,12 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     if payload.website.strip():
         logger.warning("contact_form_honeypot_rejected")
         return api_response(data=ContactAccepted())
+
+    # Per-IP limits alone let one address receive up to 20 acknowledgements an
+    # hour, since the idempotency key covers message content and changing a
+    # single character makes a new send. Cap per recipient too, so the ack
+    # cannot be used to flood a stranger's mailbox from the shared sender.
+    enforce_account_limit("contact_recipient", payload.email.lower(), limit=3, window=3600)
 
     contact_name = " ".join(part for part in (payload.first_name, payload.last_name) if part)
     # The key must hash EXACTLY the content that goes into the email body, and

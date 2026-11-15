@@ -1066,7 +1066,7 @@ async def send_contact_ack(
     subject = "We got your message — Buzz"
     body = "\n".join(
         [
-            f"Hi {contact_name},",
+            "Hi there,",
             "",
             "Thanks for reaching out. We've received your message and will reply to this address.",
             "",
