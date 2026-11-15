@@ -38,11 +38,13 @@ _buckets: dict[str, tuple[float, int]] = {}
 # and if that isn't enough, drop the oldest entries to enforce a hard ceiling.
 _MAX_BUCKETS = 10_000
 _MAX_WINDOW_SECONDS = 3600
+_ACCEPTED_TTL_SECONDS = 3600
 
 
 def reset() -> None:
     """Clear all counters (used between tests)."""
     _buckets.clear()
+    _accepted.clear()
 
 
 def _evict_stale(now: float) -> None:
@@ -110,29 +112,16 @@ def enforce_account_limit(bucket: str, identity: str, *, limit: int, window: int
         raise _too_many()
 
 
-def account_limit_reached(bucket: str, identity: str, *, limit: int, window: int) -> bool:
-    """Whether ``identity`` has already spent its budget — without spending it.
+def reserve_account_send(bucket: str, identity: str, *, limit: int, window: int) -> bool:
+    """Claim one unit of ``identity``'s budget *before* the awaited work.
 
-    For work that must not happen at all once the budget is gone, but where the
-    counter should only advance when the work actually succeeds. Pair with
-    :func:`record_account_send` after the expensive step.
-
-    A rejected attempt must never deliver first and refuse second: the sender
-    would see a 429 for a message the team already received.
+    Returns False when the budget is already spent. Must be called before the
+    first await in the request: the counter is therefore claimed synchronously,
+    so two concurrent submissions cannot both read zero usage and then both
+    send. Call :func:`release_account_send` if the work turns out to fail.
     """
     if not settings.RATE_LIMIT_ENABLED:
-        return False
-    key = f"{bucket}:acct:{identity}"
-    start, count = _buckets.get(key, (0.0, 0))
-    if time.monotonic() - start >= window:
-        return False
-    return count >= limit
-
-
-def record_account_send(bucket: str, identity: str, *, window: int) -> None:
-    """Advance ``identity``'s counter after a send that really went out."""
-    if not settings.RATE_LIMIT_ENABLED:
-        return
+        return True
     key = f"{bucket}:acct:{identity}"
     now = time.monotonic()
     if key not in _buckets and len(_buckets) >= _MAX_BUCKETS:
@@ -140,4 +129,45 @@ def record_account_send(bucket: str, identity: str, *, window: int) -> None:
     start, count = _buckets.get(key, (now, 0))
     if now - start >= window:
         start, count = now, 0
+    if count >= limit:
+        _buckets[key] = (start, count)
+        return False
     _buckets[key] = (start, count + 1)
+    return True
+
+
+def release_account_send(bucket: str, identity: str) -> None:
+    """Give back a reservation whose work did not happen."""
+    if not settings.RATE_LIMIT_ENABLED:
+        return
+    key = f"{bucket}:acct:{identity}"
+    start, count = _buckets.get(key, (0.0, 0))
+    if count <= 1:
+        _buckets.pop(key, None)
+    else:
+        _buckets[key] = (start, count - 1)
+
+
+# Accepted submission hashes, so an identical retry is not charged again. The
+# provider already dedupes the send by idempotency key; charging the retry would
+# spend the sender's allowance for work that was never repeated.
+_accepted: dict[str, float] = {}
+
+
+def submission_already_accepted(key: str) -> bool:
+    """Whether this exact submission was accepted inside the window."""
+    stamp = _accepted.get(key)
+    if stamp is None:
+        return False
+    if time.monotonic() - stamp > _ACCEPTED_TTL_SECONDS:
+        _accepted.pop(key, None)
+        return False
+    return True
+
+
+def mark_submission_accepted(key: str) -> None:
+    """Remember an accepted submission so replays are answered, not re-charged."""
+    if len(_accepted) >= _MAX_BUCKETS:
+        for stale in sorted(_accepted, key=_accepted.get)[: _MAX_BUCKETS // 4]:
+            _accepted.pop(stale, None)
+    _accepted[key] = time.monotonic()

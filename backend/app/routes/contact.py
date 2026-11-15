@@ -25,9 +25,11 @@ from app.response import APIResponse, DataResponse, api_response
 from app.schemas.contact import ContactAccepted, ContactRequest
 from app.schemas.email_rules import mailbox_identity
 from app.security.rate_limit import (
-    account_limit_reached,
+    mark_submission_accepted,
     rate_limited,
-    record_account_send,
+    release_account_send,
+    reserve_account_send,
+    submission_already_accepted,
 )
 from app.services import email
 
@@ -94,26 +96,37 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     # on the mailbox identity, not the literal address: plus-tags and Gmail dots
     # are aliases of one inbox.
     #
-    # Checked before the notice goes out and recorded only after a send that
-    # actually happened. Refusing afterwards would tell the visitor "too many
-    # requests" about a message the team had already received, and counting
-    # every attempt would let three transient provider failures spend a real
-    # sender's whole allowance.
+    # Reserved synchronously, before the first await, and given back if the send
+    # does not happen. Checking and incrementing around an await would let
+    # concurrent submissions all read zero usage and all deliver. Refusing after
+    # the notice went out would tell the visitor "too many requests" about a
+    # message the team already received.
     recipient_key = mailbox_identity(payload.email)
-    if account_limit_reached("contact_recipient", recipient_key, limit=3, window=3600):
+    # A byte-identical retry (lost response, double click) is already deduped by
+    # the provider's idempotency key. Answer it without charging the allowance
+    # again, or three retries of one message would spend a sender's whole budget.
+    replay = submission_already_accepted(submission_hash)
+    if not replay and not reserve_account_send(
+        "contact_recipient", recipient_key, limit=3, window=3600
+    ):
         raise BuzzAPIException(
             errors.RATE_LIMITED,
             "Too many requests. Please slow down and try again shortly.",
             status_code=429,
         )
 
-    notice_sent = await email.send_contact_notice(
-        contact_name=contact_name,
-        sender_email=payload.email,
-        message=payload.message,
-        idempotency_key=notice_key,
-    )
+    try:
+        notice_sent = await email.send_contact_notice(
+            contact_name=contact_name,
+            sender_email=payload.email,
+            message=payload.message,
+            idempotency_key=notice_key,
+        )
+    except Exception:
+        release_account_send("contact_recipient", recipient_key)
+        raise
     if not notice_sent:
+        release_account_send("contact_recipient", recipient_key)
         # No ack: the team never saw this, so claiming we did would be a lie the
         # visitor acts on. They still have their text on screen and can retry.
         logger.error("contact_notice_failed")
@@ -128,10 +141,10 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         contact_name=payload.first_name,
         idempotency_key=email.build_idempotency_key(email.KIND_CONTACT_ACK, submission_hash),
     )
-    if ack_sent:
-        record_account_send("contact_recipient", recipient_key, window=3600)
-    else:
-        # Best-effort by design (see the docstring): the notice stands.
+    mark_submission_accepted(submission_hash)
+    if not ack_sent:
+        # The notice landed, so the submission stands and keeps its reservation;
+        # only the courtesy copy failed.
         logger.warning("contact_ack_failed")
 
     return api_response(data=ContactAccepted())

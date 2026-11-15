@@ -7,6 +7,8 @@ sender must get a copy).
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 from httpx import AsyncClient
 from pydantic import ValidationError
@@ -374,6 +376,52 @@ async def test_contact_gmail_dot_variants_share_one_recipient_bucket(
 
     assert statuses[:3] == [200] * 3
     assert statuses[3] == 429
+
+
+async def test_reservation_holds_under_concurrent_submissions(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """Concurrent requests must not all see an unused budget.
+
+    The counter is reserved before the first await, so a burst cannot read zero
+    usage four times and deliver four acknowledgements to one mailbox.
+    """
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    responses = await asyncio.gather(
+        *[
+            app_client.post("/api/contact", json={**_VALID, "message": f"Concurrent {n}"})
+            for n in range(5)
+        ]
+    )
+
+    statuses = sorted(r.status_code for r in responses)
+    assert statuses.count(200) == 3, statuses
+    assert statuses.count(429) == 2, statuses
+
+
+async def test_identical_retry_does_not_consume_the_allowance(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """A replay is answered, not re-charged.
+
+    The provider dedupes an identical submission by idempotency key. Charging
+    each retry would spend the sender's whole allowance for a message that was
+    sent once, and then reject a genuinely new message.
+    """
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    for _ in range(4):
+        resp = await app_client.post("/api/contact", json=_VALID)
+        assert resp.status_code == 200
+
+    # The budget is untouched, so a different message still goes through.
+    fresh = await app_client.post(
+        "/api/contact", json={**_VALID, "message": "A genuinely new message"}
+    )
+    assert fresh.status_code == 200
 
 
 async def test_refused_recipient_never_gets_the_notice(
