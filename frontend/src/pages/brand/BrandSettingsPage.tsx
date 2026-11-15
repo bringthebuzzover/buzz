@@ -199,6 +199,7 @@ export default function BrandSettingsPage() {
                   <TextField
                     id="brand-name"
                     name="brandName"
+                    placeholder="Your Brand"
                     value={shownName}
                     onChange={(event) => {
                       setBrandName(event.target.value);

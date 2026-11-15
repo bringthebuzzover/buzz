@@ -216,7 +216,7 @@ function RequestForm({
             label="What you're sending"
             required
             rows={3}
-            placeholder="e.g. 200 cans"
+            placeholder="e.g. 200 cold brew cans + koozies"
             error={errorFor("product")}
           />
         </Card>

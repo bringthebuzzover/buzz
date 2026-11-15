@@ -445,7 +445,11 @@ function EndSeatButton({
             id={`end-reason-${applicant.id}`}
             data-testid={`end-reason-${applicant.id}`}
             label={kind === "removed" ? "Reason (required, BUZZ-only)" : "Note (optional, BUZZ-only)"}
-            placeholder="e.g. Organization missed the shipping deadline"
+            placeholder={
+              kind === "removed"
+                ? "e.g. Organization missed the shipping deadline"
+                : "e.g. Organization's officers changed and they withdrew"
+            }
             value={reason}
             maxLength={500}
             onChange={(e) => setReason(e.target.value)}

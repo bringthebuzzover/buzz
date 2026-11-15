@@ -209,6 +209,11 @@ export function DropFormFields({
       {...fieldProps("units")} label="Total units" size="compact" type="number" min={1}
       value={form.units} disabled={clearUnits || logisticsLocked}
       placeholder="24"
+      hint={
+        config
+          ? "Leave empty, or check “Clear to spot-only”."
+          : "Total across all organizations. Leave empty for a spot-only drop."
+      }
       onChange={(e) => setField("units", e.target.value)}
     />
   );
