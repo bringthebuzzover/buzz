@@ -68,8 +68,22 @@ export function Modal({
         >
           {wide ? (
             // The wide dialogs lay out their own header inside the grid, so the
-            // shared title row would double up. Title stays for screen readers.
-            <Dialog.Title className="sr-only">{title}</Dialog.Title>
+            // shared title row would double up. The title stays for screen
+            // readers, and the close control is absolute — without it the wide
+            // dialog had NO visible dismiss affordance, leaving Escape, a
+            // backdrop click, or a submitted form as the only ways out.
+            <>
+              <Dialog.Title className="sr-only">{title}</Dialog.Title>
+              <Dialog.Close
+                className={cn(
+                  "absolute right-4 top-4 z-[2] grid h-[33px] w-[33px] place-items-center rounded-buzzControl border border-line bg-surface-pop text-primary transition-colors hover:bg-buzz-paper08",
+                  focusRingClass,
+                )}
+                aria-label="Close"
+              >
+                <X size={18} aria-hidden />
+              </Dialog.Close>
+            </>
           ) : (
             <div className="flex items-start gap-4">
               <div className="flex min-w-0 flex-1 flex-col gap-2">

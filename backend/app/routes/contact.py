@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
@@ -66,13 +65,18 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         logger.warning("contact_form_honeypot_rejected")
         return api_response(data=ContactAccepted())
 
-    submitted_at = datetime.now(timezone.utc)
     contact_name = " ".join(part for part in (payload.first_name, payload.last_name) if part)
-    # Key on a hash of the submission, NOT the sender address: a key part
-    # containing ``@`` is rejected as unsafe, so passing the email produced
-    # ``None`` every time and disabled deduplication entirely. The hash keeps
-    # the address out of the key (no PII in a provider-visible header) while
-    # still making an identical double-submit collapse into one send.
+    # The key must hash EXACTLY the content that goes into the email body, and
+    # the body must therefore carry no per-attempt value. Resend treats "same
+    # key, different payload" as a failure (409 invalid_idempotent_request), so
+    # a key built from content while the body also stamped a fresh timestamp
+    # made every retry of the same message return 502 forever. The body no
+    # longer includes a timestamp (the received time is on the email itself), so
+    # an identical retry is a genuine replay: 2xx, no second send.
+    #
+    # The sender address is NOT a key part: a part containing "@" is rejected as
+    # unsafe, which previously yielded ``None`` and disabled dedup entirely. The
+    # hash keeps the address out of a provider-visible header.
     submission_hash = hashlib.sha256(
         "\n".join((payload.email, payload.first_name, payload.last_name, payload.message)).encode()
     ).hexdigest()
@@ -82,7 +86,6 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         contact_name=contact_name,
         sender_email=payload.email,
         message=payload.message,
-        submitted_at=submitted_at,
         idempotency_key=notice_key,
     )
     if not notice_sent:

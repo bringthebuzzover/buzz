@@ -1005,7 +1005,6 @@ async def send_contact_notice(
     contact_name: str,
     sender_email: str,
     message: str,
-    submitted_at: datetime,
     idempotency_key: str | None = None,
 ) -> bool:
     """Notify ops of a contact-form message; **Reply reaches the sender.**
@@ -1014,11 +1013,14 @@ async def send_contact_notice(
     in, so hitting Reply in the hello@ inbox just works.
     """
     subject = f"Contact form: {contact_name}"
+    # No timestamp here on purpose. The body must be byte-identical for an
+    # identical retry, because the route derives the Idempotency-Key from the
+    # same content; a per-attempt value would make Resend return 409 and turn
+    # every retry into a permanent 502. The provider records the send time.
     body = "\n".join(
         [
             f"Name: {contact_name}",
             f"Email: {sender_email}",
-            f"Submitted: {submitted_at.isoformat()}",
             "",
             message,
         ]
