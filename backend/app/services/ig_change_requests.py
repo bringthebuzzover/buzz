@@ -293,7 +293,14 @@ async def _pending_request_for_update(
     wait, then see the new status and fail its own ``!= "pending"`` check.
     """
     row: OrgIgChangeRequest | None = await db.scalar(
-        select(OrgIgChangeRequest).where(OrgIgChangeRequest.id == request_id).with_for_update()
+        select(OrgIgChangeRequest)
+        .where(OrgIgChangeRequest.id == request_id)
+        # ``populate_existing``: the session may already hold this request from an
+        # earlier read. Without it the lock is taken but the cached attributes are
+        # returned, so a decision could act on a status another transaction has
+        # since changed — e.g. retarget rewriting a ticket a bind already closed.
+        .execution_options(populate_existing=True)
+        .with_for_update()
     )
     return row
 
