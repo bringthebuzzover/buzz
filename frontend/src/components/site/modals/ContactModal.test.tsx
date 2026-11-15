@@ -1,6 +1,8 @@
 /* eslint-disable testing-library/no-container -- Shared harness uses React DOM; Testing Library is not installed. */
 import { act } from "react";
 import { renderWithProviders } from "../../../testUtils";
+import { ApiError } from "../../../api/errors";
+import { VALIDATION_FALLBACK } from "../../../api/userFacingError";
 import ContactModal from "./ContactModal";
 
 const mockMutateAsync = jest.fn();
@@ -132,5 +134,129 @@ describe("ContactModal", () => {
     expect(document.body.textContent).toContain("Thanks");
     // Form gone, so nothing can be submitted twice.
     expect(document.body.querySelector("form")).toBeNull();
+  });
+
+  it("renders a server 422 on the field it names, not as a silent failure", async () => {
+    mockMutateAsync.mockRejectedValueOnce(
+      new ApiError("VALIDATION_ERROR", "Request validation failed.", 422, {
+        errors: [{ loc: ["body", "email"], msg: "Value error, Invalid email address" }],
+      }),
+    );
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "We want to run a drop.");
+    await submit();
+
+    const email = field("contact-email") as HTMLInputElement;
+    // The primitive wires aria-invalid + aria-describedby to the message.
+    expect(email.getAttribute("aria-invalid")).toBe("true");
+    const describedBy = email.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    const message = document.body.querySelector(`#${describedBy!.split(/\s+/)[0]}`);
+    // Framework "Value error, " prefix is stripped.
+    expect(message?.textContent).toBe("Invalid email address");
+    // Field-level only: no redundant banner.
+    expect(document.body.querySelector('[role="alert"]')).not.toBeNull();
+  });
+
+  it("splits a multi-field 422 across the controls it names", async () => {
+    mockMutateAsync.mockRejectedValueOnce(
+      new ApiError("VALIDATION_ERROR", "Request validation failed.", 422, {
+        errors: [
+          { loc: ["body", "first_name"], msg: "Value error, First name is required" },
+          { loc: ["body", "message"], msg: "Value error, Message is required" },
+        ],
+      }),
+    );
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "x");
+    await submit();
+
+    const firstName = field("contact-first-name") as HTMLInputElement;
+    const body = field("contact-message") as HTMLTextAreaElement;
+    expect(firstName.getAttribute("aria-invalid")).toBe("true");
+    expect(body.getAttribute("aria-invalid")).toBe("true");
+    expect(document.body.textContent).toContain("First name is required");
+    expect(document.body.textContent).toContain("Message is required");
+  });
+
+  it("shows a banner when a 422 names no field this form owns", async () => {
+    mockMutateAsync.mockRejectedValueOnce(
+      new ApiError("VALIDATION_ERROR", "Request validation failed.", 422, {
+        errors: [{ loc: ["body", "something_else"], msg: "Value error, Nope" }],
+      }),
+    );
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "x");
+    await submit();
+
+    // Nothing can ever be silent: the server's own message reaches the banner.
+    const banner = document.body.querySelector('[role="alert"]');
+    expect(banner?.textContent).toContain("Nope");
+  });
+
+  it("shows the generic validation banner when details resolve to nothing", async () => {
+    mockMutateAsync.mockRejectedValueOnce(
+      new ApiError("VALIDATION_ERROR", "Request validation failed.", 422, {
+        errors: [{ loc: ["body", "something_else"], msg: "" }],
+      }),
+    );
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "x");
+    await submit();
+
+    const banner = document.body.querySelector('[role="alert"]');
+    expect(banner?.textContent).toBe(VALIDATION_FALLBACK);
+  });
+
+  it("shows a banner when the error carries no validation details at all", async () => {
+    mockMutateAsync.mockRejectedValueOnce(new ApiError("INTERNAL_ERROR", "", 500, null));
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "x");
+    await submit();
+
+    const banner = document.body.querySelector('[role="alert"]');
+    expect(banner?.textContent).toBe("We couldn't send that. Please try again.");
+  });
+
+  it("clears field errors and the banner on the next attempt", async () => {
+    mockMutateAsync.mockRejectedValueOnce(
+      new ApiError("VALIDATION_ERROR", "Request validation failed.", 422, {
+        errors: [{ loc: ["body", "email"], msg: "Value error, Invalid email address" }],
+      }),
+    );
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+    setInput("contact-first-name", "Jordan");
+    setInput("contact-email", "jordan@example.edu");
+    setInput("contact-message", "x");
+    await submit();
+    expect((field("contact-email") as HTMLInputElement).getAttribute("aria-invalid")).toBe(
+      "true",
+    );
+
+    await submit();
+
+    const email = field("contact-email") as HTMLInputElement;
+    expect(email.getAttribute("aria-invalid")).toBeNull();
+    expect(document.body.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it("caps each field at the backend's length limit", () => {
+    renderWithProviders(<ContactModal onClose={jest.fn()} />);
+
+    expect((field("contact-first-name") as HTMLInputElement).maxLength).toBe(100);
+    expect((field("contact-last-name") as HTMLInputElement).maxLength).toBe(100);
+    expect((field("contact-email") as HTMLInputElement).maxLength).toBe(320);
+    expect((field("contact-message") as HTMLTextAreaElement).maxLength).toBe(2000);
   });
 });

@@ -9,11 +9,11 @@ from __future__ import annotations
 from pydantic import field_validator
 
 from app.schemas.common import CamelModel
+from app.schemas.email_rules import clean_email_address
 
 # Kept in step with the frontend fields; generous but bounded so a script cannot
 # push arbitrary volume through the mail provider.
 _NAME_LIMIT = 100
-_EMAIL_LIMIT = 320
 _MESSAGE_LIMIT = 2000
 
 
@@ -35,7 +35,12 @@ class ContactRequest(CamelModel):
     @field_validator("first_name", "last_name")
     @classmethod
     def _clean_name(cls, value: str) -> str:
-        return value.strip()[:_NAME_LIMIT]
+        # ``contact_name`` is interpolated into the ops-notice **subject**, which
+        # is a header value, so a control character here is the same
+        # header-injection surface as the email field. No legitimate name
+        # contains one, so it is dropped rather than surfaced as another error.
+        cleaned = "".join(ch for ch in value if ord(ch) >= 0x20 and ord(ch) != 0x7F)
+        return cleaned.strip()[:_NAME_LIMIT]
 
     @field_validator("first_name")
     @classmethod
@@ -47,12 +52,11 @@ class ContactRequest(CamelModel):
     @field_validator("email")
     @classmethod
     def _valid_email(cls, value: str) -> str:
-        # Same deliberately simple rule as the brand application: one '@', a dot
-        # in the domain, bounded length. Deliverability is Resend's problem.
-        cleaned = value.strip().lower()
-        if "@" not in cleaned or "." not in cleaned.split("@")[-1] or len(cleaned) > _EMAIL_LIMIT:
-            raise ValueError("Invalid email address")
-        return cleaned
+        # This address becomes Resend's ``reply_to`` and the ``To:`` of the ack,
+        # so the rule has to be strict about what can appear in a header: one
+        # mailbox, no CRLF, no comma list, no whitespace. See
+        # ``app.schemas.email_rules`` (which also enforces the 320-char bound).
+        return clean_email_address(value)
 
     @field_validator("message")
     @classmethod

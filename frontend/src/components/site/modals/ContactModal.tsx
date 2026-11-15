@@ -65,11 +65,75 @@ function LinkedInIcon({ className }: { className?: string }) {
 
 const EMPTY = { firstName: "", lastName: "", email: "", message: "" };
 
+type ContactField = keyof typeof EMPTY;
+
+/**
+ * Native length caps mirroring the backend schema, so the browser stops the
+ * user at the same place the server would (names 100, email 320, message 2000).
+ * Without this the first hint of a problem is a 422 after a round-trip.
+ */
+const MAX_LENGTH: Record<ContactField, number> = {
+  firstName: 100,
+  lastName: 100,
+  email: 320,
+  message: 2000,
+};
+
+/**
+ * The API reports the schema's snake_case names; the form is camelCase. Only
+ * these four keys can land on a control — anything else has no home here.
+ */
+const SERVER_FIELD_TO_CONTROL: Record<string, ContactField> = {
+  first_name: "firstName",
+  firstName: "firstName",
+  last_name: "lastName",
+  lastName: "lastName",
+  email: "email",
+  message: "message",
+};
+
+/**
+ * Pydantic prefixes messages raised from a ``field_validator`` with
+ * "Value error, ". That is a framework artifact, not copy, and the backend
+ * messages are already written for a person ("Invalid email address").
+ */
+function humanizeFieldMessage(message: string): string {
+  return message.replace(/^Value error,\s*/i, "").trim();
+}
+
+/**
+ * Split the API's field errors into the ones that have a control here and the
+ * ones that don't. The leftovers are still the server explaining itself, so they
+ * go in the banner rather than being dropped on the floor.
+ */
+function mapServerFields(fields: Record<string, string>): {
+  fieldErrors: Partial<Record<ContactField, string>>;
+  unplaced: string[];
+} {
+  const fieldErrors: Partial<Record<ContactField, string>> = {};
+  const unplaced: string[] = [];
+  for (const [key, raw] of Object.entries(fields)) {
+    const text = humanizeFieldMessage(raw);
+    // An empty message would render nothing, which is the bug we are fixing.
+    if (!text) continue;
+    const control = SERVER_FIELD_TO_CONTROL[key];
+    if (control) {
+      if (!fieldErrors[control]) fieldErrors[control] = text;
+    } else if (!unplaced.includes(text)) {
+      unplaced.push(text);
+    }
+  }
+  return { fieldErrors, unplaced };
+}
+
+const FALLBACK_ERROR = "We couldn't send that. Please try again.";
+
 export default function ContactModal({ onClose }: ContactModalProps) {
   const { social, contact, brand } = siteIdentity;
   const submit = useSubmitContact();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ContactField, string>>>({});
   // Honeypot lives outside `form` so it is never echoed into state a user sees.
   const [website, setWebsite] = useState("");
 
@@ -104,15 +168,29 @@ export default function ContactModal({ onClose }: ContactModalProps) {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // A new attempt retires the previous attempt's errors, field-level included:
+    // leaving them up while the request runs claims the new input is still bad.
     setError(null);
+    setFieldErrors({});
     try {
       await submit.mutateAsync({ ...form, website });
       // Clear the message body only; names stay in case they write again.
       setForm((prev) => ({ ...prev, message: "" }));
     } catch (err) {
-      setError(
-        userFacingApiError(err, "We couldn't send that. Please try again.").banner,
-      );
+      // A 422 usually resolves to per-field messages with no banner, so reading
+      // only `.banner` here was a silent no-op: `error` stayed null and the user
+      // saw nothing at all. Render both channels instead.
+      const mapped = userFacingApiError(err, FALLBACK_ERROR);
+      const { fieldErrors: placed, unplaced } = mapServerFields(mapped.fields);
+      setFieldErrors(placed);
+      // Anything that could not be placed on a control goes in the banner, so a
+      // validation failure is never invisible; when there is nothing at all to
+      // show, say the send failed rather than nothing.
+      const banner =
+        mapped.banner?.trim() ||
+        unplaced.join(" ") ||
+        (Object.keys(placed).length === 0 ? FALLBACK_ERROR : "");
+      setError(banner || null);
     }
   };
 
@@ -197,15 +275,19 @@ export default function ContactModal({ onClose }: ContactModalProps) {
               label="First name"
               autoComplete="given-name"
               required
+              maxLength={MAX_LENGTH.firstName}
               value={form.firstName}
               onChange={onChange("firstName")}
+              error={fieldErrors.firstName}
             />
             <TextField
               id="contact-last-name"
               label="Last name"
               autoComplete="family-name"
+              maxLength={MAX_LENGTH.lastName}
               value={form.lastName}
               onChange={onChange("lastName")}
+              error={fieldErrors.lastName}
             />
             <div className="sm:col-span-2">
               <TextField
@@ -214,8 +296,10 @@ export default function ContactModal({ onClose }: ContactModalProps) {
                 label="Email address"
                 autoComplete="email"
                 required
+                maxLength={MAX_LENGTH.email}
                 value={form.email}
                 onChange={onChange("email")}
+                error={fieldErrors.email}
               />
             </div>
             <div className="sm:col-span-2">
@@ -226,8 +310,10 @@ export default function ContactModal({ onClose }: ContactModalProps) {
                 required
                 rows={5}
                 resizable
+                maxLength={MAX_LENGTH.message}
                 value={form.message}
                 onChange={onChange("message")}
+                error={fieldErrors.message}
               />
             </div>
           </div>

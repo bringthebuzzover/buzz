@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
+from app import errors
+from app.exceptions import BuzzAPIException
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.contact import ContactAccepted, ContactRequest
 from app.security.rate_limit import rate_limited
@@ -30,6 +32,8 @@ router = APIRouter(tags=["contact"])
 
 # Two buckets, not one: the minute limit stops a burst (a refresh storm or a
 # naive script), and the hourly limit stops a slow drip that would sit under it.
+# Distinct names on purpose — a shared bucket name would collapse them into one
+# counter and the second limit would never bind.
 _CONTACT_LIMITS = [
     Depends(rate_limited("contact_minute", limit=5, window=60)),
     Depends(rate_limited("contact_hour", limit=20, window=3600)),
@@ -49,9 +53,12 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     leave alone, and an operator chasing false positives gets nothing useful
     from a louder failure. The rejection is logged with no message body.
 
-    The ack to the sender is best-effort. If it fails, the ops notice still
-    stands and the person simply gets no copy — a normal, acceptable outcome,
-    so it must not fail the request.
+    The two sends are **not** symmetric. If the ops notice fails, nothing
+    reached the team, so the request fails with a 502 the visitor can act on
+    and the ack is *not* sent — a "we got your message" copy for a message no
+    one at BUZZ ever saw is worse than an honest error. If the notice landed
+    and only the sender's copy failed, that is a normal, acceptable outcome
+    (the team can still reply), so it must not fail the request.
     """
 
     if payload.website.strip():
@@ -60,20 +67,30 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
 
     submitted_at = datetime.now(timezone.utc)
     contact_name = " ".join(part for part in (payload.first_name, payload.last_name) if part)
-    # The message is part of the key: the same person sending different text is
-    # a different message, while a double-submit cannot produce two sends.
+    # The timestamp is part of the key: the same person sending different text
+    # is a different message, while a double-submit cannot produce two sends.
     notice_key = email.build_idempotency_key(
         email.KIND_CONTACT, payload.email, submitted_at.isoformat()
     )
 
-    await email.send_contact_notice(
+    notice_sent = await email.send_contact_notice(
         contact_name=contact_name,
         sender_email=payload.email,
         message=payload.message,
         submitted_at=submitted_at,
         idempotency_key=notice_key,
     )
-    await email.send_contact_ack(
+    if not notice_sent:
+        # No ack: the team never saw this, so claiming we did would be a lie the
+        # visitor acts on. They still have their text on screen and can retry.
+        logger.error("contact_notice_failed")
+        raise BuzzAPIException(
+            errors.EMAIL_SEND_FAILED,
+            "We couldn't send that. Please try again.",
+            status_code=502,
+        )
+
+    ack_sent = await email.send_contact_ack(
         to_email=payload.email,
         contact_name=payload.first_name,
         message=payload.message,
@@ -81,5 +98,8 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
             email.KIND_CONTACT_ACK, payload.email, submitted_at.isoformat()
         ),
     )
+    if not ack_sent:
+        # Best-effort by design (see the docstring): the notice stands.
+        logger.warning("contact_ack_failed")
 
     return api_response(data=ContactAccepted())

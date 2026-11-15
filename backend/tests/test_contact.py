@@ -9,8 +9,14 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
+from pydantic import ValidationError
 
+from app.config import settings
+from app.schemas.contact import ContactRequest
+from app.security import rate_limit
 from app.services import email
+
+_VALID = {"firstName": "A", "email": "a@b.co", "message": "hi"}
 
 
 @pytest.fixture
@@ -74,6 +80,27 @@ async def test_contact_honeypot_returns_success_and_sends_nothing(
     assert sent == []
 
 
+async def test_contact_honeypot_never_dispatches(app_client: AsyncClient, monkeypatch) -> None:
+    """Regression: the route must return before any send is attempted.
+
+    ``sent`` would hide this — it patches ``_dispatch`` and records calls, so an
+    accidental send would still be visible, but a *failure* to send would not be
+    distinguishable from a suppressed one. Track the call itself.
+    """
+
+    async def _fail(*_args, **_kwargs):
+        raise AssertionError("_dispatch must not be called for a honeypot hit")
+
+    monkeypatch.setattr(email, "_dispatch", _fail)
+    monkeypatch.setattr(email.settings, "ENVIRONMENT", "production")
+
+    resp = await app_client.post(
+        "/api/contact",
+        json={**_VALID, "website": "http://spam.example"},
+    )
+    assert resp.status_code == 200
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -87,6 +114,153 @@ async def test_contact_rejects_invalid_input(app_client: AsyncClient, sent, payl
     resp = await app_client.post("/api/contact", json=payload)
     assert resp.status_code == 422
     assert sent == []
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        # CRLF / control characters: the header-injection surface.
+        "a@b.co\r\nBcc: evil@x.com",
+        "a@b.co\nBcc: evil@x.com",
+        "a@b.co\x00",
+        "a@b.co\x7f",
+        # Comma and semicolon: silently add recipients.
+        "a@b.co,other@x.com",
+        "a@b.co;other@x.com",
+        # Angle brackets and quoted strings re-interpret the mailbox.
+        "<a@b.co>",
+        "Name <a@b.co>",
+        '"a@b.co"',
+        # Whitespace anywhere splits the header token.
+        "a b@c.co",
+        "a@b .co",
+        "a @b.co",
+        "a@ b.co",
+        # Structure.
+        "a@b@c.co",
+        "@b.co",
+        "a@.co",
+        "a@b..co",
+        "a@-b.co",
+        "a@b.c",
+        ".a@b.co",
+        "a.@b.co",
+        "a..b@c.co",
+        "a@b.co.",
+    ],
+)
+def test_contact_email_rejects_header_unsafe_shapes(address: str) -> None:
+    with pytest.raises(ValidationError):
+        ContactRequest(first_name="A", email=address, message="hi")
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        # Surrounding whitespace (including a bare CR or LF) is trimmed away
+        # before the check, so nothing control-ish survives into the header.
+        " a@b.co",
+        "a@b.co ",
+        "a@b.co\r",
+        "a@b.co\n",
+        "\ta@b.co\t",
+    ],
+)
+def test_contact_email_trims_surrounding_whitespace_to_a_safe_value(address: str) -> None:
+    parsed = ContactRequest(first_name="A", email=address, message="hi")
+    assert parsed.email == "a@b.co"
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "a@b.co",
+        "jordan.ellis@example.edu",
+        "first+tag@sub.example.co.uk",
+        "  Jordan@Example.EDU  ",
+        "o'brien@example.ie",
+        "a_b-c@my-school.edu",
+    ],
+)
+def test_contact_email_accepts_ordinary_addresses(address: str) -> None:
+    parsed = ContactRequest(first_name="A", email=address, message="hi")
+    assert parsed.email == address.strip().lower()
+
+
+def test_contact_email_rejects_over_length() -> None:
+    local = "a" * 60
+    domain = ".".join(["b" * 60] * 5) + ".co"
+    assert len(f"{local}@{domain}") > 320
+    with pytest.raises(ValidationError):
+        ContactRequest(first_name="A", email=f"{local}@{domain}", message="hi")
+
+
+async def test_contact_names_cannot_carry_a_control_char_into_the_subject(
+    app_client: AsyncClient, sent
+) -> None:
+    """The name is interpolated into the notice **subject**, a header value."""
+
+    resp = await app_client.post(
+        "/api/contact",
+        json={
+            "firstName": "Eve\r\nBcc: evil@x.com",
+            "lastName": "Smith\r",
+            "email": "eve@example.edu",
+            "message": "hello",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+
+    notice = sent[0]
+    assert "\r" not in notice["subject"]
+    assert "\n" not in notice["subject"]
+    # The injected header never appears as its own line in the body either.
+    assert "\r" not in notice["body"]
+
+
+async def test_contact_message_newlines_do_not_reach_a_header(
+    app_client: AsyncClient, sent
+) -> None:
+    """The message is body-only; this pins that it stays that way."""
+
+    resp = await app_client.post(
+        "/api/contact",
+        json={**_VALID, "message": "line one\r\nline two\nline three"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    notice, ack = sent
+    for msg in (notice, ack):
+        assert "\r" not in msg["subject"]
+        assert "\n" not in msg["subject"]
+        assert "\r" not in msg["to"]
+        assert "\r" not in str(msg.get("reply_to", ""))
+    # The text survives intact in both bodies — it is content, not a header.
+    assert "line one\r\nline two" in notice["body"]
+    assert "line one\r\nline two" in ack["body"]
+
+
+async def test_contact_notice_failure_returns_502_and_skips_the_ack(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """If the team never saw it, the sender must not be told we did."""
+
+    calls: list[str] = []
+
+    async def _notice_fails(to_email, subject, body, **kwargs):
+        calls.append(to_email)
+        return False
+
+    monkeypatch.setattr(email, "_dispatch", _notice_fails)
+
+    resp = await app_client.post("/api/contact", json=_VALID)
+
+    assert resp.status_code == 502
+    body = resp.json()
+    assert body["error"]["code"] == "EMAIL_SEND_FAILED"
+    assert "try again" in body["error"]["message"].lower()
+    # Exactly one attempt: the ops notice. No ack for a message nobody got.
+    assert calls == [email.CONTACT_EMAIL]
 
 
 async def test_contact_ack_failure_does_not_fail_the_request(
@@ -104,9 +278,43 @@ async def test_contact_ack_failure_does_not_fail_the_request(
 
     monkeypatch.setattr(email, "_dispatch", _flaky)
 
-    resp = await app_client.post(
-        "/api/contact",
-        json={"firstName": "A", "email": "a@b.co", "message": "hi"},
-    )
+    resp = await app_client.post("/api/contact", json=_VALID)
     assert resp.status_code == 200
     assert len(sent) == 1
+
+
+# --- Rate limiting -----------------------------------------------------------
+
+
+async def test_contact_minute_bucket_blocks_a_burst(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    statuses = [(await app_client.post("/api/contact", json=_VALID)).status_code for _ in range(6)]
+
+    assert statuses[:5] == [200] * 5
+    assert statuses[5] == 429
+
+
+async def test_contact_counts_against_two_distinct_buckets(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """Both limits must be attached and keyed separately, or one never binds."""
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    assert (await app_client.post("/api/contact", json=_VALID)).status_code == 200
+
+    keys = sorted(rate_limit._buckets)
+    assert len(keys) == 2, keys
+    minute_key = next(k for k in keys if k.startswith("contact_minute:ip:"))
+    hour_key = next(k for k in keys if k.startswith("contact_hour:ip:"))
+
+    # Minute budget is untouched, but the hourly one is one short of its cap.
+    start, _ = rate_limit._buckets[hour_key]
+    rate_limit._buckets[hour_key] = (start, 20)
+    assert (await app_client.post("/api/contact", json=_VALID)).status_code == 429
+    # The 429 came from the hourly bucket, not the minute one.
+    assert rate_limit._buckets[minute_key][1] == 2
