@@ -101,7 +101,6 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     ack_sent = await email.send_contact_ack(
         to_email=payload.email,
         contact_name=payload.first_name,
-        message=payload.message,
         idempotency_key=email.build_idempotency_key(email.KIND_CONTACT_ACK, submission_hash),
     )
     if not ack_sent:

@@ -58,8 +58,10 @@ async def test_contact_sends_ops_notice_with_reply_to(app_client: AsyncClient, s
     assert "We'd love to run a drop in October." in notice["body"]
 
     assert ack["to"] == "jordan@example.edu"
-    # The ack carries their words back so they have a record of what they sent.
-    assert "We'd love to run a drop in October." in ack["body"]
+    # A fixed template only. Echoing the text would make this public endpoint a
+    # relay that mails attacker-written content to an unverified address.
+    assert "We'd love to run a drop in October." not in ack["body"]
+    assert "received your message" in ack["body"].lower()
 
 
 async def test_contact_honeypot_returns_success_and_sends_nothing(
@@ -235,9 +237,10 @@ async def test_contact_message_newlines_do_not_reach_a_header(
         assert "\n" not in msg["subject"]
         assert "\r" not in msg["to"]
         assert "\r" not in str(msg.get("reply_to", ""))
-    # The text survives intact in both bodies — it is content, not a header.
+    # The text survives intact in the ops notice — it is content, not a header —
+    # and never appears in the ack, which carries no submitter text at all.
     assert "line one\r\nline two" in notice["body"]
-    assert "line one\r\nline two" in ack["body"]
+    assert "line one" not in ack["body"]
 
 
 async def test_contact_notice_failure_returns_502_and_skips_the_ack(
@@ -371,3 +374,26 @@ async def test_contact_same_submission_reuses_one_idempotency_key(
     keys = [m["idempotency_key"] for m in sent]
     assert keys[0] == keys[2], keys
     assert keys[1] == keys[3], keys
+
+
+async def test_contact_ack_never_echoes_submitter_text(app_client: AsyncClient, sent) -> None:
+    """The ack is a fixed template.
+
+    The endpoint is public and the address is unverified, so echoing the message
+    would let anyone relay arbitrary text to anyone from the hello@ address that
+    also carries verification mail. Nothing the submitter typed may appear.
+    """
+    marker = "UNIQUE-MARKER-do-not-echo-9f3a"
+    resp = await app_client.post(
+        "/api/contact",
+        json={"firstName": "Jordan", "email": "jordan@example.edu", "message": marker},
+    )
+    assert resp.status_code == 200
+
+    notice, ack = sent
+    # The team must still receive the actual message.
+    assert marker in notice["body"]
+    # The sender gets assurance and nothing else.
+    assert marker not in ack["body"]
+    assert marker not in ack["subject"]
+    assert "received your message" in ack["body"].lower()

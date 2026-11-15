@@ -1048,25 +1048,29 @@ async def send_contact_ack(
     *,
     to_email: str,
     contact_name: str,
-    message: str,
     idempotency_key: str | None = None,
 ) -> bool:
-    """Send the sender a copy of what they wrote.
+    """Confirm receipt to the sender. **Fixed template — never echoes their text.**
 
-    Standard confirmation behaviour: they get proof it landed and a record of
-    the text. Reply-To stays the shared inbox, so replying reaches Buzz rather
-    than looping back to themselves.
+    This endpoint is public and unauthenticated, so the address is whatever the
+    submitter typed; nobody has proven they own it. Echoing the message body back
+    would turn the form into a relay that mails arbitrary attacker-written text
+    to arbitrary addresses from ``hello@`` — the same address that carries
+    verification and invite mail, so the damage would land on signup
+    deliverability too.
+
+    A fixed acknowledgement still gives the visitor the assurance that matters
+    ("it landed, we'll reply") without carrying a single character they wrote.
+    Reply-To stays the shared inbox, so replying reaches Buzz.
     """
     subject = "We got your message — Buzz"
     body = "\n".join(
         [
             f"Hi {contact_name},",
             "",
-            "Thanks for reaching out. Here is a copy of what you sent us:",
+            "Thanks for reaching out. We've received your message and will reply to this address.",
             "",
-            message,
-            "",
-            f"We'll reply to this address. You can also reach us at {CONTACT_EMAIL}.",
+            f"You can also reach us any time at {CONTACT_EMAIL}.",
             "",
             "— Buzz",
         ]

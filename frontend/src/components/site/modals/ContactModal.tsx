@@ -205,9 +205,9 @@ export default function ContactModal({ onClose }: ContactModalProps) {
             <h2 className={cn(TEXT.h2, "text-primary")}>Thanks — we got it.</h2>
           </div>
           <p className={cn(TEXT.bodyLong, "max-w-[46ch] text-muted")}>
-            A copy of your message is on its way to{" "}
-            <span className="text-primary">{form.email}</span>. Reply to that
-            email if you want to add anything.
+            We&apos;ve sent a confirmation to{" "}
+            <span className="text-primary">{form.email}</span> and will reply
+            there.
           </p>
           <Button type="button" onClick={onClose} className="mt-2">
             Done
