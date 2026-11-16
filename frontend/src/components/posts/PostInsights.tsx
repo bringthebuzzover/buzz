@@ -4,7 +4,7 @@
  */
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
-import { insightMetricsFor, type InsightSource } from "./postInsights";
+import { insightMetricsFor, type InsightSource } from "./insightMetrics";
 
 type Props = {
   post: InsightSource;

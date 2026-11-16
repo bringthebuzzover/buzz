@@ -5,7 +5,7 @@
 import { renderToString } from "react-dom/server";
 import ApiDropOrgTable from "./ApiDropOrgTable";
 import type { BrandDropApplicant, BrandDropPost } from "../../api/hooks/useBrandHooks";
-import { INSIGHT_MISSING } from "../posts/postInsights";
+import { INSIGHT_MISSING } from "../posts/insightMetrics";
 
 const erased: BrandDropApplicant = {
   id: "app-1",

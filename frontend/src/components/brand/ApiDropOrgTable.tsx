@@ -11,7 +11,7 @@ import { orgCategoryLabel } from "../../types/orgCategory";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
 import { Select } from "../forms/controls";
 import PostInsights from "../posts/PostInsights";
-import { formatInsightCount } from "../posts/postInsights";
+import { formatInsightCount } from "../posts/insightMetrics";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { RemoteImage } from "../ui/RemoteImage";
