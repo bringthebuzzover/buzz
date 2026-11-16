@@ -126,6 +126,7 @@ export default function AdminOrgDetailPage() {
   const mismatchOpen = Boolean(
     data?.igBindMismatchedAt && !data.igBindMismatchAckedAt,
   );
+  const reconnectMismatch = Boolean(mismatchOpen && data?.instagramReconnectRequired);
   const liveRenamedSinceMismatch = Boolean(
     mismatchOpen &&
       graphAtMismatch &&
@@ -475,13 +476,31 @@ export default function AdminOrgDetailPage() {
             <Panel title="Instagram bind mismatch">
               <div className="space-y-3 px-4 py-4">
                 <p className="text-sm font-medium text-muted">
-                  This organization connected{" "}
-                  {mismatchConnected ?? "a different @"} after applying as{" "}
-                  {claimedHandle ?? "another handle"}
-                  {liveRenamedSinceMismatch
-                    ? `. Live handle is now ${connectedHandle}.`
-                    : "."}{" "}
-                  Portal access is already open. Ack once you have looked.
+                  {reconnectMismatch ? (
+                    <>
+                      While finishing an approved account switch, this
+                      organization tried to connect{" "}
+                      {mismatchConnected ?? "a different @"} instead of{" "}
+                      {claimedHandle ?? "the approved handle"}
+                      {liveRenamedSinceMismatch
+                        ? `. Live handle is now ${connectedHandle}.`
+                        : "."}{" "}
+                      The bind was refused — no credentials were saved and
+                      portal access stays closed until they connect the approved
+                      handle. Resend the connect email if they need another
+                      link. Ack once you have looked.
+                    </>
+                  ) : (
+                    <>
+                      This organization connected{" "}
+                      {mismatchConnected ?? "a different @"} after applying as{" "}
+                      {claimedHandle ?? "another handle"}
+                      {liveRenamedSinceMismatch
+                        ? `. Live handle is now ${connectedHandle}.`
+                        : "."}{" "}
+                      Portal access is already open. Ack once you have looked.
+                    </>
+                  )}
                 </p>
                 <ActionButton
                   testId="ack-ig-bind-mismatch"

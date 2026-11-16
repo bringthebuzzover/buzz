@@ -12,7 +12,7 @@
 import { useState } from "react";
 import { ArrowUpRight, Mail } from "lucide-react";
 import { siteIdentity } from "../../../data/siteIdentity";
-import { Button, ErrorBanner, TextArea, TextField } from "../../forms/controls";
+import { Button, ErrorBanner, Select, TextArea, TextField } from "../../forms/controls";
 import { Modal } from "../../ui/Modal";
 import { SURFACE, TEXT } from "../../../theme/tokens";
 import { focusRingClass } from "../../../theme/controls";
@@ -63,7 +63,10 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
-const EMPTY = { firstName: "", lastName: "", email: "", message: "" };
+type ContactType = "" | "organization" | "brand";
+type ContactForm = { name: string; type: ContactType; email: string; message: string };
+
+const EMPTY: ContactForm = { name: "", type: "", email: "", message: "" };
 
 type ContactField = keyof typeof EMPTY;
 
@@ -73,8 +76,8 @@ type ContactField = keyof typeof EMPTY;
  * Without this the first hint of a problem is a 422 after a round-trip.
  */
 const MAX_LENGTH: Record<ContactField, number> = {
-  firstName: 100,
-  lastName: 100,
+  name: 100,
+  type: 20,
   email: 320,
   message: 2000,
 };
@@ -84,10 +87,8 @@ const MAX_LENGTH: Record<ContactField, number> = {
  * these four keys can land on a control — anything else has no home here.
  */
 const SERVER_FIELD_TO_CONTROL: Record<string, ContactField> = {
-  first_name: "firstName",
-  firstName: "firstName",
-  last_name: "lastName",
-  lastName: "lastName",
+  name: "name",
+  type: "type",
   email: "email",
   message: "message",
 };
@@ -131,7 +132,7 @@ const FALLBACK_ERROR = "We couldn't send that. Please try again.";
 export default function ContactModal({ onClose }: ContactModalProps) {
   const { social, contact, brand } = siteIdentity;
   const submit = useSubmitContact();
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState<ContactForm>(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ContactField, string>>>({});
   // Honeypot lives outside `form` so it is never echoed into state a user sees.
@@ -163,7 +164,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
 
   const onChange =
     (field: keyof typeof EMPTY) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [field]: event.target.value }));
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -172,8 +173,13 @@ export default function ContactModal({ onClose }: ContactModalProps) {
     // leaving them up while the request runs claims the new input is still bad.
     setError(null);
     setFieldErrors({});
+    const type = form.type;
+    if (type !== "organization" && type !== "brand") {
+      setFieldErrors({ type: "Choose organization or brand." });
+      return;
+    }
     try {
-      await submit.mutateAsync({ ...form, website });
+      await submit.mutateAsync({ ...form, type, website });
       // Clear the message body only; names stay in case they write again.
       setForm((prev) => ({ ...prev, message: "" }));
     } catch (err) {
@@ -270,31 +276,38 @@ export default function ContactModal({ onClose }: ContactModalProps) {
         >
           <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
             <TextField
-              id="contact-first-name"
-              label="First name"
-              autoComplete="given-name"
+              id="contact-name"
+              label="Name"
+              placeholder="First Last"
+              autoComplete="name"
               required
-              maxLength={MAX_LENGTH.firstName}
-              value={form.firstName}
+              maxLength={MAX_LENGTH.name}
+              value={form.name}
               disabled={submit.isPending}
-              onChange={onChange("firstName")}
-              error={fieldErrors.firstName}
+              onChange={onChange("name")}
+              error={fieldErrors.name}
             />
-            <TextField
-              id="contact-last-name"
-              label="Last name"
-              autoComplete="family-name"
-              maxLength={MAX_LENGTH.lastName}
-              value={form.lastName}
+            <Select
+              id="contact-type"
+              label="Type"
+              required
+              value={form.type}
               disabled={submit.isPending}
-              onChange={onChange("lastName")}
-              error={fieldErrors.lastName}
-            />
+              onChange={onChange("type")}
+              error={fieldErrors.type}
+            >
+              <option value="" disabled>
+                Select type
+              </option>
+              <option value="organization">Organization</option>
+              <option value="brand">Brand</option>
+            </Select>
             <div className="sm:col-span-2">
               <TextField
                 id="contact-email"
                 type="email"
                 label="Email address"
+                placeholder="you@company.com"
                 autoComplete="email"
                 required
                 maxLength={MAX_LENGTH.email}
@@ -308,7 +321,8 @@ export default function ContactModal({ onClose }: ContactModalProps) {
               <TextArea
                 id="contact-message"
                 label="Message"
-                                required
+                placeholder="Tell us a little about what you have in mind..."
+                required
                 rows={5}
                 resizable
                 maxLength={MAX_LENGTH.message}

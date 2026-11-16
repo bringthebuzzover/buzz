@@ -247,6 +247,38 @@ describe("AdminOrgDetailPage erase confirm", () => {
     );
   });
 
+  it("shows reconnect recovery copy when a refused bind mismatch is open", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        status: "active",
+        instagramReconnectRequired: true,
+        instagramHandle: null,
+        instagramUsername: null,
+        instagramTokenExpiresAt: null,
+        claimedInstagramUsername: "newcampusig",
+        igBindGraphUsername: "thirdclub",
+        igBindMismatchedAt: Date.now(),
+        igBindMismatchAckedAt: null,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(document.body.textContent).toContain("tried to connect @thirdclub");
+    expect(document.body.textContent).toContain("instead of @newcampusig");
+    expect(document.body.textContent).toContain("bind was refused");
+    expect(document.body.textContent).toContain("portal access stays closed");
+    expect(document.body.textContent).not.toContain("This organization connected");
+    expect(document.body.textContent).not.toContain(
+      "Portal access is already open",
+    );
+    expect(
+      container.querySelector('[data-testid="resend-connect"]'),
+    ).not.toBeNull();
+  });
+
   it("keeps the Connect snapshot in the mismatch panel after a later Graph rename", () => {
     mockUseAdminOrg.mockReturnValue({
       data: {

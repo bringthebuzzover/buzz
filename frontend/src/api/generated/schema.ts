@@ -4460,15 +4460,15 @@ export interface components {
         ContactRequest: {
             /** Email */
             email: string;
-            /** Firstname */
-            firstName: string;
-            /**
-             * Lastname
-             * @default
-             */
-            lastName: string;
             /** Message */
             message: string;
+            /** Name */
+            name: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "organization" | "brand";
             /**
              * Website
              * @default
