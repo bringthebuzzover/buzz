@@ -202,8 +202,10 @@
 
     .animate-buzz-rise,
     .animate-buzz-fade,
+    .animate-buzz-fade-exit,
     .animate-buzz-float,
     .animate-buzz-modal,
+    .animate-buzz-modal-exit,
     .animate-marquee,
     .animate-marquee-reverse,
     .bee-flap {

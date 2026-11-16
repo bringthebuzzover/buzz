@@ -1,7 +1,6 @@
 import {
-  createContext,
   useCallback,
-  useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -13,12 +12,6 @@ import { focusRingClass } from "../../theme/controls";
 import { MOTION } from "../../theme/motion";
 import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
-
-export const ModalContext = createContext<((cb?: () => void) => void) | null>(null);
-
-export function useModalClose() {
-  return useContext(ModalContext);
-}
 
 /**
  * Dialog primitive: the pen Modal (560 wide, ink-pop, padding 32, radius-board,
@@ -56,9 +49,21 @@ export function Modal({
 }) {
   const [open, setOpen] = useState(true);
   const closingRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   const [returnFocus] = useState(() =>
     typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null),
   );
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const requestClose = useCallback(
     (customAction?: () => void) => {
@@ -69,11 +74,11 @@ export function Modal({
       const execute = () => {
         if (customAction) {
           customAction();
-          if (customAction !== onClose) {
-            onClose();
+          if (customAction !== onCloseRef.current) {
+            onCloseRef.current();
           }
         } else {
-          onClose();
+          onCloseRef.current();
         }
       };
 
@@ -87,10 +92,10 @@ export function Modal({
       if (isTest || prefersReducedMotion) {
         execute();
       } else {
-        window.setTimeout(execute, 150);
+        timerRef.current = window.setTimeout(execute, 150);
       }
     },
-    [onClose],
+    [],
   );
 
   return (
@@ -159,9 +164,7 @@ export function Modal({
           {wide && description ? (
             <Dialog.Description className="sr-only">{description}</Dialog.Description>
           ) : null}
-          <ModalContext.Provider value={requestClose}>
-            {children}
-          </ModalContext.Provider>
+          {children}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

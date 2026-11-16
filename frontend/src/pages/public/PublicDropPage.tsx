@@ -242,12 +242,12 @@ function PublicDropHero({
       />
       {/* Top subtle vignette for chip & spots readability on light backgrounds */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/70 via-black/25 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 via-black/40 to-transparent"
         aria-hidden
       />
       {/* Anchored bottom vignette for guaranteed AAA text contrast on any brand packaging */}
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/65 via-35% to-transparent to-75%"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 via-45% to-transparent to-75%"
         aria-hidden
       />
       <div className="absolute inset-x-0 top-0 flex items-center gap-3 p-8">
