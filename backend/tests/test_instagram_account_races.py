@@ -21,10 +21,12 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app import errors
 from app.exceptions import BuzzAPIException
+from app.jobs import metric_sync
 from app.jobs.metric_sync import _store_follower_count
 from app.models.org_connect_token import OrgConnectToken
 from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
+from app.models.social_post import SocialPost
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.session import lock_user
@@ -36,14 +38,22 @@ from app.timeutils import utcnow
 from .conftest import FakeInstagramClient, make_org, make_user, persist
 
 
-@pytest_asyncio.fixture
-async def account_db():
-    raw = os.environ.get("BUZZ_VERIFIED_TEST_DATABASE_URL")
+def _verified_database_url(raw):
     if not raw:
         pytest.skip("Requires caller-verified BUZZ_VERIFIED_TEST_DATABASE_URL; no schema DDL")
     url = make_url(raw)
-    if url.drivername != "postgresql+asyncpg" or url.host not in {"localhost", "127.0.0.1", "::1"}:
-        pytest.fail("Account race tests require an explicitly verified local asyncpg database")
+    if (
+        url.drivername != "postgresql+asyncpg"
+        or url.host not in {"localhost", "127.0.0.1", "::1"}
+        or not (url.database or "").startswith(("buzz_test_", "buzz_gate_"))
+    ):
+        pytest.fail("Account races require a verified local asyncpg buzz_test_* or buzz_gate_* DB")
+    return url
+
+
+@pytest_asyncio.fixture
+async def account_db():
+    url = _verified_database_url(os.environ.get("BUZZ_VERIFIED_TEST_DATABASE_URL"))
     engine = create_async_engine(
         url,
         connect_args={"server_settings": {"lock_timeout": "5000", "statement_timeout": "10000"}},
@@ -69,6 +79,13 @@ async def account_db():
         async with factory() as db:
             for model in (OrgConnectToken, OrgIgChangeRequest, EmailVerificationToken):
                 await db.execute(delete(model).where(model.user_id == uid))
+            await db.execute(
+                delete(SocialPost).where(
+                    SocialPost.org_id.in_(
+                        select(Organization.id).where(Organization.user_id == uid)
+                    )
+                )
+            )
             await db.execute(delete(Organization).where(Organization.user_id == uid))
             await db.execute(delete(User).where(User.id == uid))
             await db.commit()
@@ -589,3 +606,132 @@ async def test_login_wins_before_completed_switch(account_db, monkeypatch):
         assert decrypt_token(user.instagram_access_token) == "new-account-token"
         assert user.token_version == 3
         assert (await db.get(OrgIgChangeRequest, ticket.id)).status == "approved"
+
+
+@pytest.mark.parametrize("erase_first", [False, True])
+async def test_full_metrics_sync_serializes_with_erasure(account_db, monkeypatch, erase_first):
+    """Cover the former post-lock -> follower user-lock inversion on real connections."""
+    from app.services.instagram import MediaRef
+
+    factory, uid, oid = account_db
+    post_id = uuid.uuid4()
+    async with factory() as db:
+        db.add(
+            SocialPost(
+                id=post_id,
+                org_id=oid,
+                platform="instagram",
+                external_id="existing",
+                url="https://example.test/post",
+                caption="before",
+                media_type="IMAGE",
+                media_product_type="FEED",
+                posted_at=utcnow(),
+                likes=1,
+                comments=1,
+            )
+        )
+        await db.commit()
+
+    paused, release, erase_attempted = asyncio.Event(), asyncio.Event(), asyncio.Event()
+
+    class PausedGraph(FakeInstagramClient):
+        async def fetch_profile(self, token):
+            if erase_first:
+                paused.set()
+                await asyncio.wait_for(release.wait(), 5)
+            return await super().fetch_profile(token)
+
+    ig = PausedGraph()
+    ig.media = [MediaRef(id="discovered", timestamp=utcnow().isoformat())]
+    async with factory() as sync_db, factory() as erase_db, factory() as observer:
+        erase_pid = await erase_db.scalar(text("SELECT pg_backend_pid()"))
+
+        async def sync_lock(db, user_id):
+            user = await lock_user(db, user_id)
+            if not erase_first and user_id == uid:
+                paused.set()
+                await asyncio.wait_for(release.wait(), 5)
+            return user
+
+        async def erase_lock(db, user_id):
+            erase_attempted.set()
+            return await lock_user(db, user_id)
+
+        monkeypatch.setattr(metric_sync, "lock_user", sync_lock)
+        monkeypatch.setattr(admin_erase, "lock_user", erase_lock)
+
+        # Exercise sync_metrics itself, including eligibility, discovery, media
+        # refresh and follower refresh; isolate eligibility from campaign setup.
+        async def eligible(db, now):
+            return [await db.get(Organization, oid)]
+
+        monkeypatch.setattr(metric_sync, "_eligible_orgs", eligible)
+
+        async def sync(db):
+            return await metric_sync.sync_metrics(db, ig)
+
+        async def erase(db):
+            return await admin_erase.erase_org_user(
+                db, uid, f"a{uid.hex[:16]}", background_tasks=BackgroundTasks()
+            )
+
+        tasks = []
+        try:
+            tasks.append(asyncio.create_task(_run(sync_db, sync)))
+            await asyncio.wait_for(paused.wait(), 5)
+            tasks.append(asyncio.create_task(_run(erase_db, erase)))
+            await asyncio.wait_for(erase_attempted.wait(), 5)
+            if erase_first:
+                # Erasure must finish while Graph is paused: sync must hold no
+                # post/account write locks across that external call.
+                await asyncio.wait_for(asyncio.shield(tasks[1]), 5)
+            else:
+                async with asyncio.timeout(4):
+                    while not await observer.scalar(
+                        text("SELECT cardinality(pg_blocking_pids(:pid)) > 0"), {"pid": erase_pid}
+                    ):
+                        await asyncio.sleep(0.01)
+            release.set()
+            stats, erased = await asyncio.wait_for(asyncio.gather(*tasks), 10)
+            assert erased["status"] == "erased"
+            assert stats["posts_refreshed"] == (0 if erase_first else 2)
+            assert stats["posts_discovered"] == (0 if erase_first else 1)
+            assert stats["followers_refreshed"] == (0 if erase_first else 1)
+        finally:
+            release.set()
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+    await _assert_erased(factory, uid)
+    async with factory() as db:
+        org = await db.get(Organization, oid)
+        assert org.follower_count is None
+        posts = list(await db.scalars(select(SocialPost).where(SocialPost.org_id == oid)))
+        assert len(posts) == (1 if erase_first else 2)
+        for post in posts:
+            assert post.metrics_frozen_at is not None
+            assert post.caption == post.url == ""
+            assert post.external_id.startswith("frozen-")
+        original = next(post for post in posts if post.id == post_id)
+        assert original.likes == (1 if erase_first else 10)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "postgresql+asyncpg://remote.example/buzz_test_races",
+        "postgresql+asyncpg://localhost/buzz",
+        "postgresql+asyncpg://localhost/postgres",
+        "postgresql://localhost/buzz_test_races",
+    ],
+)
+def test_account_race_database_refuses_unsafe_target(raw):
+    with pytest.raises(pytest.fail.Exception):
+        _verified_database_url(raw)
+
+
+def test_account_race_database_requires_opt_in():
+    with pytest.raises(pytest.skip.Exception):
+        _verified_database_url(None)
