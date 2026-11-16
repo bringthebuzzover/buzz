@@ -45,6 +45,9 @@ _IDEMPOTENCY_KEY_MAX = 256
 # different send suppresses mail. Kinds with no constant are sent with no key.
 KIND_VERIFICATION = "verification"
 KIND_BRAND_APPLIED = "brand-applied"
+# Public contact modal: ops notice (Reply reaches the sender) + sender copy.
+KIND_CONTACT = "contact"
+KIND_CONTACT_ACK = "contact-ack"
 KIND_BRAND_INVITE = "brand-invite"
 KIND_ORG_APPROVED = "org-approved"
 KIND_ORG_APPROVED_BOUND = "org-approved-bound"
@@ -993,6 +996,93 @@ async def send_admin_compose_email(
         body,
         html=html,
         cc=cc or None,
+        idempotency_key=idempotency_key,
+    )
+
+
+async def send_contact_notice(
+    *,
+    contact_name: str,
+    sender_email: str,
+    message: str,
+    idempotency_key: str | None = None,
+) -> bool:
+    """Notify ops of a contact-form message; **Reply reaches the sender.**
+
+    Mirrors ``send_brand_apply_notice``: the reply-to is the person who wrote
+    in, so hitting Reply in the hello@ inbox just works.
+    """
+    subject = f"Contact form: {contact_name}"
+    # No timestamp here on purpose. The body must be byte-identical for an
+    # identical retry, because the route derives the Idempotency-Key from the
+    # same content; a per-attempt value would make Resend return 409 and turn
+    # every retry into a permanent 502. The provider records the send time.
+    body = "\n".join(
+        [
+            f"Name: {contact_name}",
+            f"Email: {sender_email}",
+            "",
+            message,
+        ]
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "DEV EMAIL — Contact notice: to=%s from=%s name=%s",
+            CONTACT_EMAIL,
+            sender_email,
+            contact_name,
+        )
+        return True
+    return await _dispatch(
+        CONTACT_EMAIL,
+        subject,
+        body,
+        html=_message_html(subject=subject, body=body),
+        cc=_ops_cc(exclude=CONTACT_EMAIL) or None,
+        idempotency_key=idempotency_key,
+        reply_to=sender_email,
+    )
+
+
+async def send_contact_ack(
+    *,
+    to_email: str,
+    contact_name: str,
+    idempotency_key: str | None = None,
+) -> bool:
+    """Confirm receipt to the sender. **Fixed template — never echoes their text.**
+
+    This endpoint is public and unauthenticated, so the address is whatever the
+    submitter typed; nobody has proven they own it. Echoing the message body back
+    would turn the form into a relay that mails arbitrary attacker-written text
+    to arbitrary addresses from ``hello@`` — the same address that carries
+    verification and invite mail, so the damage would land on signup
+    deliverability too.
+
+    A fixed acknowledgement still gives the visitor the assurance that matters
+    ("it landed, we'll reply") without carrying a single character they wrote.
+    Reply-To stays the shared inbox, so replying reaches Buzz.
+    """
+    subject = "We got your message — Buzz"
+    body = "\n".join(
+        [
+            "Hi there,",
+            "",
+            "Thanks for reaching out. We've received your message and will reply to this address.",
+            "",
+            f"You can also reach us any time at {CONTACT_EMAIL}.",
+            "",
+            "— Buzz",
+        ]
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info("DEV EMAIL — Contact ack: to=%s name=%s", to_email, contact_name)
+        return True
+    return await _dispatch(
+        to_email,
+        subject,
+        body,
+        html=_message_html(subject=subject, body=body),
         idempotency_key=idempotency_key,
     )
 

@@ -24,6 +24,12 @@ export function Modal({
   description,
   /** Visually hide the title while keeping it for screen readers. */
   hideTitle = false,
+  /**
+   * Wide two-column layout (896px, glass, no inner padding) for the marketing
+   * dialogs. Off by default: most dialogs are the 560px form card, and changing
+   * that default would move every existing one.
+   */
+  wide = false,
   className,
   children,
 }: {
@@ -31,6 +37,7 @@ export function Modal({
   title: string;
   description?: ReactNode;
   hideTitle?: boolean;
+  wide?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -51,33 +58,58 @@ export function Modal({
             returnFocus?.focus();
           }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-buzzModal flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[560px] -translate-x-1/2 -translate-y-1/2 flex-col gap-6 overflow-y-auto focus:outline-none",
+            wide
+              ? "fixed left-1/2 top-1/2 z-buzzModal max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[896px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto focus:outline-none"
+              : "fixed left-1/2 top-1/2 z-buzzModal flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[560px] -translate-x-1/2 -translate-y-1/2 flex-col gap-6 overflow-y-auto focus:outline-none",
             MOTION.modal,
-            SURFACE.modal,
+            wide ? SURFACE.glassModal : SURFACE.modal,
             className,
           )}
         >
-          <div className="flex items-start gap-4">
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <Dialog.Title className={hideTitle ? "sr-only" : cn(TEXT.h3, "text-primary")}>
-                {title}
-              </Dialog.Title>
-              {description ? (
-                <Dialog.Description className="text-sm leading-relaxed text-quiet">
-                  {description}
-                </Dialog.Description>
-              ) : null}
+          {wide ? (
+            // The wide dialogs lay out their own header inside the grid, so the
+            // shared title row would double up. The title stays for screen
+            // readers, and the close control is absolute — without it the wide
+            // dialog had NO visible dismiss affordance, leaving Escape, a
+            // backdrop click, or a submitted form as the only ways out.
+            <>
+              <Dialog.Title className="sr-only">{title}</Dialog.Title>
+              <Dialog.Close
+                className={cn(
+                  "absolute right-4 top-4 z-[2] grid h-[33px] w-[33px] place-items-center rounded-buzzControl border border-line bg-surface-pop text-primary transition-colors hover:bg-buzz-paper08",
+                  focusRingClass,
+                )}
+                aria-label="Close"
+              >
+                <X size={18} aria-hidden />
+              </Dialog.Close>
+            </>
+          ) : (
+            <div className="flex items-start gap-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <Dialog.Title className={hideTitle ? "sr-only" : cn(TEXT.h3, "text-primary")}>
+                  {title}
+                </Dialog.Title>
+                {description ? (
+                  <Dialog.Description className="text-sm leading-relaxed text-quiet">
+                    {description}
+                  </Dialog.Description>
+                ) : null}
+              </div>
+              <Dialog.Close
+                className={cn(
+                  "-m-1 shrink-0 rounded-full p-1 text-quiet transition hover:bg-buzz-paper08 hover:text-primary",
+                  focusRingClass,
+                )}
+                aria-label="Close"
+              >
+                <X size={18} aria-hidden />
+              </Dialog.Close>
             </div>
-            <Dialog.Close
-              className={cn(
-                "-m-1 shrink-0 rounded-full p-1 text-quiet transition hover:bg-buzz-paper08 hover:text-primary",
-                focusRingClass,
-              )}
-              aria-label="Close"
-            >
-              <X size={18} aria-hidden />
-            </Dialog.Close>
-          </div>
+          )}
+          {wide && description ? (
+            <Dialog.Description className="sr-only">{description}</Dialog.Description>
+          ) : null}
           {children}
         </Dialog.Content>
       </Dialog.Portal>
