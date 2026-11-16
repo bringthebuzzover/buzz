@@ -73,7 +73,7 @@ Prefer direct tools and narrow reads; never print credentials or whole variable
 sets. Do not use a generic infrastructure agent to make unreviewed changes.
 A set/overwrite operation does not prove a variable was deleted; verify removal.
 
-Use the caller's authorized credential/vault and connected test-inbox workflow
-for staging access. Do not assume a vault is empty or that a connector exists.
-If access is unavailable, report the blocker; never request passwords in chat,
-harvest another inbox, or publish verification codes. Do not send mail.
+For staging access, consult `BUZZ-TEST-ACCOUNTS.md` for identities, routes, and
+fixtures, and follow `OPENBOT-FLEET-RULES.md` for credential and verification
+code handling. Always check Vault before sign-in and do not assume it is empty.
+If access is unavailable, report the blocker.
