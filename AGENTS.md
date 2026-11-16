@@ -78,7 +78,7 @@ Read the skill file when the trigger matches. Canonical BUZZ skill sources live 
 | Skill | When |
 | ----- | ---- |
 | [`buzz-coding-agent`](.agents/skills/buzz-coding-agent/SKILL.md) | BUZZ implementation/review brief, CLI handoff, branch/check/approval boundaries |
-| [`buzz-design-and-brand`](.agents/skills/buzz-design-and-brand/SKILL.md) | BUZZ visual work, pen-first design, staging match, logos, visual trims, verification guides |
+| [`buzz-design-and-brand`](.agents/skills/buzz-design-and-brand/SKILL.md) | BUZZ concept-first UI workflow, visual review, staging match, logos, visual trims, verification guides |
 | [`buzz-staging-operations`](.agents/skills/buzz-staging-operations/SKILL.md) | Staging/lab verification, gates/allowlists, test access, service read/write boundaries |
 | [`fix-gap-cluster`](.agents/skills/fix-gap-cluster/SKILL.md) | `run next cluster`, `run cluster <id>`, `swarm gaps` |
 | [`ship-change`](.agents/skills/ship-change/SKILL.md) | Feature / fix / chore that is not a gap cluster |
