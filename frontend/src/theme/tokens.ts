@@ -133,14 +133,14 @@ export const SURFACE = {
   /**
    * Translucent modal shell for the wide marketing dialogs (contact).
    *
-   * Ink-pop at 70% over the blurred page behind it, per the approved contact
+   * Ink-pop at 77% over the blurred page behind it, per the approved contact
    * design. Kept as a token rather than inline utilities so every glass surface
    * matches and the alpha lives in one place. `backdrop-saturate` keeps the
    * yellow from going grey through the blur. No padding: the wide dialogs own
    * their own grid.
    */
   glassModal:
-    "rounded-buzzBoard border border-line bg-[rgba(22,22,22,0.7)] shadow-buzzModal backdrop-blur-[28px] backdrop-saturate-[0.8]",
+    "rounded-buzzBoard border border-line bg-[rgba(22,22,22,0.77)] shadow-buzzModal backdrop-blur-[28px] backdrop-saturate-[0.8]",
 } as const;
 
 /**

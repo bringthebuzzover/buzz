@@ -9,8 +9,8 @@ import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 
 export type ContactSubmission = {
-  firstName: string;
-  lastName: string;
+  name: string;
+  type: "organization" | "brand";
   email: string;
   message: string;
   /** Honeypot. Real users never fill it; see `ContactModal`. */

@@ -6,6 +6,8 @@ there is deliberately no table and no migration behind this.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
@@ -35,13 +37,13 @@ class ContactRequest(CamelModel):
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
-    first_name: str
-    last_name: str = ""
+    name: str
+    type: Literal["organization", "brand"]
     email: str
     message: str
     website: str = ""
 
-    @field_validator("first_name", "last_name")
+    @field_validator("name")
     @classmethod
     def _clean_name(cls, value: str) -> str:
         # ``contact_name`` is interpolated into the ops-notice **subject**, which
@@ -51,11 +53,11 @@ class ContactRequest(CamelModel):
         cleaned = "".join(ch for ch in value if ord(ch) >= 0x20 and ord(ch) != 0x7F)
         return cleaned.strip()[:_NAME_LIMIT]
 
-    @field_validator("first_name")
+    @field_validator("name")
     @classmethod
-    def _require_first_name(cls, value: str) -> str:
+    def _require_name(cls, value: str) -> str:
         if not value:
-            raise ValueError("First name is required")
+            raise ValueError("Name is required")
         return value
 
     @field_validator("email")

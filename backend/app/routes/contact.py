@@ -75,7 +75,7 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         logger.warning("contact_form_honeypot_rejected")
         return api_response(data=ContactAccepted())
 
-    contact_name = " ".join(part for part in (payload.first_name, payload.last_name) if part)
+    contact_name = payload.name
     # The key must hash EXACTLY the content that goes into the email body, and
     # the body must therefore carry no per-attempt value. Resend treats "same
     # key, different payload" as a failure (409 invalid_idempotent_request), so
@@ -88,7 +88,7 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     # unsafe, which previously yielded ``None`` and disabled dedup entirely. The
     # hash keeps the address out of a provider-visible header.
     submission_hash = hashlib.sha256(
-        "\n".join((payload.email, payload.first_name, payload.last_name, payload.message)).encode()
+        "\n".join((payload.email, payload.name, payload.type, payload.message)).encode()
     ).hexdigest()
     notice_key = email.build_idempotency_key(email.KIND_CONTACT, submission_hash)
 
@@ -132,6 +132,7 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         try:
             notice_sent = await email.send_contact_notice(
                 contact_name=contact_name,
+                contact_type=payload.type,
                 sender_email=payload.email,
                 message=payload.message,
                 idempotency_key=notice_key,
@@ -153,7 +154,7 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         try:
             ack_sent = await email.send_contact_ack(
                 to_email=payload.email,
-                contact_name=payload.first_name,
+                contact_name=contact_name,
                 idempotency_key=email.build_idempotency_key(
                     email.KIND_CONTACT_ACK, submission_hash
                 ),

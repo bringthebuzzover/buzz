@@ -1003,6 +1003,7 @@ async def send_admin_compose_email(
 async def send_contact_notice(
     *,
     contact_name: str,
+    contact_type: str,
     sender_email: str,
     message: str,
     idempotency_key: str | None = None,
@@ -1012,13 +1013,15 @@ async def send_contact_notice(
     Mirrors ``send_brand_apply_notice``: the reply-to is the person who wrote
     in, so hitting Reply in the hello@ inbox just works.
     """
-    subject = f"Contact form: {contact_name}"
+    type_label = "Organization" if contact_type == "organization" else "Brand"
+    subject = f"Contact form ({type_label}): {contact_name}"
     # No timestamp here on purpose. The body must be byte-identical for an
     # identical retry, because the route derives the Idempotency-Key from the
     # same content; a per-attempt value would make Resend return 409 and turn
     # every retry into a permanent 502. The provider records the send time.
     body = "\n".join(
         [
+            f"Type: {type_label}",
             f"Name: {contact_name}",
             f"Email: {sender_email}",
             "",
@@ -1027,9 +1030,10 @@ async def send_contact_notice(
     )
     if settings.ENVIRONMENT == "development":
         logger.info(
-            "DEV EMAIL — Contact notice: to=%s from=%s name=%s",
+            "DEV EMAIL — Contact notice: to=%s from=%s type=%s name=%s",
             CONTACT_EMAIL,
             sender_email,
+            type_label,
             contact_name,
         )
         return True

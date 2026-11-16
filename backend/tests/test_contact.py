@@ -20,7 +20,7 @@ from app.schemas.contact import ContactRequest
 from app.security import rate_limit
 from app.services import email
 
-_VALID = {"firstName": "A", "email": "a@b.co", "message": "hi"}
+_VALID = {"name": "A", "type": "organization", "email": "a@b.co", "message": "hi"}
 
 
 @pytest.fixture
@@ -41,8 +41,8 @@ async def test_contact_sends_ops_notice_with_reply_to(app_client: AsyncClient, s
     resp = await app_client.post(
         "/api/contact",
         json={
-            "firstName": "Jordan",
-            "lastName": "Ellis",
+            "name": "Jordan Ellis",
+            "type": "organization",
             "email": "Jordan@Example.EDU",
             "message": "We'd love to run a drop in October.",
         },
@@ -57,6 +57,9 @@ async def test_contact_sends_ops_notice_with_reply_to(app_client: AsyncClient, s
 
     assert notice["to"] == email.CONTACT_EMAIL
     assert "Jordan Ellis" in notice["subject"]
+    assert "Organization" in notice["subject"]
+    assert "Type: Organization" in notice["body"]
+    assert "Name: Jordan Ellis" in notice["body"]
     # The whole point: Reply lands in the sender's inbox, not a no-reply void.
     assert notice["reply_to"] == "jordan@example.edu"
     assert "We'd love to run a drop in October." in notice["body"]
@@ -74,7 +77,8 @@ async def test_contact_honeypot_returns_success_and_sends_nothing(
     resp = await app_client.post(
         "/api/contact",
         json={
-            "firstName": "Bot",
+            "name": "Bot",
+            "type": "brand",
             "email": "bot@example.com",
             "message": "buy my thing",
             "website": "http://spam.example",
@@ -110,10 +114,11 @@ async def test_contact_honeypot_never_dispatches(app_client: AsyncClient, monkey
 @pytest.mark.parametrize(
     "payload",
     [
-        {"firstName": "", "email": "a@b.co", "message": "hi"},
-        {"firstName": "A", "email": "not-an-email", "message": "hi"},
-        {"firstName": "A", "email": "a@b", "message": "hi"},
-        {"firstName": "A", "email": "a@b.co", "message": "   "},
+        {"name": "", "type": "organization", "email": "a@b.co", "message": "hi"},
+        {"name": "A", "type": "organization", "email": "not-an-email", "message": "hi"},
+        {"name": "A", "type": "organization", "email": "a@b", "message": "hi"},
+        {"name": "A", "type": "organization", "email": "a@b.co", "message": "   "},
+        {"name": "A", "type": "other", "email": "a@b.co", "message": "hi"},
     ],
 )
 async def test_contact_rejects_invalid_input(app_client: AsyncClient, sent, payload: dict) -> None:
@@ -157,7 +162,7 @@ async def test_contact_rejects_invalid_input(app_client: AsyncClient, sent, payl
 )
 def test_contact_email_rejects_header_unsafe_shapes(address: str) -> None:
     with pytest.raises(ValidationError):
-        ContactRequest(first_name="A", email=address, message="hi")
+        ContactRequest(name="A", type="organization", email=address, message="hi")
 
 
 @pytest.mark.parametrize(
@@ -173,7 +178,7 @@ def test_contact_email_rejects_header_unsafe_shapes(address: str) -> None:
     ],
 )
 def test_contact_email_trims_surrounding_whitespace_to_a_safe_value(address: str) -> None:
-    parsed = ContactRequest(first_name="A", email=address, message="hi")
+    parsed = ContactRequest(name="A", type="organization", email=address, message="hi")
     assert parsed.email == "a@b.co"
 
 
@@ -189,7 +194,7 @@ def test_contact_email_trims_surrounding_whitespace_to_a_safe_value(address: str
     ],
 )
 def test_contact_email_accepts_ordinary_addresses(address: str) -> None:
-    parsed = ContactRequest(first_name="A", email=address, message="hi")
+    parsed = ContactRequest(name="A", type="organization", email=address, message="hi")
     assert parsed.email == address.strip().lower()
 
 
@@ -198,7 +203,7 @@ def test_contact_email_rejects_over_length() -> None:
     domain = ".".join(["b" * 60] * 5) + ".co"
     assert len(f"{local}@{domain}") > 320
     with pytest.raises(ValidationError):
-        ContactRequest(first_name="A", email=f"{local}@{domain}", message="hi")
+        ContactRequest(name="A", type="organization", email=f"{local}@{domain}", message="hi")
 
 
 async def test_contact_names_cannot_carry_a_control_char_into_the_subject(
@@ -209,8 +214,8 @@ async def test_contact_names_cannot_carry_a_control_char_into_the_subject(
     resp = await app_client.post(
         "/api/contact",
         json={
-            "firstName": "Eve\r\nBcc: evil@x.com",
-            "lastName": "Smith\r",
+            "name": "Eve\r\nBcc: evil@x.com",
+            "type": "brand",
             "email": "eve@example.edu",
             "message": "hello",
         },
@@ -617,7 +622,8 @@ async def test_contact_rejects_unknown_key_casing_instead_of_bypassing_the_honey
     resp = await app_client.post(
         "/api/contact",
         json={
-            "firstName": "Bot",
+            "name": "Bot",
+            "type": "organization",
             "email": "bot@example.com",
             "message": "buy my thing",
             key: "http://spam.example",
@@ -675,7 +681,8 @@ async def test_contact_ack_never_echoes_submitter_text(app_client: AsyncClient, 
     resp = await app_client.post(
         "/api/contact",
         json={
-            "firstName": name_marker,
+            "name": name_marker,
+            "type": "brand",
             "email": "jordan@example.edu",
             "message": marker,
         },
@@ -685,6 +692,8 @@ async def test_contact_ack_never_echoes_submitter_text(app_client: AsyncClient, 
     notice, ack = sent
     # The team must still receive the actual message.
     assert marker in notice["body"]
+    assert "Contact form (Brand)" in notice["subject"]
+    assert "Type: Brand" in notice["body"]
     # The sender gets assurance and nothing else.
     assert marker not in ack["body"]
     assert marker not in ack["subject"]
