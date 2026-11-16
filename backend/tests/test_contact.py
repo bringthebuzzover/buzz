@@ -58,10 +58,10 @@ async def test_contact_sends_ops_notice_with_reply_to(app_client: AsyncClient, s
     assert notice["to"] == email.CONTACT_EMAIL
     assert "Jordan Ellis" in notice["subject"]
     assert "Organization" in notice["subject"]
-    assert notice["body"] == (
-        "We'd love to run a drop in October.\n\n"
-        "-- Jordan Ellis <jordan@example.edu>"
+    expected_notice = "\n\n".join(
+        ["We'd love to run a drop in October.", "-- Jordan Ellis <jordan@example.edu>"]
     )
+    assert notice["body"] == expected_notice
     # The whole point: Reply lands in the sender's inbox, not a no-reply void.
     assert notice["reply_to"] == "jordan@example.edu"
 
