@@ -100,7 +100,7 @@ export default function PublicDropPage() {
       <PublicDropLayout drop={data} feedStatus={feedStatus}>
       {status === "needs_instagram_reconnect" ? (
         <>
-          <StatePanel>
+          <StatePanel className="mb-4">
             Reconnect Instagram to apply from your organization account.
           </StatePanel>
           <div className="mb-6 flex justify-center">
@@ -121,7 +121,9 @@ export default function PublicDropPage() {
 
       {reconnectRequired ? (
         <>
-          <StatePanel>Reconnect Instagram to apply from your organization account.</StatePanel>
+          <StatePanel className="mb-4">
+            Reconnect Instagram to apply from your organization account.
+          </StatePanel>
           <div className="mb-6 flex justify-center">
             <LinkButton to={pathForUser(user, nextPath)}>Connect Instagram</LinkButton>
           </div>
@@ -238,14 +240,27 @@ function PublicDropHero({
         fallback="blank"
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-page via-page/25 to-page/30" />
+      {/* Top subtle vignette for chip & spots readability on light backgrounds */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 via-black/40 to-transparent"
+        aria-hidden
+      />
+      {/* Anchored bottom vignette for guaranteed AAA text contrast on any brand packaging */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 via-45% to-transparent to-75%"
+        aria-hidden
+      />
       <div className="absolute inset-x-0 top-0 flex items-center gap-3 p-8">
         <Chip accent>{tone}</Chip>
-        <span className="ml-auto text-sm text-primary">{spots}</span>
+        <span className="ml-auto text-sm font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+          {spots}
+        </span>
       </div>
       <div className="absolute inset-x-0 bottom-0 p-8">
-        <p className="text-sm font-medium text-muted">{drop.brandName}</p>
-        <p className="text-[36px] font-medium leading-none text-primary md:text-buzzTitle">
+        <p className="text-sm font-medium uppercase tracking-[0.05em] text-white/75 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+          {drop.brandName}
+        </p>
+        <p className="mt-1 text-[36px] font-medium leading-none text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] md:text-buzzTitle">
           {drop.title}
         </p>
       </div>

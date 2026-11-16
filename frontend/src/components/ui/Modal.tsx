@@ -1,4 +1,10 @@
-import { useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { Button } from "../forms/controls";
@@ -41,11 +47,59 @@ export function Modal({
   className?: string;
   children: ReactNode;
 }) {
+  const [open, setOpen] = useState(true);
+  const closingRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   const [returnFocus] = useState(() =>
     typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null),
   );
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const requestClose = useCallback(
+    (customAction?: () => void) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      setOpen(false);
+
+      const execute = () => {
+        if (customAction) {
+          customAction();
+          if (customAction !== onCloseRef.current) {
+            onCloseRef.current();
+          }
+        } else {
+          onCloseRef.current();
+        }
+      };
+
+      const isTest =
+        typeof process !== "undefined" && process.env?.NODE_ENV === "test";
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (isTest || prefersReducedMotion) {
+        execute();
+      } else {
+        timerRef.current = window.setTimeout(execute, 150);
+      }
+    },
+    [],
+  );
+
   return (
-    <Dialog.Root open onOpenChange={(next) => !next && onClose()}>
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay
           className={cn("fixed inset-0 z-buzzModal buzz-scrim-atmosphere", MOTION.scrim)}

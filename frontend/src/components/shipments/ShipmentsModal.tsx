@@ -39,7 +39,7 @@ const headingClass = cn(TEXT.micro, "text-quiet");
 // The Modal animation pins a centring transform, so the sheet turns it off.
 const BOTTOM_SHEET = cn(
   "max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:max-w-none",
-  "max-md:translate-x-0 max-md:translate-y-0 max-md:animate-none max-md:rounded-b-none max-md:p-6",
+  "max-md:translate-x-0 max-md:translate-y-0 max-md:animate-none max-md:data-[state=open]:animate-none max-md:data-[state=closed]:animate-none max-md:rounded-b-none max-md:p-6",
 );
 const ADDRESS_PENDING = (
   <span className="text-xs font-medium text-buzz-warn">Address pending</span>

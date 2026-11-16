@@ -145,7 +145,11 @@ export default function DropFeedCard({
           className="absolute inset-0 h-full w-full rounded-buzzBoard object-cover"
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-page/95 via-page/70 via-30% to-transparent to-75%"
+          className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/80 to-transparent"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 via-45% to-transparent to-75%"
           aria-hidden
         />
         {feedStatus === "upcoming" ? (
@@ -153,13 +157,15 @@ export default function DropFeedCard({
         ) : null}
         <div className="relative flex items-center gap-2">
           <FeedStatusChip status={feedStatus} full={full} stage={drop.stage} />
-          <span className="ml-auto text-right text-xs text-primary">{spots}</span>
+          <span className="ml-auto text-right text-xs font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+            {spots}
+          </span>
         </div>
         <div className="relative mt-auto">
-          <p className="text-xs font-medium uppercase tracking-[0.05em] text-muted">
+          <p className="text-xs font-medium uppercase tracking-[0.05em] text-white/75 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
             {drop.brandName}
           </p>
-          <h3 className={cn(TEXT.h2, "mt-2 line-clamp-3 leading-none text-primary")}>
+          <h3 className={cn(TEXT.h2, "mt-2 line-clamp-3 leading-none text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]")}>
             {drop.title}
           </h3>
         </div>
