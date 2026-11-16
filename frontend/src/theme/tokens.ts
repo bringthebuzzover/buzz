@@ -106,30 +106,30 @@ export const TEXT = {
 /**
  * Surface treatments. Every card in the app should name one of these rather
  * than assembling its own radius + border + background + shadow.
- * Panels are flat: hairline on ink-raised. The pen doesn't use a drop shadow
- * on cards; `shadow-buzzLg` stays on the modal only.
+ * Cards and panels share the translucent glass treatment from the current
+ * Pulse Black kit; semantic variants keep hierarchy and density distinct.
  */
 export const SURFACE = {
-  /** Raised card on the ink page. Radius-board, ink-raised. */
-  card: "rounded-buzzBoard border border-line bg-surface-card",
-  /** Flat card — same ink-raised fill, for grids. */
-  cardFlat: "rounded-buzzBoard border border-line bg-surface-card",
+  /** Translucent glass card, shared across public and authenticated pages. */
+  card: "rounded-buzzBoard border border-line buzz-glass-surface",
+  /** Flat glass card — same treatment, for grids. */
+  cardFlat: "rounded-buzzBoard border border-line buzz-glass-surface",
   /** Yellow-faded card: highlights, selected tiles. */
-  cardWarm: "rounded-buzzBoard border border-buzz-yellowLine bg-accent-wash",
-  /** Portal / admin panel. Ink-raised, radius-board. */
-  panel: "rounded-buzzBoard border border-line bg-buzz-inkRaised",
+  cardWarm: "rounded-buzzBoard border border-buzz-yellowLine bg-accent-wash backdrop-blur-xl backdrop-saturate-125",
+  /** Portal / admin panel. Dark glass, radius-board. */
+  panel: "rounded-buzzBoard border border-line buzz-glass-panel",
   /**
-   * Pen tile (count, post, campaign row, empty): paper-04 fill, paper-09 line,
+   * Nested tile (count, post, campaign row, empty): lighter glass, paper-09 line,
    * radius-board. Stat uses `stat` (radius-card, 8px).
    */
-  tile: "rounded-buzzBoard border border-line bg-surface-tile",
-  /** Pen Stat: paper-04, paper-09, radius-card. */
-  stat: "rounded-buzzCard border border-line bg-surface-tile",
-  /** Inset block inside a card. */
-  inset: "rounded-buzzField border border-line bg-surface-tile",
-  /** Modal shell. Pen: 560-wide content, ink-pop, padding 32, shadow 0 24 64. */
+  tile: "rounded-buzzBoard border border-line buzz-glass-tile",
+  /** Translucent Stat tile, radius-card. */
+  stat: "rounded-buzzCard border border-line buzz-glass-tile",
+  /** Inset glass block inside a card. */
+  inset: "rounded-buzzField border border-line buzz-glass-tile",
+  /** General modal shell with the same 77% glass as the contact modal. */
   modal:
-    "rounded-buzzBoard border border-line bg-surface-pop p-8 shadow-buzzModal",
+    "rounded-buzzBoard border border-line bg-[rgba(22,22,22,0.77)] p-8 shadow-buzzModal backdrop-blur-[28px] backdrop-saturate-[0.8]",
   /**
    * Translucent modal shell for the wide marketing dialogs (contact).
    *

@@ -34,7 +34,9 @@ test("org can apply to an open drop", async ({ page }) => {
     .getByTestId("drop-card")
     .filter({ hasText: "E2E Open Drop" });
   await expect(card).toBeVisible();
-
+  await expect.poll(async () =>
+    card.locator("img").evaluate((image: HTMLImageElement) => image.naturalWidth),
+  ).toBeGreaterThan(0);
   const apply = card.getByTestId("apply-button");
   if (await apply.innerText().then((label) => /already applied/i.test(label))) {
     await page.goto("/d/00000000-0000-0000-0000-000000000063");

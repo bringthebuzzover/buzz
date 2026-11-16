@@ -65,7 +65,7 @@ export default function PortalHeader({ portal }: { portal: Portal }) {
   const logoHref = isOnboarding ? "/" : signedIn ? pathForUser(user) : "/";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-page/80 backdrop-blur-lg">
+    <header className="buzz-glass-nav sticky top-0 z-50 border-b border-line">
       <div className="flex h-16 items-center gap-5 px-6 xl:px-12">
         <Link
           to={logoHref}

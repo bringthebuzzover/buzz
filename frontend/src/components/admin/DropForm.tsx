@@ -85,7 +85,7 @@ export function DropFormSection({
 }) {
   return (
     <section className={config
-      ? "mb-6 space-y-4 rounded-buzzBoard border border-line bg-surface-card p-6"
+      ? "mb-6 space-y-4 rounded-buzzBoard border border-line buzz-glass-surface p-6"
       : cn(STACK.tight, "border-t border-line px-4 py-4")}
     >
       <div>

@@ -1,8 +1,8 @@
 /**
  * Inline SVG line chart for engagement over time. No external chart library.
- * Pen panel: date range as the support line, paper-09 grid, a yellow line over
- * a yellow-faded area, and a hover tooltip per point. An empty series falls
- * back to a state panel.
+ * Pen panel: date range as the support line, dotted paper-09 grid, a yellow
+ * line over a dotted yellow area, and a hover tooltip per point. An empty
+ * series falls back to a state panel.
  */
 import { useMemo, useState } from "react";
 import type { EngagementTimeSeriesPoint } from "../../types/metrics";
@@ -99,6 +99,7 @@ export default function EngagementOverTimeChart({
                 y1={y}
                 y2={y}
                 stroke={tick === 0 ? pulse.paper52 : pulse.paper09}
+                strokeDasharray="3 6"
               />
               <text
                 x={PADDING.left - 8}
@@ -113,7 +114,23 @@ export default function EngagementOverTimeChart({
           );
         })}
 
-        <path d={chart.areaPath} fill={pulse.yellowFaded} />
+        <defs>
+          <pattern
+            id="engagement-dot-fill"
+            width="8"
+            height="8"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle
+              cx="2"
+              cy="2"
+              r="1.2"
+              fill={pulse.yellow}
+              opacity="0.38"
+            />
+          </pattern>
+        </defs>
+        <path d={chart.areaPath} fill="url(#engagement-dot-fill)" />
         <path
           d={chart.linePath}
           fill="none"

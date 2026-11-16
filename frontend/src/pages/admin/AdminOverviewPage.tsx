@@ -53,7 +53,7 @@ function QueueCard({
         "flex flex-col gap-2 rounded-buzzBoard border p-5 transition hover:border-accent",
         focusRingClass,
         clear
-          ? "border-line bg-surface-tile"
+          ? "border-line buzz-glass-tile"
           : "border-buzz-yellowLine bg-accent-wash",
       )}
     >
@@ -94,7 +94,7 @@ function StageTiles({ stages }: { stages: { stage: DropStage; count: number }[] 
             to={`/admin/drops?stage=${stage}`}
             data-testid={`stage-tile-${stage}`}
             className={cn(
-              "flex flex-col gap-1 rounded-buzzBoard border border-line bg-surface-tile p-4 transition hover:border-accent",
+              "flex flex-col gap-1 rounded-buzzBoard border border-line buzz-glass-tile p-4 transition hover:border-accent",
               focusRingClass,
             )}
           >

@@ -36,7 +36,7 @@ export default function SiteLayout() {
 
   return (
     <SiteChromeProvider>
-      <div className="flex min-h-screen flex-col bg-page">
+      <div className="buzz-app-atmosphere flex min-h-screen flex-col bg-page">
         <ImpersonationBanner />
         {bare ? (
           isAdminAuthPath(pathname) ? (

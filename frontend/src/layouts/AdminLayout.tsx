@@ -32,7 +32,7 @@ export default function AdminLayout() {
 
   return (
     <AdminChromeContext.Provider value={setBare}>
-      <div className={cn("min-h-screen bg-page", bare ? "flex flex-col" : "lg:flex")}>
+      <div className={cn("buzz-app-atmosphere min-h-screen bg-page", bare ? "flex flex-col" : "lg:flex")}>
         {bare ? (
           <header className="flex h-16 items-center gap-5 border-b border-line px-6 sm:px-12">
             <AdminWordmark />

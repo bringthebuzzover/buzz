@@ -882,7 +882,7 @@ export default function AdminDropDetailPage() {
                 ).map(([label, value]) => (
                   <div
                     key={label}
-                    className="rounded-buzzCard border border-line bg-surface-tile p-4"
+                    className="rounded-buzzCard border border-line buzz-glass-tile p-4"
                   >
                     <p className="text-sm text-quiet">{label}</p>
                     <p className="mt-3 text-xl font-medium text-primary">{value}</p>

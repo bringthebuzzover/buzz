@@ -68,6 +68,65 @@
 }
 
 @layer components {
+  /** Pink light pools behind transparent panels, using the shared palette token. */
+  .buzz-app-atmosphere {
+    background-color: #0b0b0b;
+    background-image:
+      radial-gradient(
+        ellipse 950px 850px at -12% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) 20%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 900px 900px at 96% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) 24%, transparent),
+        transparent 66%
+      ),
+      radial-gradient(
+        ellipse 520px 900px at 60% 66%,
+        color-mix(in srgb, theme(colors.buzz.pink) 9%, transparent),
+        transparent 80%
+      );
+    background-attachment: fixed;
+  }
+
+  /** Shared 72% dark glass for primary cards and dashboard surfaces. */
+  .buzz-glass-surface {
+    background: rgba(18, 15, 13, 0.72);
+    backdrop-filter: blur(26px) saturate(1.15);
+    -webkit-backdrop-filter: blur(26px) saturate(1.15);
+    box-shadow: inset 0 1px 0 rgba(255, 239, 205, 0.08), 0 20px 56px rgba(0, 0, 0, 0.18);
+  }
+
+  /** Dense portal/admin panels keep the glass lighter than the outer card. */
+  .buzz-glass-panel {
+    background: rgba(12, 11, 11, 0.68);
+    backdrop-filter: blur(24px) saturate(1.1);
+    -webkit-backdrop-filter: blur(24px) saturate(1.1);
+    box-shadow: inset 0 1px 0 rgba(240, 240, 240, 0.06);
+  }
+
+  /** Nested stats and compact blocks stay distinct without opaque fills. */
+  .buzz-glass-tile {
+    background: rgba(8, 8, 8, 0.46);
+    backdrop-filter: blur(18px) saturate(1.08);
+    -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  }
+
+  .buzz-glass-nav {
+    background: rgba(18, 15, 13, 0.76);
+    backdrop-filter: blur(26px) saturate(1.15);
+    -webkit-backdrop-filter: blur(26px) saturate(1.15);
+  }
+
+  @media (max-width: 767px) {
+    .buzz-admin-table-row {
+      background: rgba(8, 8, 8, 0.46);
+      backdrop-filter: blur(18px) saturate(1.08);
+      -webkit-backdrop-filter: blur(18px) saturate(1.08);
+    }
+  }
+
   /**
    * `datetime-local` renders a browser calendar glyph that sat next to our own
    * Select chevron in the same admin grid row. Recolor it to match instead of
@@ -89,6 +148,13 @@
   .buzz-icon-on-ink {
     filter: brightness(0) invert(1);
   }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .buzz-glass-surface { background: #121212; }
+  .buzz-glass-panel { background: #111111; }
+  .buzz-glass-tile { background: #151515; }
+  .buzz-glass-nav { background: #0b0b0b; }
 }
 
 @layer utilities {
