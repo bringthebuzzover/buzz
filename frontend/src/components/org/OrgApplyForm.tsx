@@ -203,7 +203,7 @@ export default function OrgApplyForm({
         id="org-apply-contact-name"
         data-testid="org-apply-contact-name"
         label="Contact name"
-        placeholder="e.g. Sam Sample"
+        placeholder="First Last"
         value={contactName}
         onChange={(e) => setContactName(e.target.value)}
         required
@@ -217,7 +217,7 @@ export default function OrgApplyForm({
         label="School (.edu) email"
         value={eduEmail}
         onChange={(e) => setEduEmail(e.target.value)}
-        placeholder="e.g. you@university.edu"
+        placeholder="you@university.edu"
         hint="We'll send a verification link here."
         required
         error={fieldErrors.eduEmail}
@@ -228,7 +228,7 @@ export default function OrgApplyForm({
           id="org-apply-org-name"
           data-testid="org-apply-org-name"
           label="Organization name"
-          placeholder="e.g. Sample Club"
+          placeholder="Your Organization"
           value={orgName}
           onChange={(e) => setOrgName(e.target.value)}
           required
@@ -239,7 +239,7 @@ export default function OrgApplyForm({
           id="org-apply-university"
           data-testid="org-apply-university"
           label="University"
-          placeholder="e.g. Sample University"
+          placeholder="Your University"
           value={university}
           onChange={(e) => setUniversity(e.target.value)}
           required
@@ -269,7 +269,7 @@ export default function OrgApplyForm({
           type="number"
           min="0"
           label="Number of members"
-          placeholder="e.g. 85"
+          placeholder="24"
           value={memberCount}
           onChange={(e) => setMemberCount(e.target.value)}
           required
@@ -284,7 +284,7 @@ export default function OrgApplyForm({
           label="Instagram handle"
           value={instagramHandle}
           onChange={(e) => setInstagramHandle(e.target.value)}
-          placeholder="e.g. @yourorg"
+          placeholder="@yourorg"
           required
           autoComplete="off"
           error={fieldErrors.instagramHandle}
@@ -299,7 +299,7 @@ export default function OrgApplyForm({
           }
           value={tiktokHandle}
           onChange={(e) => setTiktokHandle(e.target.value)}
-          placeholder="e.g. @yourorg"
+          placeholder="@yourorg"
         />
       </div>
       <p className="text-xs text-quiet">
@@ -337,7 +337,7 @@ export default function OrgApplyForm({
           value={pitch}
           onChange={(e) => setPitch(e.target.value)}
           rows={4}
-          placeholder="Optional pitch message..."
+          placeholder="e.g. We host weekly mixers and can staff a table at the student center"
         />
       ) : null}
 

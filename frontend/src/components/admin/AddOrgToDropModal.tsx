@@ -22,7 +22,9 @@ type Props = {
 };
 
 function orgMatches(org: AdminOrgRow, query: string): boolean {
-  const q = query.trim().toLowerCase();
+  // Handles are stored without "@", so a query typed as "@acme" would never
+  // match. Strip leading "@" tokens so the advertised shape actually works.
+  const q = query.trim().toLowerCase().replace(/(^|\s)@+/g, "$1");
   if (!q) return true;
   return [org.orgName, org.university, org.eduEmail, org.instagramHandle]
     .filter(Boolean)
@@ -111,7 +113,7 @@ export default function AddOrgToDropModal({
               id="add-org-search"
               data-testid="add-org-search"
               label="Search organizations"
-              placeholder="Search by name or @handle"
+              placeholder="Name or @handle"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"

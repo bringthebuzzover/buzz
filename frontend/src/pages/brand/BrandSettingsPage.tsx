@@ -199,6 +199,7 @@ export default function BrandSettingsPage() {
                   <TextField
                     id="brand-name"
                     name="brandName"
+                    placeholder="Your Brand"
                     value={shownName}
                     onChange={(event) => {
                       setBrandName(event.target.value);
@@ -325,7 +326,6 @@ export default function BrandSettingsPage() {
                 name="currentPassword"
                 type="password"
                 autoComplete="current-password"
-                placeholder="Your current password"
                 value={currentPassword}
                 onChange={(event) => {
                   setCurrentPassword(event.target.value);
@@ -341,7 +341,6 @@ export default function BrandSettingsPage() {
                 name="newPassword"
                 type="password"
                 autoComplete="new-password"
-                placeholder="At least 8 characters"
                 hint="At least 8 characters. Signs you out on your other devices."
                 value={newPassword}
                 onChange={(event) => {
@@ -413,7 +412,7 @@ export default function BrandSettingsPage() {
                 value={requestedHandle}
                 onChange={(event) => setRequestedHandle(event.target.value)}
                 autoComplete="off"
-                placeholder="e.g. @yourbrand_new"
+                placeholder="@yourbrand"
                 data-testid="brand-ig-requested"
               />
               <TextArea

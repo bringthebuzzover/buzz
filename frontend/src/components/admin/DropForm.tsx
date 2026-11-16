@@ -197,7 +197,7 @@ export function DropFormFields({
       <TextArea
         {...fieldProps("description")} label="Description" size="compact"
         rows={config ? 5 : 4} value={form.description} disabled={disabled}
-        placeholder={config ? undefined : "Org-facing copy. Write this yourself."}
+        placeholder={config ? undefined : "e.g. Cold brew for tailgates and study-night tables"}
         wrapperClassName={config ? "flex min-h-0 flex-1 flex-col" : undefined}
         className={config ? "min-h-[7.5rem] flex-1" : undefined}
         onChange={(e) => setField("description", e.target.value)}
@@ -208,7 +208,12 @@ export function DropFormFields({
     <TextField
       {...fieldProps("units")} label="Total units" size="compact" type="number" min={1}
       value={form.units} disabled={clearUnits || logisticsLocked}
-      placeholder={config ? "Leave empty, then clear for spot-only" : "Optional — organizations × units per org"}
+      placeholder="24"
+      hint={
+        config
+          ? "Check “Clear to spot-only” to remove the budget. Emptying the field alone keeps the current units."
+          : "Total across all organizations. Leave empty for a spot-only drop."
+      }
       onChange={(e) => setField("units", e.target.value)}
     />
   );
@@ -286,7 +291,8 @@ export function DropFormFields({
         <TextField
           {...fieldProps("hashtag")} label="Campaign hashtag" size="compact"
           value={form.hashtag} disabled={clearHashtag || logisticsLocked}
-          placeholder={config ? "e.g. springdrop (no # required)" : "optional"}
+          placeholder="#yourcampaign"
+          hint="A leading # is optional."
           onChange={(e) => setField("hashtag", e.target.value)}
         />
         {config && (

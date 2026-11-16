@@ -233,6 +233,7 @@ export default function OrgPortalProfilePage() {
                 label="Organization name"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
+                placeholder="Your Organization"
                 required
                 error={fieldErrors.orgName}
               />
@@ -242,6 +243,7 @@ export default function OrgPortalProfilePage() {
                 label="University"
                 value={university}
                 onChange={(e) => setUniversity(e.target.value)}
+                placeholder="Your University"
                 required
                 error={fieldErrors.university}
               />
@@ -256,7 +258,7 @@ export default function OrgPortalProfilePage() {
                 }
                 value={tiktokHandle}
                 onChange={(e) => setTiktokHandle(e.target.value)}
-                placeholder="@yourclub"
+                placeholder="@yourorg"
               />
 
               <div>
@@ -276,6 +278,7 @@ export default function OrgPortalProfilePage() {
                 label="Number of members"
                 value={memberCount}
                 onChange={(e) => setMemberCount(e.target.value)}
+                placeholder="24"
                 required
                 error={fieldErrors.memberCount}
               />
@@ -301,6 +304,7 @@ export default function OrgPortalProfilePage() {
                   label="Contact name"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
+                  placeholder="First Last"
                   required
                   error={fieldErrors.contactName}
                 />

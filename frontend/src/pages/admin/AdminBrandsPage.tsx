@@ -109,7 +109,7 @@ function InviteBrandForm() {
           <TextField
             id="invite-brand-name"
             label="Brand name"
-            placeholder="e.g. Sample Brand"
+            placeholder="Your Brand"
             size="compact"
             data-testid="invite-brand-name"
             value={brandName}
@@ -118,7 +118,7 @@ function InviteBrandForm() {
           <TextField
             id="invite-brand-email"
             label="Company email"
-            placeholder="e.g. you@brand.com"
+            placeholder="you@brand.com"
             size="compact"
             type="email"
             data-testid="invite-brand-email"
@@ -128,7 +128,7 @@ function InviteBrandForm() {
           <TextField
             id="invite-brand-instagram"
             label="Instagram (optional)"
-            placeholder="e.g. @yourbrand"
+            placeholder="@yourbrand"
             size="compact"
             data-testid="invite-brand-instagram"
             value={instagramHandle}

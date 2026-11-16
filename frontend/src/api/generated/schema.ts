@@ -2059,6 +2059,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/contact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Contact
+         * @description Accept a contact message and mail it to the team.
+         *
+         *     A filled honeypot returns the **same success shape** without sending. That
+         *     silence is deliberate: a distinct response would tell a bot which field to
+         *     leave alone, and an operator chasing false positives gets nothing useful
+         *     from a louder failure. The rejection is logged with no message body.
+         *
+         *     The two sends are **not** symmetric. If the ops notice fails, nothing
+         *     reached the team, so the request fails with a 502 the visitor can act on
+         *     and the ack is *not* sent — a "we got your message" copy for a message no
+         *     one at BUZZ ever saw is worse than an honest error. If the notice landed
+         *     and only the sender's copy failed, that is a normal, acceptable outcome
+         *     (the team can still reply), so it must not fail the request.
+         */
+        post: operations["submit_contact_api_contact_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/drops": {
         parameters: {
             query?: never;
@@ -4399,6 +4431,50 @@ export interface components {
              */
             userId: string;
         };
+        /**
+         * ContactAccepted
+         * @description Response body. Deliberately says nothing about delivery internals.
+         */
+        ContactAccepted: {
+            /**
+             * Accepted
+             * @default true
+             */
+            accepted: boolean;
+        };
+        /**
+         * ContactRequest
+         * @description ``POST /api/contact`` body.
+         *
+         *     ``website`` is a **honeypot**: a real browser never fills it because the
+         *     field is visually hidden, off the tab order, and hidden from assistive
+         *     tech. Anything in it is a bot, and the route answers success while sending
+         *     nothing (see the route for why silence is deliberate).
+         *
+         *     ``extra="forbid"`` is load-bearing here, not stylistic. Without it Pydantic
+         *     silently ignores an unknown key, so a submission carrying ``Website`` or
+         *     ``WEBSITE`` left the honeypot at its empty default, passed the guard, and
+         *     sent both emails — a casing bypass of the spam check. Forbidding extras
+         *     turns every unrecognised key into a 422, which sends nothing.
+         */
+        ContactRequest: {
+            /** Email */
+            email: string;
+            /** Firstname */
+            firstName: string;
+            /**
+             * Lastname
+             * @default
+             */
+            lastName: string;
+            /** Message */
+            message: string;
+            /**
+             * Website
+             * @default
+             */
+            website: string;
+        };
         /** DataResponse[AddressPreviewResponse] */
         DataResponse_AddressPreviewResponse_: {
             data?: components["schemas"]["AddressPreviewResponse"] | null;
@@ -4708,6 +4784,15 @@ export interface components {
         /** DataResponse[ClearInstagramTokenResponse] */
         DataResponse_ClearInstagramTokenResponse_: {
             data?: components["schemas"]["ClearInstagramTokenResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[ContactAccepted] */
+        DataResponse_ContactAccepted_: {
+            data?: components["schemas"]["ContactAccepted"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -9909,6 +9994,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_PublicConfigResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    submit_contact_api_contact_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ContactAccepted_"];
                 };
             };
             /** @description Unprocessable Entity */
