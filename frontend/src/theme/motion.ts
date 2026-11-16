@@ -17,10 +17,12 @@ export const MOTION = {
   /** Drop-card hover. Marketing only. */
   hoverLift:
     "buzz-hover-lift transition-transform duration-[240ms] ease-out hover:scale-[1.03] motion-reduce:transition-none motion-reduce:hover:scale-100",
-  /** Dialog panel. Keeps the centering translate inside the keyframes. */
-  modal: "animate-buzz-modal motion-reduce:animate-none",
+  /** Dialog panel. Keeps the centering translate inside the keyframes. Supports Radix open/close states. */
+  modal:
+    "data-[state=open]:animate-buzz-modal data-[state=closed]:animate-buzz-modal-exit motion-reduce:animate-none",
   /** Scrim. */
-  scrim: "animate-buzz-fade motion-reduce:animate-none",
+  scrim:
+    "data-[state=open]:animate-buzz-fade data-[state=closed]:animate-buzz-fade-exit motion-reduce:animate-none",
 } as const;
 
 export type MotionKind = keyof typeof MOTION;

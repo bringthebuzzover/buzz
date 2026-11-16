@@ -1,4 +1,11 @@
-import { useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { Button } from "../forms/controls";
@@ -6,6 +13,12 @@ import { focusRingClass } from "../../theme/controls";
 import { MOTION } from "../../theme/motion";
 import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+
+export const ModalContext = createContext<((cb?: () => void) => void) | null>(null);
+
+export function useModalClose() {
+  return useContext(ModalContext);
+}
 
 /**
  * Dialog primitive: the pen Modal (560 wide, ink-pop, padding 32, radius-board,
@@ -41,11 +54,47 @@ export function Modal({
   className?: string;
   children: ReactNode;
 }) {
+  const [open, setOpen] = useState(true);
+  const closingRef = useRef(false);
   const [returnFocus] = useState(() =>
     typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null),
   );
+
+  const requestClose = useCallback(
+    (customAction?: () => void) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      setOpen(false);
+
+      const execute = () => {
+        if (customAction) {
+          customAction();
+          if (customAction !== onClose) {
+            onClose();
+          }
+        } else {
+          onClose();
+        }
+      };
+
+      const isTest =
+        typeof process !== "undefined" && process.env?.NODE_ENV === "test";
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (isTest || prefersReducedMotion) {
+        execute();
+      } else {
+        window.setTimeout(execute, 150);
+      }
+    },
+    [onClose],
+  );
+
   return (
-    <Dialog.Root open onOpenChange={(next) => !next && onClose()}>
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay
           className={cn("fixed inset-0 z-buzzModal buzz-scrim-atmosphere", MOTION.scrim)}
@@ -110,7 +159,9 @@ export function Modal({
           {wide && description ? (
             <Dialog.Description className="sr-only">{description}</Dialog.Description>
           ) : null}
-          {children}
+          <ModalContext.Provider value={requestClose}>
+            {children}
+          </ModalContext.Provider>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

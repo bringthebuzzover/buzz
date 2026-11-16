@@ -105,6 +105,17 @@ module.exports = {
           },
           "100%": { opacity: "1", transform: "translate(-50%, -50%)" },
         },
+        buzzModalExit: {
+          "0%": { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
+          "100%": {
+            opacity: "0",
+            transform: "translate(-50%, calc(-50% + 8px)) scale(0.97)",
+          },
+        },
+        buzzFadeExit: {
+          "0%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
         // Auth aside: the bee runs the dotted trail once.
         buzzAsideBee: {
           "0%": { opacity: "0", transform: "translate(0px, 10px)" },
@@ -131,6 +142,8 @@ module.exports = {
         "buzz-fade": "buzzFade 220ms ease-out both",
         "buzz-float": "buzzFloat 3.2s ease-in-out infinite",
         "buzz-modal": "buzzModal 220ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "buzz-modal-exit": "buzzModalExit 150ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "buzz-fade-exit": "buzzFadeExit 150ms ease-out both",
         "buzz-aside-bee":
           "buzzAsideBee 2.8s cubic-bezier(0.22, 1, 0.36, 1) both",
         "buzz-dots": "buzzDots 900ms ease-in-out infinite",

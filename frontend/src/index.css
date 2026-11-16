@@ -98,7 +98,8 @@
    */
   .buzz-scrim-atmosphere {
     --buzz-scrim-glow: 0.75;
-    background-color: rgba(0, 0, 0, 0.70);
+    --buzz-scrim-darkness: 0.50;
+    background-color: rgba(0, 0, 0, var(--buzz-scrim-darkness));
     background-image:
       radial-gradient(
         ellipse 950px 850px at -12% 7%,
@@ -115,8 +116,8 @@
         color-mix(in srgb, theme(colors.buzz.pink) calc(9% * var(--buzz-scrim-glow)), transparent),
         transparent 80%
       );
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   /** Tier 1: Shared 74% dark glass for primary cards, panels, and dialog surfaces. */
