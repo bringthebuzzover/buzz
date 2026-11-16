@@ -10,10 +10,20 @@ from httpx import AsyncClient
 
 from app.config import settings
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.security import jwt
 from app.security.password import hash_password
 from app.security.session import bump_token_version
-from tests.conftest import admin_headers, make_org, make_user, mint_access_token, persist
+from tests.conftest import (
+    admin_headers,
+    make_application,
+    make_brand,
+    make_drop,
+    make_org,
+    make_user,
+    mint_access_token,
+    persist,
+)
 
 
 async def _admin(db_session, *, email: str | None = None, password: str | None = None):
@@ -82,6 +92,39 @@ class TestAdminLogin:
 
 
 class TestImpersonate:
+    async def test_view_as_sees_applications_during_account_reconnect(
+        self, app_client: AsyncClient, db_session
+    ):
+        target = make_user(role=PortalRole.ORG, instagram_user_id=None)
+        target.instagram_access_token = None
+        target.instagram_username = None
+        await persist(db_session, target)
+        org = await make_org(db_session, target)
+        db_session.add(
+            OrgIgChangeRequest(
+                org_id=org.id,
+                user_id=target.id,
+                kind="account_switch",
+                current_handle="old_handle",
+                requested_handle="new_handle",
+                reason="Account access changed",
+                status="awaiting_connect",
+                decided_kind="account_switch",
+            )
+        )
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        await make_application(db_session, drop, org)
+
+        minted = await app_client.post(
+            f"/api/admin/impersonate/{target.id}", headers=await admin_headers(db_session)
+        )
+        assert minted.status_code == 200
+        headers = {"Authorization": f"Bearer {minted.json()['data']['accessToken']}"}
+        detail = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["data"]["alreadyApplied"] is True
+
     async def test_tokenless_org_portal_requires_admin_impersonation(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):

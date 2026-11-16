@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from httpx import AsyncClient
+from sqlalchemy import event
 
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import (
@@ -22,6 +23,7 @@ from app.models.enums import (
     SocialMediaProductType,
 )
 from app.security.one_shot_tokens import hash_token
+from app.services.admin import list_orgs
 from app.timeutils import utcnow
 from tests.conftest import (
     admin_headers,
@@ -80,6 +82,33 @@ class TestPanelGate:
 
 
 class TestOrgList:
+    async def test_connect_action_queries_are_batched(self, db_session, engine):
+        first = await persist(db_session, make_user(role=PortalRole.ORG))
+        await make_org(db_session, first)
+
+        async def query_count() -> int:
+            count = 0
+
+            def count_queries(_conn, _cursor, statement, _parameters, _context, _many):
+                nonlocal count
+                if statement.lstrip().upper().startswith("SELECT"):
+                    count += 1
+
+            event.listen(engine.sync_engine, "before_cursor_execute", count_queries)
+            try:
+                await list_orgs(db_session, status="active")
+            finally:
+                event.remove(engine.sync_engine, "before_cursor_execute", count_queries)
+            return count
+
+        small_query_count = await query_count()
+        for _ in range(5):
+            user = await persist(db_session, make_user(role=PortalRole.ORG))
+            await make_org(db_session, user)
+        large_query_count = await query_count()
+
+        assert small_query_count == large_query_count
+
     async def test_includes_profileless_users(self, app_client: AsyncClient, db_session):
         """A ``pending_org_profile`` user has no ``organizations`` row; the outer
         join must still surface them so an abandoned signup is visible."""

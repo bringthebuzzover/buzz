@@ -78,6 +78,7 @@ from app.services.org_connect import (
     create_org_connect_token,
     org_awaits_initial_connect,
     org_connect_action,
+    org_connect_actions,
     org_has_instagram_credentials,
     org_owes_instagram_reconnect,
 )
@@ -142,9 +143,12 @@ async def list_orgs(
         )
 
     rows = list(await db.execute(stmt))
+    users = [user for user, _ in rows]
+    connect_actions = await org_connect_actions(db, users)
+
     listed = []
     for user, org in rows:
-        connect_action = await org_connect_action(db, user)
+        connect_action = connect_actions[user.id]
         if status == "awaiting_connect" and connect_action != "switch":
             continue
         erased = user.status == OrgUserStatus.ERASED.value

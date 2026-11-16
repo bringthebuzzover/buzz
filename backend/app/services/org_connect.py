@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from collections.abc import Sequence
 from datetime import timedelta
 
 from sqlalchemy import select
@@ -37,17 +38,7 @@ async def org_owes_instagram_reconnect(db: AsyncSession, user: User) -> bool:
     """Whether an active org has an approved switch still awaiting its bind."""
     if user.portal_role != PortalRole.ORG.value or user.status != OrgUserStatus.ACTIVE.value:
         return False
-    return bool(
-        await db.scalar(
-            select(OrgIgChangeRequest.id)
-            .where(
-                OrgIgChangeRequest.user_id == user.id,
-                OrgIgChangeRequest.status == "awaiting_connect",
-                OrgIgChangeRequest.decided_kind == "account_switch",
-            )
-            .limit(1)
-        )
-    )
+    return (await org_connect_actions(db, [user]))[user.id] == "switch"
 
 
 def org_has_instagram_credentials(user: User) -> bool:
@@ -68,6 +59,37 @@ def org_awaits_initial_connect(user: User) -> bool:
         and user.status in CONNECT_BEFORE_APPROVAL_STATUSES
         and not org_has_instagram_credentials(user)
     )
+
+
+async def org_connect_actions(
+    db: AsyncSession, users: Sequence[User]
+) -> dict[uuid.UUID, str | None]:
+    """Classify Connect actions for users with one switch-request lookup."""
+
+    actions: dict[uuid.UUID, str | None] = {user.id: None for user in users}
+    eligible_ids = [
+        user.id
+        for user in users
+        if user.portal_role == PortalRole.ORG.value and user.status == OrgUserStatus.ACTIVE.value
+    ]
+    switch_user_ids: set[uuid.UUID] = set()
+    if eligible_ids:
+        switch_user_ids = set(
+            await db.scalars(
+                select(OrgIgChangeRequest.user_id).where(
+                    OrgIgChangeRequest.user_id.in_(eligible_ids),
+                    OrgIgChangeRequest.status == "awaiting_connect",
+                    OrgIgChangeRequest.decided_kind == "account_switch",
+                )
+            )
+        )
+
+    for user in users:
+        if user.id in switch_user_ids:
+            actions[user.id] = "switch"
+        elif org_awaits_initial_connect(user):
+            actions[user.id] = "initial"
+    return actions
 
 
 async def org_may_connect_instagram(db: AsyncSession, user: User) -> bool:
@@ -95,11 +117,7 @@ async def org_connect_action(db: AsyncSession, user: User) -> str | None:
     cannot drift about who they reach.
     """
 
-    if await org_owes_instagram_reconnect(db, user):
-        return "switch"
-    if org_awaits_initial_connect(user):
-        return "initial"
-    return None
+    return (await org_connect_actions(db, [user]))[user.id]
 
 
 async def create_org_connect_token(

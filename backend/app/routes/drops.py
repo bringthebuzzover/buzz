@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
-from app.deps.auth import CurrentOrg, get_current_user, get_current_user_optional
+from app.deps.auth import CurrentOrg, get_current_user, get_current_user_optional, impersonated_by
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
@@ -95,8 +95,10 @@ async def get_drop(
         user is not None
         and user.portal_role == PortalRole.ORG.value
         and user.status == OrgUserStatus.ACTIVE.value
-        and user.instagram_user_id
-        and user.instagram_access_token
+        and (
+            (user.instagram_user_id and user.instagram_access_token)
+            or impersonated_by(user) is not None
+        )
     ):
         return api_response(data=await build_drop_detail(db, user, drop))
 
