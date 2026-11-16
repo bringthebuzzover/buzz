@@ -1,6 +1,6 @@
 """``org_connect_tokens`` — one-shot Connect Instagram links after Approve.
 
-Issued when an admin approves an org into ``pending_instagram``. ``token_hash``
+Issued when an admin approves an Instagram account switch. ``token_hash``
 is the SHA-256 hex of the raw link secret (unique); ``used_at`` flips on redeem.
 Mirrors ``brand_invite_tokens``.
 """

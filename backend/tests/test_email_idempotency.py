@@ -379,11 +379,9 @@ async def test_reminder_retry_reuses_row_key_and_recipients_differ(db_session, m
     assert user_b.edu_email not in (expected_b or "")
 
 
-async def test_org_approve_bound_and_connect_use_different_keys(db_session, monkeypatch) -> None:
-    """Already-bound approval is org id; Connect approval is the new token id."""
-    from sqlalchemy import select
-
-    from app.models.org_connect_token import OrgConnectToken
+async def test_org_approve_bound_uses_org_id_and_refuses_unbound(db_session, monkeypatch) -> None:
+    """Only a connected org can be approved; the unbound path no longer exists."""
+    from app.exceptions import BuzzAPIException
     from app.services.admin import approve_org
 
     captured: list[tuple[str | None, str | None]] = []
@@ -403,28 +401,28 @@ async def test_org_approve_bound_and_connect_use_different_keys(db_session, monk
     await db_session.flush()
     bound_org = await make_org(db_session, bound_user)
 
-    connect_user = await persist(
+    unbound_user = await persist(
         db_session,
-        make_user(status=OrgUserStatus.PENDING_APPROVAL, instagram_username="connectorg"),
+        make_user(
+            status=OrgUserStatus.PENDING_APPROVAL,
+            instagram_user_id=None,
+            instagram_username="connectorg",
+        ),
     )
-    connect_user.edu_email = "connect@school.edu"
+    unbound_user.edu_email = "connect@school.edu"
     await db_session.flush()
-    connect_org = await make_org(db_session, connect_user)
+    unbound_org = await make_org(db_session, unbound_user)
 
     await approve_org(db_session, bound_org.id, tester_invite_confirmed=True)
-    await approve_org(db_session, connect_org.id, tester_invite_confirmed=True)
 
+    # The old unbound -> Connect-link approval path is retired. Approving an org
+    # with no bound Instagram credentials is refused, so no Connect mail is sent.
+    with pytest.raises(BuzzAPIException) as exc:
+        await approve_org(db_session, unbound_org.id, tester_invite_confirmed=True)
+    assert exc.value.status_code == 400
+
+    assert len(captured) == 1
     bound_token, bound_key = captured[0]
-    raw_token, connect_key = captured[1]
-    token_row = await db_session.scalar(
-        select(OrgConnectToken).where(OrgConnectToken.org_id == connect_org.id)
-    )
-    assert token_row is not None
     assert bound_token is None
     assert bound_key == email.build_idempotency_key(email.KIND_ORG_APPROVED_BOUND, bound_org.id)
-    assert connect_key == email.build_idempotency_key(email.KIND_ORG_APPROVED, token_row.id)
-    assert bound_key != connect_key
-    assert raw_token is not None
-    assert raw_token not in (connect_key or "")
     assert "bound@school.edu" not in (bound_key or "")
-    assert "connect@school.edu" not in (connect_key or "")

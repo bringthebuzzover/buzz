@@ -83,6 +83,7 @@ from app.services.onboarding import (
     rotate_edu_email,
     verify_email,
 )
+from app.services.org_connect import org_may_connect_instagram
 from app.services.password_reset import request_password_reset, reset_password
 
 logger = logging.getLogger(__name__)
@@ -158,16 +159,20 @@ async def instagram_bind_start(
     user: User = Depends(get_current_user),
     ig: InstagramClient = Depends(get_instagram_client),
     next_path: str | None = Query(default=None, alias="next"),
+    db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Mint OAuth state with bind claim for ``pending_instagram`` orgs."""
+    """Mint OAuth state with bind claim for any org that must connect Instagram.
 
-    if (
-        user.portal_role != PortalRole.ORG.value
-        or user.status != OrgUserStatus.PENDING_INSTAGRAM.value
-    ):
+    Two cohorts may bind: an active org whose approved account switch released
+    its credentials, and an unbound org still awaiting approval that never
+    connected Instagram. A bind never activates the latter — ``approve_org``
+    stays the only path to ``active``.
+    """
+
+    if user.portal_role != PortalRole.ORG.value or not await org_may_connect_instagram(db, user):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "Only organizations awaiting Instagram connect can start a bind login.",
+            "Only organizations waiting to connect Instagram can start a bind login.",
             status_code=400,
         )
     state = jwt.create_oauth_state_token(bind_user_id=user.id, next_path=next_path)
@@ -243,7 +248,7 @@ async def instagram_callback(
     return api_response(
         data=TokenResponse(
             access_token=access,
-            user=build_user_response(user),
+            user=await build_user_response(db, user),
             next=oauth_next,
             prefill=oauth_prefill,
         )
@@ -408,7 +413,9 @@ async def refresh(
     # buzz-ops engineering/gaps/archive/auth.ci-session-restore-flake.md — same
     # UserResponse fields as
     # /me, same transaction, so token_version can't drift between them.
-    return api_response(data=RefreshResponse(access_token=access, user=build_user_response(user)))
+    return api_response(
+        data=RefreshResponse(access_token=access, user=await build_user_response(db, user))
+    )
 
 
 @router.post("/view-as/end", response_model=DataResponse[OkResponse])
@@ -488,10 +495,12 @@ async def logout(
 
 
 @router.get("/me", response_model=DataResponse[UserResponse])
-async def me(user: User = Depends(get_current_user)) -> APIResponse:
+async def me(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> APIResponse:
     """Return the current user (no status gate; onboarding pages call this)."""
 
-    return api_response(data=build_user_response(user))
+    return api_response(data=await build_user_response(db, user))
 
 
 @router.post(
@@ -550,7 +559,9 @@ async def dev_login(
 
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
-    return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
+    return api_response(
+        data=TokenResponse(access_token=access, user=await build_user_response(db, user))
+    )
 
 
 # ── Org onboarding (Stage 7) ────────────────────────────────────────────────
@@ -576,7 +587,7 @@ async def verify_email_endpoint(
         user = result["user"]
         access, refresh = await issue_token_pair(db, user)
         _set_refresh_cookie(response, refresh)
-        ur = build_user_response(user)
+        ur = await build_user_response(db, user)
         return api_response(
             data=VerifyEmailResponse(
                 status=user.status,
@@ -638,7 +649,9 @@ async def redeem_org_connect_endpoint(
     user = await redeem_org_connect_token(db, payload.token)
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
-    return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
+    return api_response(
+        data=TokenResponse(access_token=access, user=await build_user_response(db, user))
+    )
 
 
 @router.post(

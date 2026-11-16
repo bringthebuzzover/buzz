@@ -36,7 +36,6 @@ it.each([
   ["pending_org_profile", "/onboarding/profile"],
   ["pending_email_verification", "/onboarding/verify-email"],
   ["pending_approval", "/onboarding/pending-approval"],
-  ["pending_instagram", "/onboarding/connect-instagram"],
 ])("keeps %s behind onboarding while retaining the drop", (status, path) => {
   const user = { id: "test-org", portalRole: "org" as const, status };
   expect(pathForUser(user, `/d/${DROP}`)).toBe(`${path}?next=%2Fd%2F${DROP}`);
@@ -54,4 +53,10 @@ it.each([`/d/${DROP}`, "https://example.com"])("removes verification credentials
   stripTokenFromUrl(next);
   expect(window.location.search).toBe(onboardingQuery(next));
   window.history.replaceState(null, "", "/");
+});
+
+it("keeps an active account switch on Connect before following the drop", () => {
+  const user = { id: "test-org", portalRole: "org" as const, status: "active", instagramReconnectRequired: true };
+  expect(pathForUser(user, `/d/${DROP}`)).toBe(`/onboarding/connect-instagram?next=%2Fd%2F${DROP}`);
+  expect(pathForUser({ ...user, instagramReconnectRequired: false }, `/d/${DROP}`)).toBe(`/d/${DROP}`);
 });

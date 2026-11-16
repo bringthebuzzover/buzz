@@ -2229,6 +2229,20 @@
         "title": "AdminIgChangeRequestItem",
         "type": "object"
       },
+      "AdminIgChangeRetargetRequest": {
+        "description": "New handle for a switch ticket that is stuck waiting to reconnect.",
+        "properties": {
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestedHandle"
+        ],
+        "title": "AdminIgChangeRetargetRequest",
+        "type": "object"
+      },
       "AdminInviteState": {
         "description": "Latest brand invite token. ``used_at`` is ambiguous between redeemed and\nsuperseded, so read it alongside ``password_set``.",
         "properties": {
@@ -2457,6 +2471,11 @@
             "title": "Impersonatable",
             "type": "boolean"
           },
+          "instagramConnectRequired": {
+            "default": false,
+            "title": "Instagramconnectrequired",
+            "type": "boolean"
+          },
           "instagramHandle": {
             "anyOf": [
               {
@@ -2471,6 +2490,11 @@
           "instagramHandleConfirmed": {
             "default": false,
             "title": "Instagramhandleconfirmed",
+            "type": "boolean"
+          },
+          "instagramReconnectRequired": {
+            "default": false,
+            "title": "Instagramreconnectrequired",
             "type": "boolean"
           },
           "instagramTokenExpiresAt": {
@@ -2827,6 +2851,11 @@
             "title": "Impersonatable",
             "type": "boolean"
           },
+          "instagramConnectRequired": {
+            "default": false,
+            "title": "Instagramconnectrequired",
+            "type": "boolean"
+          },
           "instagramHandle": {
             "anyOf": [
               {
@@ -2841,6 +2870,11 @@
           "instagramHandleConfirmed": {
             "default": false,
             "title": "Instagramhandleconfirmed",
+            "type": "boolean"
+          },
+          "instagramReconnectRequired": {
+            "default": false,
+            "title": "Instagramreconnectrequired",
             "type": "boolean"
           },
           "instagramTokenExpiresAt": {
@@ -11075,7 +11109,7 @@
         "type": "object"
       },
       "UserResponse": {
-        "description": "Current-user payload returned by login + ``GET /api/auth/me`` (\u00a76.2).\n\n``impersonated_by`` is set only while an admin is viewing as this user; the\nSPA keys its exit banner off it.",
+        "description": "Current-user payload returned by login + ``GET /api/auth/me`` (\u00a76.2).\n\n``impersonated_by`` is set only while an admin is viewing as this user; the\nSPA keys its exit banner off it.\n\nTwo distinct Connect reasons, kept apart on purpose:\n\n* ``instagram_reconnect_required`` \u2014 an active org whose approved account\n  switch released its credentials. The portal is closed until it binds.\n* ``instagram_connect_required`` \u2014 an unbound org still awaiting approval\n  that has never connected Instagram. Nothing is closed; it simply has one\n  step left, and ``approve_org`` refuses until it is done.",
         "properties": {
           "email": {
             "anyOf": [
@@ -11115,6 +11149,16 @@
               }
             ],
             "title": "Impersonation Readonly"
+          },
+          "instagram_connect_required": {
+            "default": false,
+            "title": "Instagram Connect Required",
+            "type": "boolean"
+          },
+          "instagram_reconnect_required": {
+            "default": false,
+            "title": "Instagram Reconnect Required",
+            "type": "boolean"
           },
           "instagram_username": {
             "anyOf": [
@@ -13669,6 +13713,76 @@
         ]
       }
     },
+    "/api/admin/ig-change-requests/{request_id}/retarget": {
+      "post": {
+        "description": "Point a stuck reconnect ticket at the handle the org can actually bind.",
+        "operationId": "retarget_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__retarget_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminIgChangeRetargetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Retarget Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/impersonate/resume": {
       "post": {
         "description": "Remint View as from the httpOnly intent cookie.\n\nRequires the caller's own admin access token. The cookie alone is not a\nsession. Missing cookie is 404 (nothing to resume). A cookie whose role\ndoes not match ``body.role`` is also 404 and is left in place, so opening\nan org URL does not mint a brand session or destroy it. A cookie minted\nfor a different admin, a stale ``imp_ver``, or a target that can no longer\nbe impersonated is rejected and the cookie is cleared.\n\nDoes not rewrite the cookie. The 8h cap is fixed at the first mint;\nrefresh rotation updates ``imp_ver`` without extending ``exp``.",
@@ -13889,8 +14003,8 @@
     },
     "/api/admin/orgs/resend-connect-all": {
       "post": {
-        "description": "Email Connect Instagram to every ``pending_instagram`` org.\n\nDoes not email orgs still verifying school email or awaiting approval.",
-        "operationId": "resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post",
+        "description": "Email Connect Instagram to every org that still has to connect.\n\nCovers both cohorts: an approved account switch awaiting its bind, and an\norg that verified its ``.edu`` but never connected Instagram (it must connect\nbefore an admin can approve it). Does not email orgs still verifying school\nemail, orgs without a profile, already-connected orgs, or erased accounts.",
+        "operationId": "resend_all_awaiting_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post",
         "parameters": [
           {
             "in": "header",
@@ -13931,7 +14045,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Resend All Pending Instagram Connect Endpoint",
+        "summary": "Resend All Awaiting Instagram Connect Endpoint",
         "tags": [
           "admin"
         ]
@@ -14127,6 +14241,7 @@
     },
     "/api/admin/orgs/{org_id}/resend-connect": {
       "post": {
+        "description": "Re-send the Connect link for an **approved account switch**.\n\nSwitch holders only. For an org that has never connected Instagram, use\n``send-connect-link`` instead.",
         "operationId": "resend_org_connect_endpoint_api_admin_orgs__org_id__resend_connect_post",
         "parameters": [
           {
@@ -14179,6 +14294,66 @@
           }
         },
         "summary": "Resend Org Connect Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/orgs/{org_id}/send-connect-link": {
+      "post": {
+        "description": "Email a Connect Instagram link to an unbound org that has never connected.\n\nFor orgs that verified their ``.edu`` under the apply-first flow and were\nnever approved: they have no credentials, so approval refuses and\n``resend-connect`` (switch holders) refuses too. The link lets them bind\nfirst; they stay ``pending_approval`` until an admin approves them.",
+        "operationId": "send_org_connect_link_endpoint_api_admin_orgs__org_id__send_connect_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgStatusResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Send Org Connect Link Endpoint",
         "tags": [
           "admin"
         ]
@@ -15380,7 +15555,7 @@
     },
     "/api/auth/instagram/bind-start": {
       "post": {
-        "description": "Mint OAuth state with bind claim for ``pending_instagram`` orgs.",
+        "description": "Mint OAuth state with bind claim for any org that must connect Instagram.\n\nTwo cohorts may bind: an active org whose approved account switch released\nits credentials, and an unbound org still awaiting approval that never\nconnected Instagram. A bind never activates the latter \u2014 ``approve_org``\nstays the only path to ``active``.",
         "operationId": "instagram_bind_start_api_auth_instagram_bind_start_post",
         "parameters": [
           {

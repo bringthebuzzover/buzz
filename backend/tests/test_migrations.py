@@ -128,6 +128,7 @@ async def test_alembic_matches_models() -> None:
         )
         await _assert_drop_request_columns_nullable(parity_url)
         await _assert_legacy_lifecycle_round_trip(parity_url)
+        await _assert_reconnect_status_round_trip(parity_url)
     finally:
         await _drop_db(admin_url, parity_db)
 
@@ -289,3 +290,172 @@ async def test_concurrent_alembic_upgrade_head() -> None:
             )
     finally:
         await _drop_db(admin_url, parity_db)
+
+
+async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
+    """Retire every legacy row without stranding a user or losing switch history.
+
+    Four legacy cohorts (numbered as in the migration docstring), all previously
+    ``pending_instagram``:
+
+    1. unbound with an approved account switch → the ticket flips to
+       ``awaiting_connect``,
+    2. bound (Graph id + token) → active,
+    3. unbound, no switch, with a claimed handle → active **plus** a
+       migration-synthesized ``awaiting_connect`` ticket, because
+       ``pending_approval`` is a dead end for the old apply-first cohort,
+    4. unbound, no switch, no claimed handle → ``pending_approval``, no ticket,
+       so the admin "send Connect link" action can reach it.
+    """
+    old_revision = "c4d5e6f7a8b9"
+    result = _run_alembic(["downgrade", old_revision], parity_url)
+    assert result.returncode == 0, result.stderr
+    conn = await asyncpg.connect(parity_url.replace("postgresql+asyncpg://", "postgresql://", 1))
+    ids = [uuid.uuid4() for _ in range(4)]
+    org_ids = [uuid.uuid4() for _ in ids]
+    claimed_handles = [None, None, "legacyclaimed", None]
+    switch_id = uuid.uuid4()
+    recovery_id = uuid.uuid4()
+    try:
+        for index, (user_id, org_id) in enumerate(zip(ids, org_ids)):
+            await conn.execute(
+                "INSERT INTO users (id, portal_role, status, instagram_user_id, "
+                "instagram_access_token, instagram_username) "
+                "VALUES ($1, 'org', 'pending_instagram', $2, $3, $4)",
+                user_id,
+                "fake-bound-ig" if index == 1 else None,
+                "fake-legacy-token" if index in (1, 3) else None,
+                claimed_handles[index],
+            )
+            await conn.execute(
+                "INSERT INTO organizations (id, user_id, org_name, university) "
+                "VALUES ($1, $2, 'Test Org', 'Test University')",
+                org_id,
+                user_id,
+            )
+        await conn.execute(
+            "INSERT INTO org_ig_change_requests "
+            "(id, org_id, user_id, kind, current_handle, requested_handle, reason, "
+            "status, decided_kind, decided_at) "
+            "VALUES ($1, $2, $3, 'account_switch', 'oldclub', 'newclub', "
+            "'Switch the organization account.', 'approved', 'account_switch', now())",
+            switch_id,
+            org_ids[0],
+            ids[0],
+        )
+        # Equality alone must not give an ordinary recovery ticket the migration exemption.
+        await conn.execute(
+            "INSERT INTO org_ig_change_requests "
+            "(id, org_id, user_id, kind, current_handle, requested_handle, reason, "
+            "status, decided_kind, decided_at, created_at) "
+            "VALUES ($1, $2, $3, 'account_switch', 'originalclub', 'originalclub', "
+            "'Return to the original account.', 'approved', 'account_switch', now(), now())",
+            recovery_id,
+            org_ids[1],
+            ids[1],
+        )
+        result = _run_alembic(["upgrade", "head"], parity_url)
+        assert result.returncode == 0, result.stderr
+        statuses = dict(
+            await conn.fetch("SELECT id, status::text FROM users WHERE id = ANY($1)", ids)
+        )
+        # Cohort 4 (unbound, nothing claimed) lands in pending_approval: there is
+        # no handle to bind and no ticket to redeem, so 'active' would close the
+        # portal with no Connect action able to reopen it. pending_approval is
+        # reachable by the admin "send Connect link" action.
+        assert statuses == dict(zip(ids, ("active", "active", "active", "pending_approval")))
+        assert (
+            await conn.fetchval(
+                "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id
+            )
+            == "awaiting_connect"
+        )
+        assert (
+            await conn.fetchval(
+                "SELECT bool_or(is_migration_placeholder) FROM org_ig_change_requests "
+                "WHERE id = ANY($1)",
+                [switch_id, recovery_id],
+            )
+            is False
+        )
+
+        # The legacy apply-first org gets a synthesized reconnect ticket naming
+        # the handle it claimed, which is what ``resend_org_connect`` and
+        # bind-start read.
+        synthesized = await conn.fetch(
+            "SELECT org_id, user_id, kind, status, decided_kind, current_handle, "
+            "requested_handle, reason, is_migration_placeholder FROM org_ig_change_requests "
+            "WHERE org_id = $1",
+            org_ids[2],
+        )
+        assert len(synthesized) == 1, synthesized
+        ticket = synthesized[0]
+        assert ticket["org_id"] == org_ids[2]
+        assert ticket["user_id"] == ids[2]
+        assert ticket["kind"] == "account_switch"
+        assert ticket["decided_kind"] == "account_switch"
+        assert ticket["status"] == "awaiting_connect"
+        assert ticket["current_handle"] == "legacyclaimed"
+        assert ticket["requested_handle"] == "legacyclaimed"
+        assert "migration" in (ticket["reason"] or "").lower()
+        assert ticket["is_migration_placeholder"] is True
+
+        # A reconnect holder keeps no stale Graph identity. Leaving it would let
+        # an ordinary login as the old account match the row and reopen the
+        # portal without going through the switch's target check.
+        for uid in ids:
+            row = await conn.fetchrow(
+                "SELECT instagram_user_id, instagram_access_token FROM users WHERE id = $1",
+                uid,
+            )
+            status = await conn.fetchval("SELECT status::text FROM users WHERE id = $1", uid)
+            has_ticket = await conn.fetchval(
+                "SELECT EXISTS (SELECT 1 FROM org_ig_change_requests r "
+                "JOIN organizations o ON o.id = r.org_id "
+                "WHERE o.user_id = $1 AND r.status = 'awaiting_connect')",
+                uid,
+            )
+            if has_ticket:
+                assert row["instagram_user_id"] is None, (uid, status, dict(row))
+                assert row["instagram_access_token"] is None, (uid, status, dict(row))
+
+        # No user and no request row was lost, and the enum label is intact.
+        assert await conn.fetchval("SELECT count(*) FROM users WHERE id = ANY($1)", ids) == 4
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM org_ig_change_requests WHERE org_id = ANY($1)", org_ids
+            )
+            == 3
+        )
+
+        result = _run_alembic(["check"], parity_url)
+        assert result.returncode == 0, result.stderr
+
+        # Re-running the upgrade must not duplicate the synthesized ticket or
+        # drop rows (idempotency across a downgrade/upgrade cycle).
+        for direction, revision, expected_user, expected_request in (
+            ("downgrade", old_revision, "pending_instagram", "approved"),
+            ("upgrade", "head", "active", "awaiting_connect"),
+        ):
+            result = _run_alembic([direction, revision], parity_url)
+            assert result.returncode == 0, result.stderr
+            assert (
+                await conn.fetchval("SELECT status::text FROM users WHERE id = $1", ids[0])
+                == expected_user
+            )
+            assert (
+                await conn.fetchval(
+                    "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id
+                )
+                == expected_request
+            )
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM org_ig_change_requests WHERE org_id = $1", org_ids[2]
+            )
+            == 1
+        )
+        result = _run_alembic(["check"], parity_url)
+        assert result.returncode == 0, result.stderr
+    finally:
+        await conn.close()

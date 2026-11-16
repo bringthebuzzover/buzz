@@ -13,6 +13,9 @@
 #
 # Env:
 #   DATABASE_URL   asyncpg URL (default: postgresql+asyncpg://localhost/buzz)
+#   BUZZ_VERIFIED_TEST_DATABASE_URL  optional caller-verified disposable local
+#                 buzz_test_* / buzz_gate_* URL; must equal DATABASE_URL. Enables
+#                 committed separate-connection races; never inferred from it.
 #   ENVIRONMENT    passed through to E2E/backend (default: development)
 
 set -euo pipefail
@@ -24,6 +27,10 @@ export DATABASE_URL="${DATABASE_URL:-postgresql+asyncpg://localhost/buzz}"
 export ENVIRONMENT="${ENVIRONMENT:-development}"
 
 die() { echo "error: $*" >&2; exit 1; }
+
+if [[ -n "${BUZZ_VERIFIED_TEST_DATABASE_URL:-}" && "${BUZZ_VERIFIED_TEST_DATABASE_URL}" != "$DATABASE_URL" ]]; then
+  die "BUZZ_VERIFIED_TEST_DATABASE_URL must match DATABASE_URL for this gate"
+fi
 
 if ! command -v poetry >/dev/null 2>&1; then
   die "poetry not found"

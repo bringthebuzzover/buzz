@@ -34,7 +34,7 @@ from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.services.brand_ig_change_requests import brands_with_pending_ig_change
 from app.services.drop_apply_intents import (
     expire_open_intents_for_org,
@@ -49,8 +49,8 @@ from app.services.email import (
     KIND_IG_SWITCH_CONNECT,
     KIND_LATE_ADD_BRAND,
     KIND_LATE_ADD_ORG,
-    KIND_ORG_APPROVED,
     KIND_ORG_APPROVED_BOUND,
+    KIND_ORG_CONNECT_BEFORE_APPROVAL,
     _ops_cc,
     build_idempotency_key,
     send_admin_compose_email,
@@ -62,6 +62,7 @@ from app.services.email import (
     send_late_add_brand_email,
     send_late_add_org_email,
     send_org_approved_email,
+    send_org_connect_before_approval_email,
     send_org_denied_email,
     send_org_ig_switch_connect_email,
     send_org_undenied_email,
@@ -73,7 +74,14 @@ from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.lifecycle import ENDED_DECISIONS, drop_stage, require_drop, seat_is_live
 from app.services.org_apply import ig_bind_mismatch_open
-from app.services.org_connect import create_org_connect_token
+from app.services.org_connect import (
+    create_org_connect_token,
+    org_awaits_initial_connect,
+    org_connect_action,
+    org_connect_actions,
+    org_has_instagram_credentials,
+    org_owes_instagram_reconnect,
+)
 from app.services.seats import lock_drop, set_seat_decision
 from app.timeutils import utcnow
 
@@ -82,6 +90,14 @@ logger = logging.getLogger(__name__)
 _ORG_STATUSES = frozenset(member.value for member in OrgUserStatus)
 _BRAND_STATUSES = frozenset(member.value for member in BrandStatus)
 _ORG_ATTENTIONS = frozenset({"ig_bind_mismatch"})
+
+# Refusal copy for the pre-approval Connect action. It names the other action so
+# an admin who picked the wrong button for a switch holder is told where to go.
+_CONNECT_LINK_REFUSAL = (
+    "This organization is not waiting to connect Instagram for the first time. "
+    "It is either already connected, no longer in a pre-approval state, or waiting "
+    "on an approved account switch (use Resend connect email for that case)."
+)
 
 
 async def list_orgs(
@@ -96,7 +112,7 @@ async def list_orgs(
     filter on ``id``.
     """
 
-    if status is not None and status not in _ORG_STATUSES:
+    if status is not None and status not in _ORG_STATUSES and status != "awaiting_connect":
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
             f"Unknown organization status: {status}.",
@@ -115,7 +131,7 @@ async def list_orgs(
         .where(User.portal_role == PortalRole.ORG.value)
         .order_by(User.created_at.asc())
     )
-    if status is not None:
+    if status is not None and status != "awaiting_connect":
         stmt = stmt.where(User.status == status)
     else:
         # All filter excludes erased tombstones (PRODUCT §3.1.2); use ?status=erased.
@@ -127,8 +143,14 @@ async def list_orgs(
         )
 
     rows = list(await db.execute(stmt))
+    users = [user for user, _ in rows]
+    connect_actions = await org_connect_actions(db, users)
+
     listed = []
     for user, org in rows:
+        connect_action = connect_actions[user.id]
+        if status == "awaiting_connect" and connect_action != "switch":
+            continue
         erased = user.status == OrgUserStatus.ERASED.value
         listed.append(
             {
@@ -164,6 +186,8 @@ async def list_orgs(
                 "member_count": None if erased else (org.member_count if org is not None else None),
                 "category": None if erased else (org.category if org is not None else None),
                 "status": user.status,
+                "instagram_reconnect_required": connect_action == "switch",
+                "instagram_connect_required": connect_action == "initial",
                 "edu_email": None if erased else user.edu_email,
                 "email_verified_at": None if erased else user.email_verified_at,
                 "approved_at": None if erased else (org.approved_at if org is not None else None),
@@ -222,7 +246,7 @@ async def approve_org(
     tester_invite_confirmed: bool = False,
     background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
-    """Approve a pending org → pending_instagram (or active if IG already bound)."""
+    """Approve a connected pending org into active."""
     org = await db.get(Organization, org_id)
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
@@ -239,42 +263,26 @@ async def approve_org(
             status_code=400,
         )
 
-    already_bound = bool(user.instagram_user_id and user.instagram_access_token)
-    if not already_bound and not tester_invite_confirmed:
+    # Signup is Instagram-first. Approval must not resurrect the old unbound
+    # onboarding path; the org must reconnect before an admin can approve it.
+    if not (user.instagram_user_id and user.instagram_access_token):
         raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Confirm you added this organization as an Instagram Tester before approving.",
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization must reconnect Instagram before it can be approved.",
             status_code=400,
         )
 
-    now = datetime.now(timezone.utc)
-    org.approved_at = now
-
-    # Instagram-first applications are already connected.
-    connect_token: str | None = None
-    if already_bound:
-        user.status = OrgUserStatus.ACTIVE.value
-        await db.flush()
-        await promote_drop_apply_intents(db, user)
-        await schedule_email(
-            background_tasks,
-            send_org_approved_email,
-            user.edu_email or "",
-            org_name=org.org_name,
-            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED_BOUND, org.id),
-        )
-    else:
-        user.status = OrgUserStatus.PENDING_INSTAGRAM.value
-        connect_token, connect_token_id = await create_org_connect_token(db, org, user)
-        await db.flush()
-        await schedule_email(
-            background_tasks,
-            send_org_approved_email,
-            user.edu_email or "",
-            org_name=org.org_name,
-            connect_token=connect_token,
-            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED, connect_token_id),
-        )
+    org.approved_at = datetime.now(timezone.utc)
+    user.status = OrgUserStatus.ACTIVE.value
+    await db.flush()
+    await promote_drop_apply_intents(db, user)
+    await schedule_email(
+        background_tasks,
+        send_org_approved_email,
+        user.edu_email or "",
+        org_name=org.org_name,
+        idempotency_key=build_idempotency_key(KIND_ORG_APPROVED_BOUND, org.id),
+    )
 
     return {"org_id": str(org.id), "status": user.status}
 
@@ -282,17 +290,17 @@ async def approve_org(
 async def resend_org_connect(
     db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
-    """Mint a fresh connect token and email it (pending_instagram only)."""
+    """Mint a fresh connect token for an org still owing a reconnect."""
     org = await db.get(Organization, org_id)
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
-    user = await db.get(User, org.user_id)
+    user = await lock_user(db, org.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
     _refuse_erased_org(user)
-    if user.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+    if not await org_owes_instagram_reconnect(db, user):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Organization is not waiting to connect Instagram.",
@@ -302,57 +310,123 @@ async def resend_org_connect(
     raw, connect_token_id = await create_org_connect_token(db, org, user)
     await db.flush()
     switch = await latest_approved_switch(db, org.id)
-    if switch is not None:
-        email_queued = await schedule_email(
-            background_tasks,
-            send_org_ig_switch_connect_email,
-            user.edu_email or "",
-            org_name=org.org_name,
-            connect_token=raw,
-            requested_handle=switch.requested_handle,
-            idempotency_key=build_idempotency_key(KIND_IG_SWITCH_CONNECT, connect_token_id),
+    if switch is None:
+        # org_owes_instagram_reconnect() reads the same rows, so this is a
+        # broken invariant, not an expected state. Raise rather than assert:
+        # an ``assert`` disappears under ``python -O``.
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization is not waiting to connect Instagram.",
+            status_code=400,
         )
-    else:
-        email_queued = await schedule_email(
-            background_tasks,
-            send_org_approved_email,
-            user.edu_email or "",
-            org_name=org.org_name,
-            connect_token=raw,
-            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED, connect_token_id),
-        )
+    email_queued = await schedule_email(
+        background_tasks,
+        send_org_ig_switch_connect_email,
+        user.edu_email or "",
+        org_name=org.org_name,
+        connect_token=raw,
+        requested_handle=switch.requested_handle,
+        idempotency_key=build_idempotency_key(KIND_IG_SWITCH_CONNECT, connect_token_id),
+    )
     return {"org_id": str(org.id), "status": user.status, "email_queued": email_queued}
 
 
-async def resend_all_pending_instagram_connect(
+async def send_org_connect_link(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
+    """Mint a Connect Instagram link for an unbound org in a pre-approval state.
+
+    Signup is Instagram-first and ``approve_org`` requires live credentials, so
+    an org that verified its ``.edu`` under the retired apply-first flow — and
+    never did the OAuth handshake — cannot be approved and cannot recover on its
+    own: a plain Instagram login collides with the handle already claimed on its
+    own row (409), its ``.edu`` is uniquely indexed, and ``bind-start`` needs a
+    reconnect ticket it does not have. This is the admin exit: the org connects,
+    then approval succeeds.
+
+    Deliberately *not* ``resend_org_connect``: that action describes an approved
+    account switch and says so in its email. This one keeps the credential gate
+    on approval and mints an ordinary ``org_connect_tokens`` row, which
+    ``redeem_org_connect_token`` accepts because the org is unbound and
+    pre-approval. Nothing here changes ``user.status``.
+    """
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    user = await lock_user(db, org.user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    _refuse_erased_org(user)
+    if not org_awaits_initial_connect(user):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            _CONNECT_LINK_REFUSAL,
+            status_code=400,
+        )
+    if not (user.edu_email or "").strip():
+        # The token is emailed; without an address the link would be minted and
+        # then silently discarded. Refuse rather than claim success.
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This organization has no school email on file.",
+            status_code=400,
+        )
+
+    raw, connect_token_id = await create_org_connect_token(db, org, user)
+    await db.flush()
+    email_queued = await schedule_email(
+        background_tasks,
+        send_org_connect_before_approval_email,
+        user.edu_email or "",
+        org_name=org.org_name,
+        connect_token=raw,
+        claimed_handle=org.claimed_instagram_username or user.instagram_username or "",
+        idempotency_key=build_idempotency_key(KIND_ORG_CONNECT_BEFORE_APPROVAL, connect_token_id),
+    )
+    return {"org_id": str(org.id), "status": user.status, "email_queued": email_queued}
+
+
+async def resend_all_awaiting_instagram_connect(
     db: AsyncSession, *, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
-    """Email Connect Instagram to every org whose last step is that bind.
+    """Email every org that still has to connect Instagram, either cohort.
 
-    Selects ``pending_instagram`` only — not unverified, awaiting-approval,
-    or active orgs. Reuses :func:`resend_org_connect` so switch vs first
-    approve keeps the right template.
+    Two independent reasons to owe a Connect: an approved account switch on an
+    active org, and an unbound org that verified its ``.edu`` under the retired
+    apply-first flow and never connected. Both are emailed here, because both
+    are stuck without the link and the admin button says "awaiting Instagram".
+
+    Excludes orgs still verifying school email or awaiting a profile (no
+    Connect action applies), bound active orgs, and erased tombstones.
     """
-
     rows = await db.execute(
-        select(Organization.id, User.edu_email)
+        select(Organization, User)
         .join(User, User.id == Organization.user_id)
         .where(
             User.portal_role == PortalRole.ORG.value,
-            User.status == OrgUserStatus.PENDING_INSTAGRAM.value,
+            User.status != OrgUserStatus.ERASED.value,
         )
     )
     targeted = 0
     queued = 0
     failed = 0
     skipped = 0
-    for org_id, edu_email in rows.all():
+    for org, user in rows.all():
+        action = await org_connect_action(db, user)
+        if action is None:
+            continue
+        org_id, edu_email = org.id, user.edu_email
         targeted += 1
         if not (edu_email or "").strip():
             skipped += 1
             continue
         try:
-            out = await resend_org_connect(db, org_id, background_tasks=background_tasks)
+            if action == "switch":
+                out = await resend_org_connect(db, org_id, background_tasks=background_tasks)
+            else:
+                out = await send_org_connect_link(db, org_id, background_tasks=background_tasks)
         except BuzzAPIException:
             logger.warning("Bulk connect email skipped failed org %s", org_id)
             failed += 1
@@ -830,7 +904,11 @@ async def add_org_to_drop(
     application.decision_at = application.decision_sent_at = utcnow()
     await db.flush()
 
-    portal_ready = org_user.status == OrgUserStatus.ACTIVE.value
+    # An approved switch releases the org's credentials while leaving it active,
+    # so status alone would claim a portal that returns 403 on every request.
+    portal_ready = org_user.status == OrgUserStatus.ACTIVE.value and (
+        org_has_instagram_credentials(org_user)
+    )
     org_name = org.org_name or "an organization"
     email_org_queued: bool | None = None
     email_brand_queued: bool | None = None
@@ -919,7 +997,7 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     requiring a matching Graph user_id. Status is left alone so a
     pending_email_verification org can reach resend again after reconnecting.
     """
-    user = await db.get(User, user_id)
+    user = await lock_user(db, user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 

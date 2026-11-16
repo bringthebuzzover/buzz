@@ -42,6 +42,14 @@ class UserResponse(BaseModel):
 
     ``impersonated_by`` is set only while an admin is viewing as this user; the
     SPA keys its exit banner off it.
+
+    Two distinct Connect reasons, kept apart on purpose:
+
+    * ``instagram_reconnect_required`` — an active org whose approved account
+      switch released its credentials. The portal is closed until it binds.
+    * ``instagram_connect_required`` — an unbound org still awaiting approval
+      that has never connected Instagram. Nothing is closed; it simply has one
+      step left, and ``approve_org`` refuses until it is done.
     """
 
     id: uuid.UUID
@@ -50,6 +58,8 @@ class UserResponse(BaseModel):
     instagram_username: str | None = None
     email: str | None = None
     pending_edu_email: str | None = None
+    instagram_reconnect_required: bool = False
+    instagram_connect_required: bool = False
     impersonated_by: uuid.UUID | None = None
     impersonation_readonly: bool | None = None
 

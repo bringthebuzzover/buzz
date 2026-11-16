@@ -6,6 +6,7 @@ go through ``app_client`` (which shares the rolled-back ``db_session``).
 
 from __future__ import annotations
 
+import pytest
 from fastapi import Depends
 from httpx import AsyncClient
 
@@ -110,3 +111,16 @@ async def test_non_active_status_forbidden(app_client: AsyncClient, db_session) 
     )
     assert resp.status_code == 403
     assert resp.json()["error"]["code"] == "FORBIDDEN"
+
+
+@pytest.mark.parametrize("missing", ["instagram_user_id", "instagram_access_token", None])
+async def test_active_org_requires_bound_credentials(app_client: AsyncClient, db_session, missing):
+    user = make_user()
+    if missing:
+        setattr(user, missing, None)
+    await persist(db_session, user)
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    portal = await app_client.get("/_test/active-org", headers=headers)
+    assert portal.status_code == (403 if missing else 200)
+    # Authentication remains available to start the reconnect flow.
+    assert (await app_client.get("/api/auth/me", headers=headers)).status_code == 200

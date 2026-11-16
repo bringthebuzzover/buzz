@@ -63,6 +63,7 @@ from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.security import jwt, rate_limit
+from app.security.token_crypto import encrypt_token
 from app.services import address as address_service
 from app.services.address import FormatFallbackAddressClient, get_address_client
 from app.services.instagram import (
@@ -301,12 +302,16 @@ def make_user(
     *,
     role: PortalRole = PortalRole.ORG,
     status: OrgUserStatus = OrgUserStatus.ACTIVE,
-    instagram_user_id: str | None = None,
+    instagram_user_id: str | None = "__auto__",
     instagram_username: str | None = None,
 ) -> User:
     """Build (not persist) a ``User`` with sensible auth-test defaults."""
 
     uid = uuid.uuid4()
+    if instagram_user_id == "__auto__":
+        instagram_user_id = (
+            f"ig_{uid.hex}" if role is PortalRole.ORG and status is OrgUserStatus.ACTIVE else None
+        )
     if role is PortalRole.ORG:
         handle = instagram_username if instagram_username is not None else f"org{uid.hex[:16]}"
     else:
@@ -316,6 +321,11 @@ def make_user(
         portal_role=role.value,
         status=status.value,
         instagram_user_id=instagram_user_id,
+        instagram_access_token=(
+            encrypt_token("fake-instagram-token")
+            if role is PortalRole.ORG and instagram_user_id
+            else None
+        ),
         instagram_username=handle,
     )
 
@@ -347,6 +357,45 @@ async def make_org(
     db.add(org)
     await db.flush()
     return org
+
+
+async def make_awaiting_connect(
+    db: AsyncSession,
+    user: User,
+    org: Organization,
+    *,
+    current_handle: str | None = "oldclub",
+    requested_handle: str | None = None,
+    is_migration_placeholder: bool = False,
+):
+    """An approved account switch whose credentials have been released.
+
+    ``current_handle`` defaults to a real switch (a *different* previous handle),
+    which is enforced on bind. Explicitly set ``is_migration_placeholder`` for
+    a retirement-migration ticket: it names no target, so any bind satisfies it.
+    """
+    from app.models.org_ig_change_request import OrgIgChangeRequest
+
+    user.instagram_user_id = None
+    user.instagram_token_user_id = None
+    user.instagram_access_token = None
+    requested = requested_handle or user.instagram_username or "newclub"
+    row = OrgIgChangeRequest(
+        id=uuid.uuid4(),
+        org_id=org.id,
+        user_id=user.id,
+        kind="account_switch",
+        decided_kind="account_switch",
+        current_handle=requested if current_handle is None else current_handle,
+        requested_handle=requested,
+        is_migration_placeholder=is_migration_placeholder,
+        reason="Switch to the new organization account.",
+        status="awaiting_connect",
+        decided_at=datetime.now(timezone.utc),
+    )
+    db.add(row)
+    await db.flush()
+    return row
 
 
 async def make_brand(

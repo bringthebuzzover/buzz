@@ -51,9 +51,9 @@ KIND_BRAND_APPLIED = "brand-applied"
 KIND_CONTACT = "contact-v2"
 KIND_CONTACT_ACK = "contact-ack"
 KIND_BRAND_INVITE = "brand-invite"
-KIND_ORG_APPROVED = "org-approved"
 KIND_ORG_APPROVED_BOUND = "org-approved-bound"
 KIND_IG_SWITCH_CONNECT = "ig-switch-connect"
+KIND_ORG_CONNECT_BEFORE_APPROVAL = "org-connect-before-approval"
 KIND_IG_RENAME_APPROVED = "ig-rename-approved"
 KIND_IG_CHANGE_DENIED = "ig-change-denied"
 KIND_ORG_APPLY_PREFILL = "org-apply-prefill"
@@ -411,6 +411,65 @@ async def send_org_ig_switch_connect_email(
         logger.info(
             "\n╔══════════════════════════════════════════════════════════════╗\n"
             "║  DEV EMAIL — Org IG switch connect:                         ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  URL: {connect_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
+
+
+async def send_org_connect_before_approval_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    connect_token: str,
+    claimed_handle: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
+    """Ask an unbound org to connect Instagram so an admin can approve it.
+
+    Honest framing only: the org is *not* approved yet and connects *before*
+    approval. ``send_org_approved_email`` says "approved" and
+    ``send_org_ig_switch_connect_email`` says an account change was approved —
+    both are false for this cohort, so this is a dedicated, deliberately short
+    sender rather than a reuse. The template helpers are shared.
+    """
+    name = org_name or "your organization"
+    handle = f"@{claimed_handle}" if claimed_handle else None
+    connect_url = f"{settings.FRONTEND_URL}/onboarding/connect-instagram?token={connect_token}"
+    subject = "Connect Instagram to finish your Buzz application"
+    text = (
+        f"{name} verified its school email on Buzz. One step is left before we can "
+        "review the application: connect Instagram.\n\n"
+        f"1. {_tester_invite_text(handle=handle)}\n"
+        "2. Connect your organization's Business or Creator Instagram:\n\n"
+        f"{connect_url}\n\n"
+        "We review the application once the account is connected. This link "
+        "expires in 7 days."
+    )
+    html = _cta_html(
+        connect_url,
+        subject=subject,
+        paragraphs=[
+            f"{name} verified its school email on Buzz. One step is left before we "
+            "can review the application: connect Instagram.",
+            _step_html(1, _tester_invite_html(handle=handle)),
+            _step_html(
+                2,
+                _connect_instagram_link_html(
+                    connect_url,
+                    trailing=" for your organization's Business or Creator account. "
+                    "We review the application once the account is connected.",
+                ),
+            ),
+            "This link expires in 7 days.",
+        ],
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Org connect before approval:                   ║\n"
             f"║  To: {to_email:<52s}║\n"
             f"║  URL: {connect_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"

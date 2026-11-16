@@ -62,6 +62,7 @@ from app.services.lifecycle import (
     seat_is_live,
     seat_progress,
 )
+from app.services.org_connect import org_connect_action
 from app.services.shipments import (
     shipments_by_application_ids,
     unshipped_live_seat_clause,
@@ -769,10 +770,13 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
     )
 
     erased = user.status == OrgUserStatus.ERASED.value
+    connect_action = await org_connect_action(db, user)
     return {
         "user_id": user.id,
         "org_id": org.id if org is not None else None,
         "status": user.status,
+        "instagram_reconnect_required": connect_action == "switch",
+        "instagram_connect_required": connect_action == "initial",
         "org_name": ((TOMBSTONE_ORG_NAME if erased else org.org_name) if org is not None else None),
         "university": "" if erased else (org.university if org is not None else None),
         "category": None if erased else (org.category if org is not None else None),

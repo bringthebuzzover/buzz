@@ -10,10 +10,20 @@ from httpx import AsyncClient
 
 from app.config import settings
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.security import jwt
 from app.security.password import hash_password
 from app.security.session import bump_token_version
-from tests.conftest import admin_headers, make_org, make_user, mint_access_token, persist
+from tests.conftest import (
+    admin_headers,
+    make_application,
+    make_brand,
+    make_drop,
+    make_org,
+    make_user,
+    mint_access_token,
+    persist,
+)
 
 
 async def _admin(db_session, *, email: str | None = None, password: str | None = None):
@@ -82,6 +92,73 @@ class TestAdminLogin:
 
 
 class TestImpersonate:
+    async def test_view_as_sees_applications_during_account_reconnect(
+        self, app_client: AsyncClient, db_session
+    ):
+        target = make_user(role=PortalRole.ORG, instagram_user_id=None)
+        target.instagram_access_token = None
+        target.instagram_username = None
+        await persist(db_session, target)
+        org = await make_org(db_session, target)
+        db_session.add(
+            OrgIgChangeRequest(
+                org_id=org.id,
+                user_id=target.id,
+                kind="account_switch",
+                current_handle="old_handle",
+                requested_handle="new_handle",
+                reason="Account access changed",
+                status="awaiting_connect",
+                decided_kind="account_switch",
+            )
+        )
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        await make_application(db_session, drop, org)
+
+        minted = await app_client.post(
+            f"/api/admin/impersonate/{target.id}", headers=await admin_headers(db_session)
+        )
+        assert minted.status_code == 200
+        headers = {"Authorization": f"Bearer {minted.json()['data']['accessToken']}"}
+        detail = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["data"]["alreadyApplied"] is True
+
+    async def test_tokenless_org_portal_requires_admin_impersonation(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        monkeypatch.setattr(settings, "IMPERSONATION_READONLY", True)
+        target = make_user(role=PortalRole.ORG, instagram_user_id=None)
+        target.instagram_access_token = None
+        await persist(db_session, target)
+        await make_org(db_session, target)
+
+        ordinary_headers = {"Authorization": f"Bearer {mint_access_token(target)}"}
+        ordinary = await app_client.get("/api/orgs/me", headers=ordinary_headers)
+        assert ordinary.status_code == 403
+
+        admin = await _admin(db_session)
+        res = await app_client.post(
+            f"/api/admin/impersonate/{target.id}",
+            headers={"Authorization": f"Bearer {mint_access_token(admin)}"},
+        )
+        assert res.status_code == 200, res.text
+        view_as_headers = {"Authorization": f"Bearer {res.json()['data']['accessToken']}"}
+        portal = await app_client.get("/api/orgs/me", headers=view_as_headers)
+        assert portal.status_code == 200, portal.text
+        mutation = await app_client.patch("/api/orgs/me", json={}, headers=view_as_headers)
+        assert mutation.status_code == 403
+        assert mutation.json()["error"]["code"] == "IMPERSONATION_READONLY"
+        # A following ordinary request must not inherit transient impersonation state.
+        ordinary = await app_client.get("/api/orgs/me", headers=ordinary_headers)
+        assert ordinary.status_code == 403
+        # The impersonation claim only works while its actor remains an active admin.
+        admin.portal_role = PortalRole.BRAND.value
+        await db_session.flush()
+        demoted = await app_client.get("/api/orgs/me", headers=view_as_headers)
+        assert demoted.status_code == 401
+
     async def test_mints_token_acting_as_target(self, app_client: AsyncClient, db_session):
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         await make_org(db_session, target)

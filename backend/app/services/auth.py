@@ -11,18 +11,19 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.security.token_crypto import encrypt_token
 from app.services.drop_apply_intents import promote_drop_apply_intents
 from app.services.instagram import (
@@ -35,6 +36,7 @@ from app.services.instagram import (
 )
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import assert_handle_available, flag_ig_bind_mismatch
+from app.services.org_connect import org_connect_action, org_may_connect_instagram
 from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,7 @@ async def handle_instagram_callback(
 ) -> User:
     """OAuth handshake: bind, refresh, or create a pending org identity.
 
-    * ``bind_user_id`` set (Connect flow) → update that pending_instagram user.
+    * ``bind_user_id`` set (Connect flow) → reconnect the approved switch.
     * Graph id already on a user → refresh tokens (returning login).
     * Unknown Graph id, no bind → org user awaiting their initial profile.
 
@@ -100,14 +102,26 @@ async def handle_instagram_callback(
     existing = matches[0] if matches else None
 
     if bind_user_id is not None:
-        target = await db.get(User, bind_user_id)
+        # Lock the row before reading eligibility. Two callbacks for the same org
+        # can otherwise both pass ``org_may_connect_instagram`` while the user is
+        # unbound; A binds and is approved, then B writes its own credentials
+        # from the stale eligibility result and the org ends up active on an
+        # account nobody approved. Holding the row serializes the check with the
+        # credential write below.
+        # ``populate_existing`` matters: the identity query above may already hold
+        # this user in the session. Without it, ``with_for_update`` takes the lock
+        # but returns the cached attributes, so a callback racing a completed bind
+        # would still see the old unbound state, pass eligibility, and write its
+        # credentials over a fresh account's id — pairing one account's id with
+        # another's token.
+        target = await lock_user(db, bind_user_id)
         if target is None or target.portal_role != PortalRole.ORG.value:
             raise BuzzAPIException(
                 errors.NOT_FOUND,
                 "Organization account not found.",
                 status_code=404,
             )
-        if target.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+        if not await org_may_connect_instagram(db, target):
             raise BuzzAPIException(
                 errors.INVALID_ONBOARDING_STATE,
                 "This account is not waiting to connect Instagram.",
@@ -128,7 +142,21 @@ async def handle_instagram_callback(
             status=OrgUserStatus.PENDING_ORG_PROFILE.value,
         )
     else:
-        user = existing
+        # Selection is only a hint until the account lock is acquired. Keep
+        # this lock through issue_token_pair's commit so approval/erase cannot
+        # interleave between credential storage and Buzz session issuance.
+        locked_user = await lock_user(db, existing.id)
+        if locked_user is None:
+            raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
+        user = locked_user
+        if user.status != OrgUserStatus.ERASED.value and not (
+            {user.instagram_user_id, user.instagram_token_user_id} & {profile.id, short.user_id}
+        ):
+            raise BuzzAPIException(
+                errors.INVALID_ONBOARDING_STATE,
+                "This Instagram identity changed while signing in. Please try logging in again.",
+                status_code=409,
+            )
 
     if user.status == OrgUserStatus.ERASED.value:
         # Do not write Graph ids, the handle, or a token back onto a tombstone.
@@ -149,7 +177,78 @@ async def handle_instagram_callback(
             status_code=400,
         )
 
-    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    org = await db.scalar(
+        select(Organization)
+        .where(Organization.user_id == user.id)
+        .execution_options(populate_existing=True)
+    )
+    if bind_user_id is None:
+        # An ordinary Instagram login must not satisfy an approved switch. Target
+        # enforcement lives on the Connect path (``bind_user_id``); without this
+        # guard, signing in with the account the org is *leaving* would write a
+        # fresh token and reopen the portal while the switch to the approved
+        # handle is still unfinished. Send them to the Connect link instead.
+        awaiting = await db.scalar(
+            select(OrgIgChangeRequest.id).where(
+                OrgIgChangeRequest.user_id == user.id,
+                OrgIgChangeRequest.status == "awaiting_connect",
+                OrgIgChangeRequest.decided_kind == "account_switch",
+            )
+        )
+        if awaiting is not None:
+            raise BuzzAPIException(
+                errors.INVALID_ONBOARDING_STATE,
+                "Finish reconnecting Instagram from the link we sent you before "
+                "signing in with another account.",
+                status_code=409,
+            )
+    if bind_user_id is not None:
+        open_switches = list(
+            await db.scalars(
+                select(OrgIgChangeRequest)
+                .where(
+                    OrgIgChangeRequest.user_id == user.id,
+                    OrgIgChangeRequest.status == "awaiting_connect",
+                    OrgIgChangeRequest.decided_kind == "account_switch",
+                )
+                # Locked: an admin retarget rewrites the target under its own
+                # lock. Without this, a callback could validate target B, a
+                # retarget commit C, and the callback then bind B and mark the
+                # request approved — the portal opening on credentials that do
+                # not satisfy the recorded approval.
+                .execution_options(populate_existing=True)
+                .order_by(OrgIgChangeRequest.id)
+                .with_for_update()
+            )
+        )
+        # An approved account switch names the handle the org must bind to. Binding
+        # any other account would hand the org portal access (it stays ``active``
+        # and gains fresh Graph credentials) and close the ticket as done, so the
+        # bind is refused: no credentials are written, the ticket stays
+        # ``awaiting_connect``, and the org can retry with the approved handle.
+        # The attempt is still recorded on the org for admins — the same flag as
+        # the advisory Connect mismatch — and committed before raising, because
+        # the refusal rolls this request's transaction back.
+        #
+        # Only explicitly marked migration placeholders skip target enforcement:
+        # the pending_instagram retirement synthesized those tickets for orgs
+        # that were approved under the old apply-first flow and never connected.
+        # Those must accept whichever account the org finally binds — enforcing
+        # the handle they typed before ever connecting would re-brick the cohort
+        # the ticket exists to rescue. A real switch may be retargeted back to
+        # its original account; it still enforces that approved target.
+        #
+        # Legacy ``bind_user_id`` binds with no open switch skip all of this and
+        # behave exactly as before.
+        enforced = _switch_target_handles(open_switches)
+        if enforced and graph_handle.casefold() not in enforced:
+            await _refuse_switch_bind(db, org, graph_handle, enforced, user_id=user.id, now=now)
+        closed_switches = [
+            row for row in open_switches if _switch_satisfied_by_bind(row, graph_handle)
+        ]
+    else:
+        closed_switches = []
+
     if bind_user_id is not None and org is not None:
         claimed = canonical_instagram_handle(org.claimed_instagram_username)
         if claimed and graph_handle and claimed.lower() != graph_handle.lower():
@@ -171,10 +270,15 @@ async def handle_instagram_callback(
         short.permissions,
     )
     user.last_login_at = now
-    became_active = False
-    if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
-        user.status = OrgUserStatus.ACTIVE.value
-        became_active = True
+    if closed_switches:
+        # Close only the tickets this bind actually satisfied, so a leftover row
+        # never reports a handle the org did not bind. Empty for a legacy
+        # ``bind_user_id`` bind with no open switch, and for a plain login.
+        await db.execute(
+            update(OrgIgChangeRequest)
+            .where(OrgIgChangeRequest.id.in_([row.id for row in closed_switches]))
+            .values(status="approved")
+        )
     if org is not None:
         org.instagram_handle_confirmed = True
         # Graph-owned. Missing/failed counts must not fail the login.
@@ -199,9 +303,90 @@ async def handle_instagram_callback(
             ) from exc
         raise
     await db.refresh(user)
-    if became_active:
+    if bind_user_id is not None and user.status == OrgUserStatus.ACTIVE.value:
+        # A bind that happens before approval must not promote signup intents:
+        # the org has no portal yet, and approval is what releases the seat.
+        # ``approve_org`` promotes them once an admin approves.
         await promote_drop_apply_intents(db, user)
     return user
+
+
+def _names_switch_target(row: OrgIgChangeRequest) -> bool:
+    """Whether *row* names an admin-approved switch target.
+
+    Only explicitly marked tickets synthesized by the ``pending_instagram``
+    retirement carry no target. Equal handles can also mean an admin authorized
+    recovery to the original account, which must still enforce that handle.
+    """
+
+    return not row.is_migration_placeholder
+
+
+def _switch_target_handles(switches: list[OrgIgChangeRequest]) -> set[str]:
+    """Casefolded ``requested_handle`` values a switch bind must match.
+
+    Empty when every open ticket is a placeholder (see
+    :func:`_names_switch_target`), which is the signal to accept any bound
+    account — enforcing the handle such an org typed months before ever
+    connecting would re-brick the cohort the ticket exists to rescue.
+    """
+
+    return {
+        canonical_instagram_handle(row.requested_handle).casefold()
+        for row in switches
+        if _names_switch_target(row)
+    }
+
+
+def _switch_satisfied_by_bind(row: OrgIgChangeRequest, graph_handle: str) -> bool:
+    """Whether *row* is closed by a bind of ``graph_handle``.
+
+    A real switch closes only on its own requested handle. A placeholder ticket
+    (see :func:`_names_switch_target`) is closed by whatever the org binds, which
+    is the only way such an org can finish reconnecting.
+    """
+
+    if not _names_switch_target(row):
+        return True
+    granted = graph_handle.casefold()
+    return bool(granted) and canonical_instagram_handle(row.requested_handle).casefold() == granted
+
+
+async def _refuse_switch_bind(
+    db: AsyncSession,
+    org: Organization | None,
+    graph_handle: str,
+    requested: set[str],
+    *,
+    user_id: uuid.UUID,
+    now: datetime,
+) -> None:
+    """Reject a bind that does not satisfy the approved switch's handle.
+
+    The org keeps its ``awaiting_connect`` ticket, so the portal stays closed
+    (credentials were released at approve) and the org can retry. The org row
+    is flagged for admins like any other Connect mismatch: the flag is written
+    and committed here because raising rolls the caller's transaction back, and
+    the flag must survive that rollback. Never writes Graph credentials.
+    """
+
+    logger.warning(
+        "instagram switch bind refused user_id=%s graph=%s requested=%s",
+        user_id,
+        graph_handle or "(missing)",
+        ",".join(sorted(requested)),
+    )
+    if org is not None and graph_handle:
+        flag_ig_bind_mismatch(org, graph_handle, now)
+        # Durable before the raise: the route rolls this request back.
+        await db.commit()
+    handles = " or ".join(f"@{handle}" for handle in sorted(requested))
+    raise BuzzAPIException(
+        errors.INVALID_ONBOARDING_STATE,
+        f"This Instagram account does not match the approved switch. Connect {handles} "
+        "to finish reconnecting.",
+        status_code=400,
+    )
 
 
 def _apply_callback_follower_count(org: Organization, profile: object) -> None:
@@ -265,12 +450,15 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
     """
 
     user = await db.scalar(
-        select(User).where(
+        select(User)
+        .where(
             or_(
                 User.instagram_user_id == instagram_user_id,
                 User.instagram_token_user_id == instagram_user_id,
             )
         )
+        .execution_options(populate_existing=True)
+        .with_for_update()
     )
     if user is None:
         return False
@@ -280,13 +468,14 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
     return True
 
 
-def build_user_response(user: User) -> UserResponse:
+async def build_user_response(db: AsyncSession, user: User) -> UserResponse:
     """Serialize a ``User`` into the API user payload."""
 
     # Imported lazily: app.deps.auth imports this module, so a module-level
     # import would be circular.
     from app.deps.auth import impersonated_by, impersonation_readonly
 
+    connect_action = await org_connect_action(db, user)
     admin_id = impersonated_by(user)
     return UserResponse(
         id=user.id,
@@ -295,6 +484,13 @@ def build_user_response(user: User) -> UserResponse:
         instagram_username=user.instagram_username,
         email=user.edu_email,
         pending_edu_email=user.pending_edu_email,
+        # An admin viewing as an org keeps the diagnostic portal access the
+        # credential gate grants it. Reporting "reconnect required" here would
+        # bounce that admin into the Connect flow, which impersonation cannot
+        # complete, and the same session would route differently before and
+        # after this response.
+        instagram_reconnect_required=connect_action == "switch" and not admin_id,
+        instagram_connect_required=connect_action == "initial" and not admin_id,
         impersonated_by=uuid.UUID(admin_id) if admin_id else None,
         impersonation_readonly=impersonation_readonly(user) if admin_id else None,
     )

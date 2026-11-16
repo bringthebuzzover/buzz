@@ -1,9 +1,11 @@
 /**
- * /onboarding/connect-instagram — bind Instagram after admin Approve
- * (buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A / PRODUCT §6.1). Status: pending_instagram.
+ * /onboarding/connect-instagram — bind Instagram before approval or after an
+ * approved account switch.
  *
- * Approval email carries ?token= for one-shot session mint when the org has no
- * live cookie; then they start bind OAuth via bind-start.
+ * The email carries ?token= for a one-shot session mint when the org has no
+ * live cookie; then they start bind OAuth via bind-start. For an org that has
+ * never connected (pre-approval), connecting does not activate anything — an
+ * admin still has to approve.
  */
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
@@ -93,7 +95,11 @@ export default function ConnectInstagramPage() {
     );
   }
 
-  if (!user || user.status !== "pending_instagram") {
+  const needsConnect = Boolean(
+    user?.instagramReconnectRequired || user?.instagramConnectRequired,
+  );
+
+  if (!user || !needsConnect) {
     if (user?.status === "active" && next) {
       return <Navigate to={next} replace />;
     }

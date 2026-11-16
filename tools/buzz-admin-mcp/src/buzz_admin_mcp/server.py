@@ -395,6 +395,18 @@ def deny_ig_change_request(request_id: str) -> str:
 
 
 @mcp.tool()
+def retarget_ig_change_request(request_id: str, requested_handle: str) -> str:
+    """Set the target handle of an IG ticket in awaiting_connect state."""
+    return _call(
+        lambda: _client.request(
+            "POST",
+            f"/api/admin/ig-change-requests/{request_id}/retarget",
+            json_body={"requestedHandle": requested_handle},
+        )
+    )
+
+
+@mcp.tool()
 def ack_ig_bind_mismatch(org_id: str) -> str:
     """Dismiss an open Connect handle mismatch. Does not change Graph bind."""
     return _call(

@@ -28,7 +28,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.services.drop_apply_intents import expire_and_clear_intents_for_org
 from app.services.email import (
     KIND_BRAND_ERASED,
@@ -67,7 +67,7 @@ async def erase_org_user(
 ) -> dict[str, object]:
     """Erase an org account after IG-handle confirm. Idempotent when already erased."""
 
-    user = await db.get(User, user_id)
+    user = await lock_user(db, user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 

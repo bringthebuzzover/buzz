@@ -2,7 +2,7 @@
 
 Submit is a ticket. Approve is the identity write. Typed ``@`` is never a
 Graph id. Account switch must clear Graph ids in the same commit as the
-``pending_instagram`` demote, or returning login auto-promotes.
+``awaiting_connect`` request transition, or returning login auto-promotes.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
 from app.models.user import User
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.services.email import (
     KIND_IG_CHANGE_DENIED,
     KIND_IG_RENAME_APPROVED,
@@ -43,13 +43,13 @@ from app.services.org_apply import (
     clear_ig_bind_mismatch,
     normalize_claimed_handle,
 )
-from app.services.org_connect import create_org_connect_token
+from app.services.org_connect import create_org_connect_token, org_owes_instagram_reconnect
 from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
 _KINDS = frozenset({"rename", "account_switch"})
-_STATUSES = frozenset({"pending", "approved", "denied"})
+_STATUSES = frozenset({"pending", "awaiting_connect", "approved", "denied"})
 _REASON_MIN = 10
 
 
@@ -90,7 +90,7 @@ async def latest_approved_switch(db: AsyncSession, org_id: UUID) -> OrgIgChangeR
             select(OrgIgChangeRequest)
             .where(
                 OrgIgChangeRequest.org_id == org_id,
-                OrgIgChangeRequest.status == "approved",
+                OrgIgChangeRequest.status.in_(("approved", "awaiting_connect")),
                 OrgIgChangeRequest.decided_kind == "account_switch",
             )
             .order_by(OrgIgChangeRequest.decided_at.desc())
@@ -136,7 +136,10 @@ async def submit_request(
             "Kind must be rename or account_switch.",
             status_code=400,
         )
-    org, user = await _org_and_user(db, user)
+    locked_user = await lock_user(db, user.id)
+    if locked_user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    org, user = await _org_and_user(db, locked_user)
     if user.status != OrgUserStatus.ACTIVE.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -160,16 +163,16 @@ async def submit_request(
             status_code=400,
         )
 
-    existing_pending = await db.scalar(
+    existing_open = await db.scalar(
         select(OrgIgChangeRequest.id).where(
             OrgIgChangeRequest.org_id == org.id,
-            OrgIgChangeRequest.status == "pending",
+            OrgIgChangeRequest.status.in_(("pending", "awaiting_connect")),
         )
     )
-    if existing_pending is not None:
+    if existing_open is not None:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "This organization already has a pending Instagram identity request.",
+            "This organization already has an open Instagram identity request.",
             status_code=409,
         )
 
@@ -279,6 +282,48 @@ async def _risk_context(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     }
 
 
+async def _pending_request_for_update(
+    db: AsyncSession, request_id: UUID
+) -> OrgIgChangeRequest | None:
+    """Load a switch request with a row lock so concurrent decisions serialize.
+
+    Approval and denial both read the request as ``pending`` and then write an
+    unconditional new status. Without a lock, a denial that started first can
+    commit after an approval has already cleared the org's credentials, leaving
+    the org active with no credentials and no ``awaiting_connect`` ticket — a
+    state no Connect path can recover. ``FOR UPDATE`` makes the second decision
+    wait, then see the new status and fail its own ``!= "pending"`` check.
+    """
+    row: OrgIgChangeRequest | None = await db.scalar(
+        select(OrgIgChangeRequest)
+        .where(OrgIgChangeRequest.id == request_id)
+        # ``populate_existing``: the session may already hold this request from an
+        # earlier read. Without it the lock is taken but the cached attributes are
+        # returned, so a decision could act on a status another transaction has
+        # since changed — e.g. retarget rewriting a ticket a bind already closed.
+        .execution_options(populate_existing=True)
+        .with_for_update()
+    )
+    return row
+
+
+async def _user_for_request_update(db: AsyncSession, request_id: UUID) -> User | None:
+    """Lock user before request, matching OAuth bind's lock order."""
+    user_id = await db.scalar(
+        select(OrgIgChangeRequest.user_id).where(OrgIgChangeRequest.id == request_id)
+    )
+    if user_id is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
+    user = await lock_user(db, user_id)
+    if user is not None and user.status == OrgUserStatus.ERASED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization account has been erased.",
+            status_code=409,
+        )
+    return user
+
+
 async def approve_request(
     db: AsyncSession,
     request_id: UUID,
@@ -293,7 +338,8 @@ async def approve_request(
             "Approve kind must be rename or account_switch.",
             status_code=400,
         )
-    req = await db.get(OrgIgChangeRequest, request_id)
+    user = await _user_for_request_update(db, request_id)
+    req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
     if req.status != "pending":
@@ -302,16 +348,9 @@ async def approve_request(
             "This request has already been decided.",
             status_code=400,
         )
-    user = await db.get(User, req.user_id)
-    org = await db.get(Organization, req.org_id)
+    org = await db.get(Organization, req.org_id, populate_existing=True)
     if user is None or org is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
-    if user.status == OrgUserStatus.ERASED.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Organization account has been erased.",
-            status_code=409,
-        )
     if user.status != OrgUserStatus.ACTIVE.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -324,6 +363,19 @@ async def approve_request(
             errors.VALIDATION_ERROR,
             "Confirm you added the requested handle as an Instagram Tester "
             "before approving a switch.",
+            status_code=400,
+        )
+
+    # ``user.status == active`` also holds for an org already owing a reconnect
+    # (the PR keeps them active and closes the portal by credential absence).
+    # Approving a second switch there would leave two live ``awaiting_connect``
+    # rows: one bind clears both, and ``latest_approved_switch`` could report a
+    # handle the org never bound. Refuse it until the open reconnect finishes.
+    if kind == "account_switch" and await org_owes_instagram_reconnect(db, user):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "This organization must finish reconnecting Instagram before another "
+            "account switch can be approved.",
             status_code=400,
         )
 
@@ -349,7 +401,7 @@ async def approve_request(
         user.instagram_user_id = None
         user.instagram_token_user_id = None
         user.instagram_username = req.requested_handle
-        user.status = OrgUserStatus.PENDING_INSTAGRAM.value
+        req.status = "awaiting_connect"
         org.claimed_instagram_username = req.requested_handle
         clear_ig_bind_mismatch(org)
         bump_token_version(user)
@@ -375,10 +427,63 @@ async def approve_request(
     return {**_serialize(req), "email_queued": email_queued, "user_status": user.status}
 
 
+async def retarget_awaiting_connect(
+    db: AsyncSession, request_id: UUID, requested_handle: str
+) -> dict[str, Any]:
+    """Point a stuck ``awaiting_connect`` ticket at the account the org really has.
+
+    Approval releases the org's credentials, so its portal is closed and it
+    cannot submit a new request itself. If the handle an admin approved is later
+    renamed on Instagram, the bind's strict target check refuses every attempt,
+    approval cannot be repeated (the request is no longer ``pending``), and
+    denying would leave no ticket at all — so the org would be stranded with no
+    portal and no Connect path. This is the admin exit: rewrite the approved
+    target on the open ticket, keeping the recovery path intact.
+    """
+    user = await _user_for_request_update(db, request_id)
+    req = await _pending_request_for_update(db, request_id)
+    if req is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
+    if req.status != "awaiting_connect":
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Only a request waiting to reconnect can be retargeted.",
+            status_code=400,
+        )
+    cleaned = normalize_claimed_handle(requested_handle)
+    await assert_handle_available(db, cleaned, exclude_user_id=req.user_id)
+
+    # Move the handle reservation with the ticket. Ownership is enforced through
+    # ``users.instagram_username``: leaving the old target there would let an
+    # ordinary Instagram login for the new handle create a separate account
+    # holding it, and the org's own bind would then fail on a Graph identity that
+    # already belongs to another user.
+    org = await db.get(Organization, req.org_id, populate_existing=True)
+    if user is not None:
+        user.instagram_username = cleaned
+    if org is not None:
+        org.claimed_instagram_username = cleaned
+
+    req.requested_handle = cleaned
+    # An explicit admin target is enforced even for a former migration ticket,
+    # including when recovery points back to the org's original account.
+    req.is_migration_placeholder = False
+    # Rewrite the reason too. ``8d1c70e5a942`` recognises a placeholder by its
+    # migration text, so leaving that text here would let a downgrade and
+    # re-upgrade re-derive the flag for a ticket an admin has since retargeted,
+    # silently handing the org the permissive bind behaviour.
+    if req.reason and "Instagram-first migration" in req.reason:
+        req.reason = f"Admin retargeted this reconnect to @{cleaned}."
+    await db.flush()
+    logger.info("ig_change_request_retargeted request_id=%s handle=%s", req.id, cleaned)
+    return _serialize(req)
+
+
 async def deny_request(
     db: AsyncSession, request_id: UUID, *, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
-    req = await db.get(OrgIgChangeRequest, request_id)
+    user = await _user_for_request_update(db, request_id)
+    req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
     if req.status != "pending":
@@ -387,8 +492,7 @@ async def deny_request(
             "This request has already been decided.",
             status_code=400,
         )
-    user = await db.get(User, req.user_id)
-    org = await db.get(Organization, req.org_id)
+    org = await db.get(Organization, req.org_id, populate_existing=True)
     if user is None or org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
     req.status = "denied"

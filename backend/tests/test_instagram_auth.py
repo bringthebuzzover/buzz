@@ -20,7 +20,7 @@ from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.user import User
 from app.security import jwt
-from tests.conftest import FakeInstagramClient, set_request_cookies
+from tests.conftest import FakeInstagramClient, make_awaiting_connect, set_request_cookies
 
 
 async def test_login_redirects_with_state(
@@ -440,12 +440,13 @@ async def _bind_callback(
         db_session,
         make_user(
             role=PortalRole.ORG,
-            status=OrgUserStatus.PENDING_INSTAGRAM,
+            status=OrgUserStatus.ACTIVE,
             instagram_user_id=None,
             instagram_username=username,
         ),
     )
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     org.instagram_handle_confirmed = False
     await db_session.commit()
 

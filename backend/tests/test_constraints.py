@@ -33,6 +33,7 @@ from app.models import (
     DropApplication,
     NotifyMe,
     Organization,
+    OrgIgChangeRequest,
     PostCampaignLink,
     PostCampaignSuggestion,
     SocialPost,
@@ -318,6 +319,91 @@ async def test_users_unique_instagram_user_id(db_session: AsyncSession) -> None:
     )
     with pytest.raises(IntegrityError):
         await db_session.flush()
+
+
+async def _org_with_open_ticket(db_session: AsyncSession, suffix: str) -> tuple[Organization, User]:
+    """An org with one ``awaiting_connect`` account-switch ticket."""
+
+    user = User(
+        portal_role=PortalRole.ORG.value,
+        status=OrgUserStatus.ACTIVE.value,
+        instagram_username=f"oneopen{suffix}",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    org = Organization(user_id=user.id, org_name=f"One Open {suffix}", university="Test U")
+    db_session.add(org)
+    await db_session.flush()
+    db_session.add(
+        OrgIgChangeRequest(
+            id=uuid.uuid4(),
+            org_id=org.id,
+            user_id=user.id,
+            kind="account_switch",
+            current_handle=f"oneopen{suffix}",
+            requested_handle=f"newclub{suffix}",
+            reason="Switch to the new organization account.",
+            status="awaiting_connect",
+        )
+    )
+    await db_session.flush()
+    return org, user
+
+
+def _open_ticket(org: Organization, user: User, status: str, requested: str) -> OrgIgChangeRequest:
+    return OrgIgChangeRequest(
+        id=uuid.uuid4(),
+        org_id=org.id,
+        user_id=user.id,
+        kind="account_switch",
+        current_handle="oneopen",
+        requested_handle=requested,
+        reason="A second open ticket for the same organization.",
+        status=status,
+    )
+
+
+@pytest.mark.asyncio
+async def test_org_ig_change_requests_one_open_ticket_per_org(
+    db_session: AsyncSession,
+) -> None:
+    """At most one ``awaiting_connect`` ticket per org.
+
+    The original partial unique index only covered ``status = 'pending'``.
+    Because an approved switch now waits on ``awaiting_connect`` while the user
+    stays ``active``, that predicate left the second open state unguarded:
+    approving one switch freed the ``pending`` slot. This is the DB invariant
+    behind the code guard in ``approve_request``.
+    """
+
+    org, user = await _org_with_open_ticket(db_session, "a")
+    db_session.add(_open_ticket(org, user, "awaiting_connect", "stackedclub"))
+    with pytest.raises(IntegrityError):
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_org_ig_change_requests_pending_blocked_by_open_reconnect(
+    db_session: AsyncSession,
+) -> None:
+    """An open reconnect also blocks a new ``pending`` ticket for the org."""
+
+    org, user = await _org_with_open_ticket(db_session, "b")
+    db_session.add(_open_ticket(org, user, "pending", "secondclub"))
+    with pytest.raises(IntegrityError):
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_org_ig_change_requests_decided_tickets_coexist(
+    db_session: AsyncSession,
+) -> None:
+    """Decided tickets are outside the partial index and may repeat."""
+
+    org, user = await _org_with_open_ticket(db_session, "c")
+    db_session.add(_open_ticket(org, user, "denied", "deniedclub"))
+    db_session.add(_open_ticket(org, user, "approved", "approvedclub"))
+    await db_session.flush()
 
 
 @pytest.mark.asyncio

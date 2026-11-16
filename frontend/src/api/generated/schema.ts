@@ -637,6 +637,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/ig-change-requests/{request_id}/retarget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retarget Ig Change Request Endpoint
+         * @description Point a stuck reconnect ticket at the handle the org can actually bind.
+         */
+        post: operations["retarget_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__retarget_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/impersonate/resume": {
         parameters: {
             query?: never;
@@ -723,12 +743,15 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Resend All Pending Instagram Connect Endpoint
-         * @description Email Connect Instagram to every ``pending_instagram`` org.
+         * Resend All Awaiting Instagram Connect Endpoint
+         * @description Email Connect Instagram to every org that still has to connect.
          *
-         *     Does not email orgs still verifying school email or awaiting approval.
+         *     Covers both cohorts: an approved account switch awaiting its bind, and an
+         *     org that verified its ``.edu`` but never connected Instagram (it must connect
+         *     before an admin can approve it). Does not email orgs still verifying school
+         *     email, orgs without a profile, already-connected orgs, or erased accounts.
          */
-        post: operations["resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post"];
+        post: operations["resend_all_awaiting_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -798,8 +821,39 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Resend Org Connect Endpoint */
+        /**
+         * Resend Org Connect Endpoint
+         * @description Re-send the Connect link for an **approved account switch**.
+         *
+         *     Switch holders only. For an org that has never connected Instagram, use
+         *     ``send-connect-link`` instead.
+         */
         post: operations["resend_org_connect_endpoint_api_admin_orgs__org_id__resend_connect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orgs/{org_id}/send-connect-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Org Connect Link Endpoint
+         * @description Email a Connect Instagram link to an unbound org that has never connected.
+         *
+         *     For orgs that verified their ``.edu`` under the apply-first flow and were
+         *     never approved: they have no credentials, so approval refuses and
+         *     ``resend-connect`` (switch holders) refuses too. The link lets them bind
+         *     first; they stay ``pending_approval`` until an admin approves them.
+         */
+        post: operations["send_org_connect_link_endpoint_api_admin_orgs__org_id__send_connect_link_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1216,7 +1270,12 @@ export interface paths {
         put?: never;
         /**
          * Instagram Bind Start
-         * @description Mint OAuth state with bind claim for ``pending_instagram`` orgs.
+         * @description Mint OAuth state with bind claim for any org that must connect Instagram.
+         *
+         *     Two cohorts may bind: an active org whose approved account switch released
+         *     its credentials, and an unbound org still awaiting approval that never
+         *     connected Instagram. A bind never activates the latter — ``approve_org``
+         *     stays the only path to ``active``.
          */
         post: operations["instagram_bind_start_api_auth_instagram_bind_start_post"];
         delete?: never;
@@ -3236,6 +3295,14 @@ export interface components {
             userStatus?: string | null;
         };
         /**
+         * AdminIgChangeRetargetRequest
+         * @description New handle for a switch ticket that is stuck waiting to reconnect.
+         */
+        AdminIgChangeRetargetRequest: {
+            /** Requestedhandle */
+            requestedHandle: string;
+        };
+        /**
          * AdminInviteState
          * @description Latest brand invite token. ``used_at`` is ambiguous between redeemed and
          *     superseded, so read it alongside ``password_set``.
@@ -3300,6 +3367,11 @@ export interface components {
             igBindMismatchedAt?: number | null;
             /** Impersonatable */
             impersonatable: boolean;
+            /**
+             * Instagramconnectrequired
+             * @default false
+             */
+            instagramConnectRequired: boolean;
             /** Instagramhandle */
             instagramHandle: string | null;
             /**
@@ -3307,6 +3379,11 @@ export interface components {
              * @default false
              */
             instagramHandleConfirmed: boolean;
+            /**
+             * Instagramreconnectrequired
+             * @default false
+             */
+            instagramReconnectRequired: boolean;
             /** Instagramtokenexpiresat */
             instagramTokenExpiresAt: number | null;
             /** Instagramtokenrefreshedat */
@@ -3396,6 +3473,11 @@ export interface components {
             igBindMismatchedAt?: number | null;
             /** Impersonatable */
             impersonatable: boolean;
+            /**
+             * Instagramconnectrequired
+             * @default false
+             */
+            instagramConnectRequired: boolean;
             /** Instagramhandle */
             instagramHandle: string | null;
             /**
@@ -3403,6 +3485,11 @@ export interface components {
              * @default false
              */
             instagramHandleConfirmed: boolean;
+            /**
+             * Instagramreconnectrequired
+             * @default false
+             */
+            instagramReconnectRequired: boolean;
             /** Instagramtokenexpiresat */
             instagramTokenExpiresAt: number | null;
             /** Lastloginat */
@@ -6030,6 +6117,14 @@ export interface components {
          *
          *     ``impersonated_by`` is set only while an admin is viewing as this user; the
          *     SPA keys its exit banner off it.
+         *
+         *     Two distinct Connect reasons, kept apart on purpose:
+         *
+         *     * ``instagram_reconnect_required`` — an active org whose approved account
+         *       switch released its credentials. The portal is closed until it binds.
+         *     * ``instagram_connect_required`` — an unbound org still awaiting approval
+         *       that has never connected Instagram. Nothing is closed; it simply has one
+         *       step left, and ``approve_org`` refuses until it is done.
          */
         UserResponse: {
             /** Email */
@@ -6043,6 +6138,16 @@ export interface components {
             impersonated_by?: string | null;
             /** Impersonation Readonly */
             impersonation_readonly?: boolean | null;
+            /**
+             * Instagram Connect Required
+             * @default false
+             */
+            instagram_connect_required: boolean;
+            /**
+             * Instagram Reconnect Required
+             * @default false
+             */
+            instagram_reconnect_required: boolean;
             /** Instagram Username */
             instagram_username?: string | null;
             /** Pending Edu Email */
@@ -7375,6 +7480,43 @@ export interface operations {
             };
         };
     };
+    retarget_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__retarget_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIgChangeRetargetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminIgChangeRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     resume_impersonation_endpoint_api_admin_impersonate_resume_post: {
         parameters: {
             query?: never;
@@ -7481,7 +7623,7 @@ export interface operations {
             };
         };
     };
-    resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post: {
+    resend_all_awaiting_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post: {
         parameters: {
             query?: never;
             header?: {
@@ -7616,6 +7758,39 @@ export interface operations {
         };
     };
     resend_org_connect_endpoint_api_admin_orgs__org_id__resend_connect_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminOrgStatusResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    send_org_connect_link_endpoint_api_admin_orgs__org_id__send_connect_link_post: {
         parameters: {
             query?: never;
             header?: {

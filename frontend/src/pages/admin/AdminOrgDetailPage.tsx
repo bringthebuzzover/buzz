@@ -24,6 +24,7 @@ import {
   useDenyOrg,
   useEraseOrg,
   useResendOrgConnect,
+  useSendOrgConnectLink,
   useSendOrgEmail,
   useUndenyOrg,
   useViewAs,
@@ -71,6 +72,7 @@ export default function AdminOrgDetailPage() {
   const deny = useDenyOrg();
   const undeny = useUndenyOrg();
   const resendConnect = useResendOrgConnect();
+  const sendConnectLink = useSendOrgConnectLink();
   const ackMismatch = useAckIgBindMismatch();
   const clearIg = useClearOrgInstagramToken();
   const erase = useEraseOrg();
@@ -92,6 +94,7 @@ export default function AdminOrgDetailPage() {
     clearIg.isPending ||
     erase.isPending ||
     resendConnect.isPending ||
+    sendConnectLink.isPending ||
     ackMismatch.isPending;
   const canWriteEmail = Boolean(data?.eduEmail) && !erased;
   const tokenExpired =
@@ -123,6 +126,7 @@ export default function AdminOrgDetailPage() {
   const mismatchOpen = Boolean(
     data?.igBindMismatchedAt && !data.igBindMismatchAckedAt,
   );
+  const reconnectMismatch = Boolean(mismatchOpen && data?.instagramReconnectRequired);
   const liveRenamedSinceMismatch = Boolean(
     mismatchOpen &&
       graphAtMismatch &&
@@ -166,6 +170,24 @@ export default function AdminOrgDetailPage() {
         err instanceof ApiError
           ? err.message
           : "Could not resend the connect email.",
+      );
+    }
+  }
+
+  async function onSendConnectLink() {
+    if (!data?.orgId) return;
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      await sendConnectLink.mutateAsync(data.orgId);
+      setActionNotice(
+        "Connect Instagram email queued. They stay awaiting approval until they connect and you approve.",
+      );
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not send the Connect Instagram email.",
       );
     }
   }
@@ -245,7 +267,9 @@ export default function AdminOrgDetailPage() {
             subtitle={data.university ?? undefined}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <StatusPill status={data.status} />
+                <StatusPill
+                  status={data.instagramReconnectRequired ? "awaiting_connect" : data.status}
+                />
                 {!erased && data.status === "pending_approval" && data.orgId && (
                   <>
                     <ActionButton
@@ -266,13 +290,22 @@ export default function AdminOrgDetailPage() {
                     </ActionButton>
                   </>
                 )}
-                {!erased && data.status === "pending_instagram" && data.orgId && (
+                {!erased && data.instagramReconnectRequired && data.orgId && (
                   <ActionButton
                     testId="resend-connect"
                     disabled={busy}
                     onClick={() => void onResendConnect()}
                   >
                     Resend connect email
+                  </ActionButton>
+                )}
+                {!erased && data.instagramConnectRequired && data.orgId && (
+                  <ActionButton
+                    testId="send-connect-link"
+                    disabled={busy}
+                    onClick={() => void onSendConnectLink()}
+                  >
+                    Send Connect link
                   </ActionButton>
                 )}
                 {!erased && data.status === "denied" && data.orgId && (
@@ -400,35 +433,74 @@ export default function AdminOrgDetailPage() {
             </ErrorNote>
           )}
 
-          {!erased && data.status === "pending_approval" && !alreadyConnected && claimedHandle && (
-            <Panel title="Before you approve">
-              <div className="px-4 py-4">
-                <Checkbox
-                  checked={testerInviteConfirmed}
-                  onChange={(e) => setTesterInviteConfirmed(e.target.checked)}
-                  data-testid="tester-invite-confirmed"
-                  label={
+          {!erased &&
+            data.status === "pending_approval" &&
+            !alreadyConnected &&
+            (data.instagramConnectRequired || claimedHandle) && (
+              <Panel title="Before you approve">
+                <div className="space-y-3 px-4 py-4">
+                  {data.instagramConnectRequired ? (
                     <>
-                      I added {claimedHandle} as an Instagram Tester in Meta App
-                      roles.
+                      <p className="text-sm font-medium text-muted">
+                        This organization has never connected Instagram, so
+                        approval is blocked — it has to connect first. Send it a
+                        Connect link; once it connects it stays awaiting approval
+                        until you approve it here.
+                      </p>
+                      <ActionButton
+                        testId="send-connect-link-panel"
+                        disabled={busy}
+                        onClick={() => void onSendConnectLink()}
+                      >
+                        Send Connect link
+                      </ActionButton>
                     </>
-                  }
-                />
-              </div>
-            </Panel>
-          )}
+                  ) : (
+                    <Checkbox
+                      checked={testerInviteConfirmed}
+                      onChange={(e) => setTesterInviteConfirmed(e.target.checked)}
+                      data-testid="tester-invite-confirmed"
+                      label={
+                        <>
+                          I added {claimedHandle} as an Instagram Tester in Meta
+                          App roles.
+                        </>
+                      }
+                    />
+                  )}
+                </div>
+              </Panel>
+            )}
 
           {!erased && mismatchOpen && (
             <Panel title="Instagram bind mismatch">
               <div className="space-y-3 px-4 py-4">
                 <p className="text-sm font-medium text-muted">
-                  This organization connected{" "}
-                  {mismatchConnected ?? "a different @"} after applying as{" "}
-                  {claimedHandle ?? "another handle"}
-                  {liveRenamedSinceMismatch
-                    ? `. Live handle is now ${connectedHandle}.`
-                    : "."}{" "}
-                  Portal access is already open. Ack once you have looked.
+                  {reconnectMismatch ? (
+                    <>
+                      While finishing an approved account switch, this
+                      organization tried to connect{" "}
+                      {mismatchConnected ?? "a different @"} instead of{" "}
+                      {claimedHandle ?? "the approved handle"}
+                      {liveRenamedSinceMismatch
+                        ? `. Live handle is now ${connectedHandle}.`
+                        : "."}{" "}
+                      The bind was refused — no credentials were saved and
+                      portal access stays closed until they connect the approved
+                      handle. Resend the connect email if they need another
+                      link. Ack once you have looked.
+                    </>
+                  ) : (
+                    <>
+                      This organization connected{" "}
+                      {mismatchConnected ?? "a different @"} after applying as{" "}
+                      {claimedHandle ?? "another handle"}
+                      {liveRenamedSinceMismatch
+                        ? `. Live handle is now ${connectedHandle}.`
+                        : "."}{" "}
+                      Portal access is already open. Ack once you have looked.
+                    </>
+                  )}
                 </p>
                 <ActionButton
                   testId="ack-ig-bind-mismatch"

@@ -223,6 +223,26 @@ export function useDenyIgChangeRequest() {
   });
 }
 
+export function useRetargetIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { requestId: string; requestedHandle: string }) => {
+      const { data } = await apiFetch<AdminIgChangeRequest>(
+        `/api/admin/ig-change-requests/${input.requestId}/retarget`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestedHandle: input.requestedHandle }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
 export type AdminBrandIgChangeRequest =
   components["schemas"]["AdminBrandIgChangeRequestItem"];
 
@@ -502,6 +522,16 @@ export function useResendOrgConnect() {
   );
 }
 
+/**
+ * Connect link for an org that has never connected Instagram (pre-approval).
+ * Distinct from {@link useResendOrgConnect}, which targets switch holders.
+ */
+export function useSendOrgConnectLink() {
+  return useAdminMutation((orgId: string) =>
+    apiFetch(`/api/admin/orgs/${orgId}/send-connect-link`, { method: "POST" }),
+  );
+}
+
 export function useAckIgBindMismatch() {
   return useAdminMutation((orgId: string) =>
     apiFetch(`/api/admin/orgs/${orgId}/ig-bind-mismatch/ack`, {
@@ -513,8 +543,11 @@ export function useAckIgBindMismatch() {
 export type ResendConnectAllResult =
   components["schemas"]["AdminResendConnectAllResponse"];
 
-/** Emails every pending_instagram org; never unverified or awaiting-approval. */
-export function useResendAllPendingInstagramConnect() {
+/**
+ * Emails every org that still has to connect Instagram — switch holders and
+ * orgs that never connected before approval. Not unverified / profileless orgs.
+ */
+export function useResendAllAwaitingInstagramConnect() {
   return useAdminMutation(async (_: void) => {
     const { data } = await apiFetch<ResendConnectAllResult>(
       "/api/admin/orgs/resend-connect-all",

@@ -32,6 +32,7 @@ from app.services.drop_apply_intents import (
 from tests.conftest import (
     FakeInstagramClient,
     make_application,
+    make_awaiting_connect,
     make_brand,
     make_drop,
     make_org,
@@ -329,12 +330,13 @@ async def test_connect_promotes_open_intent(
         db_session,
         make_user(
             role=PortalRole.ORG,
-            status=OrgUserStatus.PENDING_INSTAGRAM,
+            status=OrgUserStatus.ACTIVE,
             instagram_user_id=None,
             instagram_username="campusgreeks",
         ),
     )
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     await record_drop_apply_intent(db_session, org_id=org.id, drop_id=drop.id, pitch="from page")
@@ -371,12 +373,13 @@ async def test_connect_succeeds_when_drop_no_longer_open(
         db_session,
         make_user(
             role=PortalRole.ORG,
-            status=OrgUserStatus.PENDING_INSTAGRAM,
+            status=OrgUserStatus.ACTIVE,
             instagram_user_id=None,
             instagram_username="closedclub",
         ),
     )
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     intent = await record_drop_apply_intent(
@@ -439,6 +442,7 @@ async def test_deny_expires_open_intent(app_client: AsyncClient, db_session) -> 
         make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
     )
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     intent = await record_drop_apply_intent(
@@ -465,6 +469,7 @@ async def test_erase_expires_and_clears_pitch(
     user.instagram_username = "CampusGreeks"
     user.edu_email = "greeks@school.edu"
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     intent = await record_drop_apply_intent(
