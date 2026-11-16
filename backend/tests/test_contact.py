@@ -58,11 +58,12 @@ async def test_contact_sends_ops_notice_with_reply_to(app_client: AsyncClient, s
     assert notice["to"] == email.CONTACT_EMAIL
     assert "Jordan Ellis" in notice["subject"]
     assert "Organization" in notice["subject"]
-    assert "Type: Organization" in notice["body"]
-    assert "Name: Jordan Ellis" in notice["body"]
+    assert notice["body"] == (
+        "We'd love to run a drop in October.\n\n"
+        "-- Jordan Ellis <jordan@example.edu>"
+    )
     # The whole point: Reply lands in the sender's inbox, not a no-reply void.
     assert notice["reply_to"] == "jordan@example.edu"
-    assert "We'd love to run a drop in October." in notice["body"]
 
     assert ack["to"] == "jordan@example.edu"
     # A fixed template only. Echoing the text would make this public endpoint a
@@ -693,7 +694,7 @@ async def test_contact_ack_never_echoes_submitter_text(app_client: AsyncClient, 
     # The team must still receive the actual message.
     assert marker in notice["body"]
     assert "Contact form (Brand)" in notice["subject"]
-    assert "Type: Brand" in notice["body"]
+    assert notice["body"] == f"{marker}\n\n-- {name_marker} <jordan@example.edu>"
     # The sender gets assurance and nothing else.
     assert marker not in ack["body"]
     assert marker not in ack["subject"]
