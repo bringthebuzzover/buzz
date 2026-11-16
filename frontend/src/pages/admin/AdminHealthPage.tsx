@@ -163,7 +163,7 @@ export default function AdminHealthPage() {
                       "flex flex-col gap-2 rounded-buzzBoard border p-5",
                       hot
                         ? "border-buzz-yellowLine bg-accent-wash"
-                        : "border-line bg-surface-tile",
+                        : "border-line buzz-glass-tile",
                     )}
                   >
                     <p

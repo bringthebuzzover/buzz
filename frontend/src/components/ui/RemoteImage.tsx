@@ -103,7 +103,7 @@ export function RemoteImage({
       return (
         <span
           className={cn(
-            "flex items-center justify-center border border-line bg-surface-tile text-quiet",
+            "flex items-center justify-center border border-line buzz-glass-tile text-quiet",
             className,
           )}
           role={alt ? "img" : undefined}

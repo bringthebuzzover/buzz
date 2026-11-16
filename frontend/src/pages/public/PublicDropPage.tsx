@@ -45,7 +45,7 @@ export default function PublicDropPage() {
 
   if (drop.isLoading || status === "authenticating" || status === "idle") {
     return (
-      <div className="bg-page px-4 py-16 text-primary">
+      <div className="px-4 py-16 text-primary">
         <QueryStatePanel isPending isError={false} label="this drop" />
       </div>
     );
@@ -53,7 +53,7 @@ export default function PublicDropPage() {
 
   if (dropNotAvailable(drop.error)) {
     return (
-      <div className="bg-page">
+      <div>
         <StatusHero title="Drop unavailable" action={<HomeLoginActions />}>
           This drop isn&apos;t available.
         </StatusHero>
@@ -63,7 +63,7 @@ export default function PublicDropPage() {
 
   if (drop.isError || !drop.data || !dropId) {
     return (
-      <div className="bg-page px-4 py-16 text-primary">
+      <div className="px-4 py-16 text-primary">
         <QueryStatePanel isPending={false} isError label="this drop" />
       </div>
     );
@@ -76,7 +76,7 @@ export default function PublicDropPage() {
 
   if (status === "restore_failed") {
     return (
-      <div className="bg-page text-primary">
+      <div className="text-primary">
         <PublicDropLayout drop={data} feedStatus={feedStatus}>
           <SessionRestorePanel embedded />
         </PublicDropLayout>
@@ -96,7 +96,7 @@ export default function PublicDropPage() {
     user.status !== "erased";
 
   return (
-    <div className="bg-page text-primary">
+    <div className="text-primary">
       <PublicDropLayout drop={data} feedStatus={feedStatus}>
       {status === "needs_instagram_reconnect" ? (
         <>

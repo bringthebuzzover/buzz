@@ -1,6 +1,7 @@
 /**
- * Pulse Black palette. Source: buzz-redesign.pen variables (yellow accent
- * #f6d32a, not the pink study). Tailwind reads this file via jiti.
+ * Pulse Black palette. Yellow is the primary accent from buzz-redesign.pen;
+ * pink (#f17bbf) is the shared accent extension from the Pulse Black kit.
+ * Tailwind reads this file via jiti.
  *
  * Legacy class names (`bg-buzz-cream`, `text-buzz-ink`, `bg-buzz-coral`, …)
  * stay valid so existing pages pick up the palette without per-page edits.
@@ -27,6 +28,8 @@ export const pulse = {
   yellowHover: "#e0be16",
   yellowFaded: "#f6d32a24",
   yellowLine: "#f6d32a40",
+  /** Pulse Black kit pink, shared by chart accents and pink-tinted glass. */
+  pink: "#f17bbf",
   /** paper at 60% / 52% / 30% / 9% / 8% / 4% over transparent. */
   paper60: "#f0f0f099",
   paper52: "#f0f0f085",
@@ -74,6 +77,7 @@ export const tailwindThemeExtend = {
       yellowHover: pulse.yellowHover,
       yellowFaded: pulse.yellowFaded,
       yellowLine: pulse.yellowLine,
+      pink: pulse.pink,
       fg: pulse.fg,
       onAccent: pulse.onAccent,
       inkRaised: pulse.inkRaised,

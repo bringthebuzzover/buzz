@@ -180,7 +180,7 @@ export default function AdminSidebar() {
 
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-line bg-page px-6 py-3 sm:px-8 lg:hidden">
+      <div className="buzz-glass-nav flex items-center gap-3 border-b border-line px-6 py-3 sm:px-8 lg:hidden">
         <button
           type="button"
           data-testid="admin-nav-toggle"
@@ -198,7 +198,7 @@ export default function AdminSidebar() {
       </div>
 
       {open && (
-        <div className="border-b border-line bg-page px-6 py-4 sm:px-8 lg:hidden">
+        <div className="buzz-glass-nav border-b border-line px-6 py-4 sm:px-8 lg:hidden">
           <NavItems key={location.pathname} onNavigate={() => setOpen(false)} />
           {showUiKit && (
             <div className="mt-4 border-t border-line pt-4">
@@ -218,7 +218,7 @@ export default function AdminSidebar() {
         </div>
       )}
 
-      <aside className="hidden w-[248px] shrink-0 flex-col gap-8 border-r border-line bg-page px-4 py-8 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
+      <aside className="buzz-glass-nav hidden w-[248px] shrink-0 flex-col gap-8 border-r border-line px-4 py-8 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
         <div className="flex min-h-0 flex-1 flex-col gap-8">
           <AdminWordmark className="px-3" />
           <NavItems />

@@ -29,7 +29,7 @@ const FIELD_FOCUS =
   "focus:border-buzz-yellow focus:ring-2 focus:ring-buzz-yellow focus:ring-offset-2 focus:ring-offset-page";
 
 const FIELD_BASE =
-  `w-full rounded-buzzField border border-line text-primary outline-none transition placeholder:text-quiet disabled:cursor-not-allowed disabled:bg-buzz-neutral disabled:text-muted disabled:opacity-100 ${FIELD_FOCUS}`;
+  `w-full rounded-buzzField border border-line text-primary outline-none transition placeholder:text-quiet backdrop-blur-md backdrop-saturate-125 disabled:cursor-not-allowed disabled:bg-buzz-neutral disabled:text-muted disabled:opacity-100 ${FIELD_FOCUS}`;
 
 export const fieldClass: Record<ControlSize, string> = {
   default: cx(FIELD_BASE, CONTROL_HEIGHT.default, "bg-buzz-paper04 px-4 text-sm"),

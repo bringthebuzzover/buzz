@@ -68,6 +68,94 @@
 }
 
 @layer components {
+  /** Pink light pools behind transparent panels, using the shared palette token. */
+  .buzz-app-atmosphere {
+    --buzz-atmosphere-intensity: 1;
+    background-color: #0b0b0b;
+    background-image:
+      radial-gradient(
+        ellipse 950px 850px at -12% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(20% * var(--buzz-atmosphere-intensity)), transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 900px 900px at 96% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(24% * var(--buzz-atmosphere-intensity)), transparent),
+        transparent 66%
+      ),
+      radial-gradient(
+        ellipse 520px 900px at 60% 66%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(9% * var(--buzz-atmosphere-intensity)), transparent),
+        transparent 80%
+      );
+    background-attachment: fixed;
+  }
+
+  /**
+   * Scrim with irregular pink atmosphere and blur for modal overlays.
+   * Leverages the exact same pool coordinates with a master glow multiplier
+   * over a 70% dark scrim, unifying dialog backdrops with the app atmosphere.
+   */
+  .buzz-scrim-atmosphere {
+    --buzz-scrim-glow: 0.75;
+    background-color: rgba(0, 0, 0, 0.70);
+    background-image:
+      radial-gradient(
+        ellipse 950px 850px at -12% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(20% * var(--buzz-scrim-glow)), transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 900px 900px at 96% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(24% * var(--buzz-scrim-glow)), transparent),
+        transparent 66%
+      ),
+      radial-gradient(
+        ellipse 520px 900px at 60% 66%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(9% * var(--buzz-scrim-glow)), transparent),
+        transparent 80%
+      );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /** Tier 1: Shared 74% dark glass for primary cards, panels, and dialog surfaces. */
+  .buzz-glass-surface {
+    background: rgba(18, 15, 13, 0.74);
+    backdrop-filter: blur(26px) saturate(1.15);
+    -webkit-backdrop-filter: blur(26px) saturate(1.15);
+    box-shadow: inset 0 1px 0 rgba(255, 239, 205, 0.08), 0 20px 56px rgba(0, 0, 0, 0.18);
+  }
+
+  /** Dense portal/admin panels share the 74% glass tier with subtle inset hairline. */
+  .buzz-glass-panel {
+    background: rgba(18, 15, 13, 0.74);
+    backdrop-filter: blur(26px) saturate(1.15);
+    -webkit-backdrop-filter: blur(26px) saturate(1.15);
+    box-shadow: inset 0 1px 0 rgba(240, 240, 240, 0.06);
+  }
+
+  /** Tier 2: Nested stats and compact blocks stay distinct at 46% glass. */
+  .buzz-glass-tile {
+    background: rgba(8, 8, 8, 0.46);
+    backdrop-filter: blur(18px) saturate(1.08);
+    -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  }
+
+  .buzz-glass-nav {
+    background: rgba(18, 15, 13, 0.74);
+    backdrop-filter: blur(26px) saturate(1.15);
+    -webkit-backdrop-filter: blur(26px) saturate(1.15);
+  }
+
+  @media (max-width: 767px) {
+    .buzz-admin-table-row {
+      background: rgba(8, 8, 8, 0.46);
+      backdrop-filter: blur(18px) saturate(1.08);
+      -webkit-backdrop-filter: blur(18px) saturate(1.08);
+    }
+  }
+
   /**
    * `datetime-local` renders a browser calendar glyph that sat next to our own
    * Select chevron in the same admin grid row. Recolor it to match instead of
@@ -89,6 +177,15 @@
   .buzz-icon-on-ink {
     filter: brightness(0) invert(1);
   }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .buzz-glass-surface { background: #121212; }
+  .buzz-glass-panel { background: #111111; }
+  .buzz-glass-tile { background: #151515; }
+  .buzz-glass-nav { background: #0b0b0b; }
+  .buzz-scrim-atmosphere { background: #000000b3; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .buzz-admin-table-row { background: #151515; }
 }
 
 @layer utilities {

@@ -326,7 +326,7 @@ export function Row({
       className={cn(
         "border-b border-line align-middle last:border-0",
         attention ? "bg-accent-wash" : "hover:bg-buzz-paper04",
-        "max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:rounded-buzzBoard max-md:border max-md:border-line max-md:bg-surface-tile max-md:p-4",
+        "buzz-admin-table-row max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:rounded-buzzBoard max-md:border max-md:border-line max-md:p-4",
         attention && "max-md:bg-accent-wash",
       )}
     >

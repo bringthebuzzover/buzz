@@ -38,7 +38,9 @@ async def _add_open_drop() -> None:
                 brand_id=_uuid(20),  # Acme Coffee (from seed_dev)
                 title=E2E_DROP_TITLE,
                 description="Deterministic open drop for the apply E2E.",
-                image="https://example.test/e2e.png",
+                # Served by the local frontend so the fixture image loads in
+                # screenshots and E2E runs without relying on an external host.
+                image="/images/mockups/cold-brew-bottle.webp",
                 location="E2E Campus",
                 capacity_total=20,
                 apply_open_at=now - timedelta(days=1),

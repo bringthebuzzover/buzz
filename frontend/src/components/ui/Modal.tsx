@@ -48,7 +48,7 @@ export function Modal({
     <Dialog.Root open onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className={cn("fixed inset-0 z-buzzModal bg-buzz-scrim", MOTION.scrim)}
+          className={cn("fixed inset-0 z-buzzModal buzz-scrim-atmosphere", MOTION.scrim)}
         />
         <Dialog.Content
           // Without a description Radix warns unless this is explicitly unset.
