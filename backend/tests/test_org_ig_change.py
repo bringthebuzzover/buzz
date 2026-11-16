@@ -648,6 +648,57 @@ class TestOrgIgChangeRequest:
         # The signature the migration keys on is gone.
         assert "Instagram-first migration" not in (req.reason or "")
 
+    async def test_plain_login_cannot_bypass_an_outstanding_switch(
+        self, app_client: AsyncClient, db_session, fake_instagram, monkeypatch
+    ):
+        """Signing in with the old account must not reopen the portal.
+
+        Target enforcement lives on the Connect path. Without this guard, an org
+        whose switch to B is approved could log in with A, receive a fresh
+        token, and reach the portal while the switch is unfinished.
+        """
+        monkeypatch.setattr(
+            "app.services.ig_change_requests.send_org_ig_switch_connect_email",
+            AsyncMock(return_value=True),
+        )
+        user, _org = await _active_org(db_session)
+        created = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        admin = await admin_headers(db_session)
+        await app_client.post(
+            f"/api/admin/ig-change-requests/{created.json()['data']['id']}/approve",
+            json={"kind": "account_switch", "testerInviteConfirmed": True},
+            headers=admin,
+        )
+
+        # Simulate the legacy residue the migration must clear: an approved
+        # switch whose row still carries the *previous* account's Graph id and
+        # no token. That is the state in which an ordinary login as A would
+        # otherwise match this row and restore a token path that never goes
+        # through the switch's target check.
+        await db_session.refresh(user)
+        user.instagram_user_id = "ig_a"
+        user.instagram_token_user_id = None
+        user.instagram_access_token = None
+        await db_session.flush()
+
+        fake_instagram.account_type = "BUSINESS"
+        fake_instagram.user_id = "ig_a"
+        fake_instagram.username = "campusgreeks"
+        login = await app_client.get("/api/auth/instagram/login", follow_redirects=False)
+        state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
+        resp = await app_client.post(
+            "/api/auth/instagram/callback",
+            json={"code": "old-a", "state": state},
+        )
+
+        # Refused: the org has to finish the approved switch through Connect.
+        assert resp.status_code == 409, resp.text
+        assert "reconnect" in resp.text.lower()
+
     async def test_deny_after_approve_is_refused(self, app_client: AsyncClient, db_session):
         """A decided request cannot be decided again.
 

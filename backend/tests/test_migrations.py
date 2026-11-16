@@ -400,6 +400,25 @@ async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
         assert "migration" in (ticket["reason"] or "").lower()
         assert ticket["is_migration_placeholder"] is True
 
+        # A reconnect holder keeps no stale Graph identity. Leaving it would let
+        # an ordinary login as the old account match the row and reopen the
+        # portal without going through the switch's target check.
+        for uid in ids:
+            row = await conn.fetchrow(
+                "SELECT instagram_user_id, instagram_access_token FROM users WHERE id = $1",
+                uid,
+            )
+            status = await conn.fetchval("SELECT status::text FROM users WHERE id = $1", uid)
+            has_ticket = await conn.fetchval(
+                "SELECT EXISTS (SELECT 1 FROM org_ig_change_requests r "
+                "JOIN organizations o ON o.id = r.org_id "
+                "WHERE o.user_id = $1 AND r.status = 'awaiting_connect')",
+                uid,
+            )
+            if has_ticket:
+                assert row["instagram_user_id"] is None, (uid, status, dict(row))
+                assert row["instagram_access_token"] is None, (uid, status, dict(row))
+
         # No user and no request row was lost, and the enum label is intact.
         assert await conn.fetchval("SELECT count(*) FROM users WHERE id = ANY($1)", ids) == 4
         assert (

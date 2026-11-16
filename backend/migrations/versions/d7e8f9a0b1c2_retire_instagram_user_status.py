@@ -135,6 +135,30 @@ def upgrade() -> None:
               WHERE o.user_id = u.id AND r.status = 'awaiting_connect'
           )
         """)
+    # Every reconnect holder was classified *unbound* above, so any Graph
+    # identity still on the row is stale residue from an account it no longer
+    # has a token for. Leaving it would let an ordinary Instagram login as that
+    # old account match the row (``auth`` matches on instagram_user_id /
+    # instagram_token_user_id) and restore a token path that never goes through
+    # the switch's target check, opening the portal while the switch is
+    # unfinished. Clear both identity columns; the ticket is their way back.
+    op.execute("""
+        UPDATE users u
+        SET instagram_user_id = NULL,
+            instagram_token_user_id = NULL,
+            instagram_access_token = NULL,
+            instagram_token_issued_at = NULL,
+            instagram_token_expires_at = NULL,
+            instagram_token_refreshed_at = NULL,
+            instagram_granted_permissions = NULL
+        WHERE u.status = 'active'
+          AND u.portal_role = 'org'
+          AND EXISTS (
+              SELECT 1 FROM org_ig_change_requests r
+              JOIN organizations o ON o.id = r.org_id
+              WHERE o.user_id = u.id AND r.status = 'awaiting_connect'
+          )
+        """)
     # Cohort 4 (unbound, no ticket, nothing claimed): there is no handle to bind
     # and no ticket to redeem, so 'active' would close the portal against a
     # credential gate that nothing can satisfy. 'pending_approval' is reachable

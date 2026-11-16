@@ -169,6 +169,26 @@ async def handle_instagram_callback(
         )
 
     org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    if bind_user_id is None:
+        # An ordinary Instagram login must not satisfy an approved switch. Target
+        # enforcement lives on the Connect path (``bind_user_id``); without this
+        # guard, signing in with the account the org is *leaving* would write a
+        # fresh token and reopen the portal while the switch to the approved
+        # handle is still unfinished. Send them to the Connect link instead.
+        awaiting = await db.scalar(
+            select(OrgIgChangeRequest.id).where(
+                OrgIgChangeRequest.user_id == user.id,
+                OrgIgChangeRequest.status == "awaiting_connect",
+                OrgIgChangeRequest.decided_kind == "account_switch",
+            )
+        )
+        if awaiting is not None:
+            raise BuzzAPIException(
+                errors.INVALID_ONBOARDING_STATE,
+                "Finish reconnecting Instagram from the link we sent you before "
+                "signing in with another account.",
+                status_code=409,
+            )
     if bind_user_id is not None:
         open_switches = list(
             await db.scalars(
