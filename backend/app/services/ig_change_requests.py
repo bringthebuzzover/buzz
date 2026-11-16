@@ -25,7 +25,7 @@ from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
 from app.models.user import User
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.services.email import (
     KIND_IG_CHANGE_DENIED,
     KIND_IG_RENAME_APPROVED,
@@ -36,7 +36,6 @@ from app.services.email import (
     send_org_ig_switch_connect_email,
 )
 from app.services.email_tasks import schedule_email
-from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.lifecycle import seat_is_live
 from app.services.org_apply import (
@@ -137,7 +136,10 @@ async def submit_request(
             "Kind must be rename or account_switch.",
             status_code=400,
         )
-    org, user = await _org_and_user(db, user)
+    locked_user = await lock_user(db, user.id)
+    if locked_user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    org, user = await _org_and_user(db, locked_user)
     if user.status != OrgUserStatus.ACTIVE.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -305,6 +307,23 @@ async def _pending_request_for_update(
     return row
 
 
+async def _user_for_request_update(db: AsyncSession, request_id: UUID) -> User | None:
+    """Lock user before request, matching OAuth bind's lock order."""
+    user_id = await db.scalar(
+        select(OrgIgChangeRequest.user_id).where(OrgIgChangeRequest.id == request_id)
+    )
+    if user_id is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
+    user = await lock_user(db, user_id)
+    if user is not None and user.status == OrgUserStatus.ERASED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization account has been erased.",
+            status_code=409,
+        )
+    return user
+
+
 async def approve_request(
     db: AsyncSession,
     request_id: UUID,
@@ -319,6 +338,7 @@ async def approve_request(
             "Approve kind must be rename or account_switch.",
             status_code=400,
         )
+    user = await _user_for_request_update(db, request_id)
     req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
@@ -328,16 +348,9 @@ async def approve_request(
             "This request has already been decided.",
             status_code=400,
         )
-    user = await db.get(User, req.user_id)
-    org = await db.get(Organization, req.org_id)
+    org = await db.get(Organization, req.org_id, populate_existing=True)
     if user is None or org is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
-    if user.status == OrgUserStatus.ERASED.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Organization account has been erased.",
-            status_code=409,
-        )
     if user.status != OrgUserStatus.ACTIVE.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -427,18 +440,7 @@ async def retarget_awaiting_connect(
     portal and no Connect path. This is the admin exit: rewrite the approved
     target on the open ticket, keeping the recovery path intact.
     """
-    # Take the user row first. The bind callback locks user -> request rows, so
-    # retargeting in the opposite order (request -> user) would let the two
-    # paths deadlock against each other.
-    peek = await db.get(OrgIgChangeRequest, request_id)
-    if peek is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
-    await db.scalar(
-        select(User)
-        .where(User.id == peek.user_id)
-        .execution_options(populate_existing=True)
-        .with_for_update()
-    )
+    user = await _user_for_request_update(db, request_id)
     req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
@@ -448,13 +450,7 @@ async def retarget_awaiting_connect(
             "Only a request waiting to reconnect can be retargeted.",
             status_code=400,
         )
-    cleaned = canonical_instagram_handle(requested_handle)
-    if not cleaned:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Enter the Instagram handle the organization should connect.",
-            status_code=400,
-        )
+    cleaned = normalize_claimed_handle(requested_handle)
     await assert_handle_available(db, cleaned, exclude_user_id=req.user_id)
 
     # Move the handle reservation with the ticket. Ownership is enforced through
@@ -462,8 +458,7 @@ async def retarget_awaiting_connect(
     # ordinary Instagram login for the new handle create a separate account
     # holding it, and the org's own bind would then fail on a Graph identity that
     # already belongs to another user.
-    user = await db.get(User, req.user_id)
-    org = await db.get(Organization, req.org_id)
+    org = await db.get(Organization, req.org_id, populate_existing=True)
     if user is not None:
         user.instagram_username = cleaned
     if org is not None:
@@ -487,6 +482,7 @@ async def retarget_awaiting_connect(
 async def deny_request(
     db: AsyncSession, request_id: UUID, *, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
+    user = await _user_for_request_update(db, request_id)
     req = await _pending_request_for_update(db, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
@@ -496,8 +492,7 @@ async def deny_request(
             "This request has already been decided.",
             status_code=400,
         )
-    user = await db.get(User, req.user_id)
-    org = await db.get(Organization, req.org_id)
+    org = await db.get(Organization, req.org_id, populate_existing=True)
     if user is None or org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
     req.status = "denied"

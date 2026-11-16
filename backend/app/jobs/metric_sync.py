@@ -60,10 +60,11 @@ from app.models.enums import (
 from app.models.organization import Organization
 from app.models.social_post import SocialPost
 from app.models.user import User
+from app.security.session import lock_user
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.insight_units import clamp_reels_skip_rate
 from app.services.instagram import InstagramClient, MediaFields, merge_follower_count
-from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.instagram_token import clear_stale_instagram_token
 from app.services.lifecycle import metrics_sync_open, seat_is_live
 
 logger = logging.getLogger(__name__)
@@ -239,7 +240,9 @@ async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
     return list(await db.scalars(select(Organization).where(Organization.id.in_(org_ids))))
 
 
-def _resolve_token(user: User | None, now: datetime) -> tuple[str | None, str]:
+async def _resolve_token(
+    db: AsyncSession, user: User | None, now: datetime
+) -> tuple[str | None, str]:
     """Return ``(plaintext, "ok")`` or ``(None, reason)``.
 
     Reasons: ``missing_user``, ``missing_token``, ``expired``,
@@ -260,15 +263,10 @@ def _resolve_token(user: User | None, now: datetime) -> tuple[str | None, str]:
     try:
         return decrypt_token(user.instagram_access_token), "ok"
     except TokenDecryptionError:
-        clear_unusable_instagram_token(user)
+        await clear_stale_instagram_token(db, user)
         return None, "undecryptable"
     except Exception:  # noqa: BLE001
         return None, "decrypt_error"
-
-
-def _token_for(user: User | None, now: datetime) -> str | None:
-    token, _reason = _resolve_token(user, now)
-    return token
 
 
 def _log_follower_skip(
@@ -287,13 +285,18 @@ def _log_follower_skip(
 
 
 async def _store_follower_count(
-    org: Organization, user: User, token: str, ig: InstagramClient
+    db: AsyncSession, org: Organization, user: User, token: str, ig: InstagramClient
 ) -> str:
     """Write a present Graph count. Return ``refreshed``, ``omitted``, or ``failed``.
 
     Omit and fetch errors keep the stored count (never overwrite with null).
     """
 
+    # Keep the credential snapshot that selected this Graph call. The request
+    # can take long enough for an approved account switch and reconnect to
+    # finish; never apply the old profile's count to the newly bound account.
+    expected_identity = (user.instagram_user_id, user.instagram_token_user_id)
+    expected_ciphertext = user.instagram_access_token
     try:
         profile = await ig.fetch_profile(token)
     except Exception:  # noqa: BLE001
@@ -313,7 +316,27 @@ async def _store_follower_count(
             "invalid" if profile.followers_count_invalid else "omitted",
         )
         return "omitted"
-    org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)
+    current_user = await lock_user(db, user.id)
+    if (
+        current_user is None
+        or current_user.status == OrgUserStatus.ERASED.value
+        or (current_user.instagram_user_id, current_user.instagram_token_user_id)
+        != expected_identity
+        or current_user.instagram_access_token != expected_ciphertext
+    ):
+        logger.info("Discarding stale follower-count refresh for user %s", user.id)
+        return "skipped"
+    current_org = await db.scalar(
+        select(Organization)
+        .where(Organization.id == org.id)
+        .execution_options(populate_existing=True)
+        .with_for_update()
+    )
+    if current_org is None:
+        return "skipped"
+    current_org.follower_count = merge_follower_count(
+        current_org.follower_count, profile.followers_count
+    )
     return "refreshed"
 
 
@@ -362,7 +385,7 @@ async def _refresh_follower_counts(
     for user in users:
         attempted.add(user.id)
         org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-        token, reason = _resolve_token(user, now)
+        token, reason = await _resolve_token(db, user, now)
         if token is None or org is None:
             _log_follower_skip(
                 org=org,
@@ -371,7 +394,7 @@ async def _refresh_follower_counts(
             )
             _tally("skipped")
             continue
-        _tally(await _store_follower_count(org, user, token, ig))
+        _tally(await _store_follower_count(db, org, user, token, ig))
 
     for org in media_orgs or []:
         owner = await db.get(User, org.user_id)
@@ -381,7 +404,7 @@ async def _refresh_follower_counts(
             continue
         if owner.id in attempted or owner.status == OrgUserStatus.ERASED.value:
             continue
-        token, reason = _resolve_token(owner, now)
+        token, reason = await _resolve_token(db, owner, now)
         if token is None:
             # No ciphertext at all: media sync also skips quietly (no posts moved).
             if reason == "missing_token":
@@ -399,7 +422,7 @@ async def _refresh_follower_counts(
             owner.portal_role,
             owner.status,
         )
-        _tally(await _store_follower_count(org, owner, token, ig))
+        _tally(await _store_follower_count(db, org, owner, token, ig))
 
     await db.flush()
     return {
@@ -434,7 +457,7 @@ async def sync_metrics_for_orgs(
         user = await db.get(User, org.user_id)
         if user is not None and user.status == OrgUserStatus.ERASED.value:
             continue
-        token = _token_for(user, now)
+        token, _reason = await _resolve_token(db, user, now)
         if token is None:
             # Present-but-unusable token → non-clean run (expired / undecryptable).
             if user is not None and user.instagram_access_token:

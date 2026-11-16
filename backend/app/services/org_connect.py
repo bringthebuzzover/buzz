@@ -23,6 +23,7 @@ from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.user import User
 from app.security.one_shot_tokens import hash_token
+from app.security.session import lock_user
 from app.timeutils import utcnow
 
 # Statuses in which an org that never connected Instagram can still be rescued by
@@ -109,6 +110,14 @@ async def create_org_connect_token(
     Returns the raw token and the row id. The id is safe to put on a Resend
     idempotency key; the raw token is not.
     """
+    locked_user = await lock_user(db, user.id)
+    if locked_user is None or not await org_may_connect_instagram(db, locked_user):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "This account is not waiting to connect Instagram.",
+            status_code=409,
+        )
+    user = locked_user
     now = utcnow()
     await db.execute(
         sa_update(OrgConnectToken)
@@ -156,10 +165,16 @@ async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:
     refused at redeem time even if it still holds an unused token, because the
     check below reads the live row.
     """
+    token_hash = hash_token(token)
+    user_id = await db.scalar(
+        select(OrgConnectToken.user_id).where(OrgConnectToken.token_hash == token_hash)
+    )
+    user = await lock_user(db, user_id) if user_id is not None else None
     now = utcnow()
     row = await db.scalar(
         select(OrgConnectToken)
-        .where(OrgConnectToken.token_hash == hash_token(token))
+        .where(OrgConnectToken.token_hash == token_hash, OrgConnectToken.user_id == user_id)
+        .execution_options(populate_existing=True)
         .with_for_update()
     )
     if row is None:
@@ -181,7 +196,6 @@ async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:
             status_code=400,
         )
 
-    user = await db.get(User, row.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
     if not await org_may_connect_instagram(db, user):

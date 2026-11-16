@@ -1021,6 +1021,88 @@ async def test_token_refresh_does_not_restore_token_after_erase(monkeypatch, cal
                 await s.commit()
 
 
+@pytest.mark.parametrize("caller", ["refresh_instagram_token", "refresh_due_tokens"])
+@pytest.mark.parametrize("changed_field", ["instagram_user_id", "instagram_token_user_id", "both"])
+async def test_token_refresh_discards_result_after_identity_changes(
+    monkeypatch, caplog, caller: str, changed_field: str
+) -> None:
+    """Commit a new binding from another session while the Graph call is in flight."""
+    import app.services.instagram_token as itok
+    from app.deps.db import async_session_factory, engine
+
+    await engine.dispose()
+    uid = uuid.uuid4()
+    old_id = f"ig_old_{uid.hex}"
+    new_id = f"ig_new_{uid.hex}"
+    old_token = encrypt_token("account-a-token")
+    # Single-field cases isolate each identity predicate from the token predicate.
+    new_token = encrypt_token("account-b-token") if changed_field == "both" else old_token
+    bound_at = utcnow()
+    expires_at = bound_at + timedelta(days=60)
+    async with async_session_factory() as s:
+        s.add(
+            User(
+                id=uid,
+                portal_role="org",
+                status="active",
+                instagram_user_id=old_id,
+                instagram_token_user_id=old_id,
+                instagram_access_token=old_token,
+                instagram_token_expires_at=utcnow() + timedelta(days=10),
+            )
+        )
+        await s.commit()
+
+    class BindMidRefresh(FakeInstagramClient):
+        async def refresh_long_lived(self, long_token: str):  # type: ignore[override]
+            assert long_token == "account-a-token"
+            async with async_session_factory() as s:
+                row = await s.get(User, uid)
+                assert row is not None
+                if changed_field in ("instagram_user_id", "both"):
+                    row.instagram_user_id = new_id
+                if changed_field in ("instagram_token_user_id", "both"):
+                    row.instagram_token_user_id = new_id
+                row.instagram_access_token = new_token
+                row.instagram_token_issued_at = bound_at
+                row.instagram_token_expires_at = expires_at
+                row.instagram_token_refreshed_at = None
+                await s.commit()
+            return await super().refresh_long_lived(long_token)
+
+    caplog.set_level(logging.INFO, logger="app.services.instagram_token")
+    try:
+        if caller == "refresh_instagram_token":
+            monkeypatch.setattr(itok, "get_instagram_client", lambda: BindMidRefresh())
+            assert await refresh_instagram_token(uid) is False
+        else:
+            async with async_session_factory() as s:
+                result = await refresh_due_tokens(s, BindMidRefresh())
+                await s.commit()
+            assert result["refreshed"] == 0
+            assert result["skipped"] == 1
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            assert row is not None
+            assert row.instagram_user_id == (
+                new_id if changed_field in ("instagram_user_id", "both") else old_id
+            )
+            assert row.instagram_token_user_id == (
+                new_id if changed_field in ("instagram_token_user_id", "both") else old_id
+            )
+            assert row.instagram_access_token == new_token
+            assert row.instagram_token_issued_at == bound_at
+            assert row.instagram_token_expires_at == expires_at
+            assert row.instagram_token_refreshed_at is None
+        assert "Discarding stale Instagram token refresh" in caplog.text
+    finally:
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            if row is not None:
+                await s.delete(row)
+                await s.commit()
+
+
 # --- metric sync edge cases ---
 
 

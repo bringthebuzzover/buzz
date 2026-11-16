@@ -223,6 +223,26 @@ export function useDenyIgChangeRequest() {
   });
 }
 
+export function useRetargetIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { requestId: string; requestedHandle: string }) => {
+      const { data } = await apiFetch<AdminIgChangeRequest>(
+        `/api/admin/ig-change-requests/${input.requestId}/retarget`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestedHandle: input.requestedHandle }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
 export type AdminBrandIgChangeRequest =
   components["schemas"]["AdminBrandIgChangeRequestItem"];
 

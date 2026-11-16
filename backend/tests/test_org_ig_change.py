@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import event, select
 
 from app.exceptions import BuzzAPIException
 from app.jobs.metric_sync import sync_metrics_for_orgs
@@ -598,13 +598,93 @@ class TestOrgIgChangeRequest:
 
         retargeted = await app_client.post(
             f"/api/admin/ig-change-requests/{request_id}/retarget",
-            json={"requestedHandle": "renamedclubig"},
+            json={"requestedHandle": "  @renamedclubig  "},
             headers=admin,
         )
         assert retargeted.status_code == 200
+        assert retargeted.json()["data"]["requestedHandle"] == "renamedclubig"
 
         await db_session.refresh(user)
+        await db_session.refresh(org)
         assert user.instagram_username == "renamedclubig"
+        assert org.claimed_instagram_username == "renamedclubig"
+
+    @pytest.mark.parametrize("handle", ["club name", "a" * 31, "bad..handle", "@"])
+    async def test_retarget_rejects_invalid_handle_without_moving_reservation(
+        self, app_client: AsyncClient, db_session, handle
+    ):
+        user, org = await _active_org(db_session)
+        created = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        request_id = created.json()["data"]["id"]
+        admin = await admin_headers(db_session)
+        approved = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/approve",
+            json={"kind": "account_switch", "testerInviteConfirmed": True},
+            headers=admin,
+        )
+        assert approved.status_code == 200
+
+        refused = await app_client.post(
+            f"/api/admin/ig-change-requests/{request_id}/retarget",
+            json={"requestedHandle": handle},
+            headers=admin,
+        )
+        assert refused.status_code == 400
+        assert "valid Instagram username" in refused.json()["error"]["message"]
+        row = await db_session.get(OrgIgChangeRequest, uuid.UUID(request_id))
+        await db_session.refresh(row)
+        await db_session.refresh(user)
+        await db_session.refresh(org)
+        assert row.requested_handle == "newcampusig"
+        assert row.status == "awaiting_connect"
+        assert user.instagram_username == "newcampusig"
+        assert org.claimed_instagram_username == "newcampusig"
+
+    @pytest.mark.parametrize("action", ["approve", "deny", "retarget"])
+    async def test_decisions_lock_user_before_request(
+        self, app_client: AsyncClient, db_session, action
+    ):
+        """Assert real lock SQL order; the fixture's outer transaction cannot race."""
+        user, _org = await _active_org(db_session)
+        created = await app_client.post(
+            "/api/orgs/me/ig-change-requests",
+            json=_body(),
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        request_id = created.json()["data"]["id"]
+        admin = await admin_headers(db_session)
+        approval = {"kind": "account_switch", "testerInviteConfirmed": True}
+        if action == "retarget":
+            approved = await app_client.post(
+                f"/api/admin/ig-change-requests/{request_id}/approve",
+                json=approval,
+                headers=admin,
+            )
+            assert approved.status_code == 200
+
+        locks = []
+
+        def record_lock(state):
+            sql = str(state.statement)
+            if "FOR UPDATE" in sql:
+                locks.append(sql.split("FROM ")[1].split()[0])
+                assert state.execution_options.get("populate_existing") is True
+
+        event.listen(db_session.sync_session, "do_orm_execute", record_lock)
+        try:
+            result = await app_client.post(
+                f"/api/admin/ig-change-requests/{request_id}/{action}",
+                json={"requestedHandle": "otherclub"} if action == "retarget" else approval,
+                headers=admin,
+            )
+        finally:
+            event.remove(db_session.sync_session, "do_orm_execute", record_lock)
+        assert result.status_code == 200, result.text
+        assert locks[:2] == ["users", "org_ig_change_requests"]
 
     async def test_retarget_clears_the_migration_placeholder_signature(
         self, app_client: AsyncClient, db_session

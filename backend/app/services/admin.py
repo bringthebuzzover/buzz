@@ -34,7 +34,7 @@ from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.services.brand_ig_change_requests import brands_with_pending_ig_change
 from app.services.drop_apply_intents import (
     expire_open_intents_for_org,
@@ -291,7 +291,7 @@ async def resend_org_connect(
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
-    user = await db.get(User, org.user_id)
+    user = await lock_user(db, org.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
@@ -350,7 +350,7 @@ async def send_org_connect_link(
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
-    user = await db.get(User, org.user_id)
+    user = await lock_user(db, org.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
@@ -993,7 +993,7 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     requiring a matching Graph user_id. Status is left alone so a
     pending_email_verification org can reach resend again after reconnecting.
     """
-    user = await db.get(User, user_id)
+    user = await lock_user(db, user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 

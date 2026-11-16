@@ -23,7 +23,7 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.security.token_crypto import encrypt_token
 from app.services.drop_apply_intents import promote_drop_apply_intents
 from app.services.instagram import (
@@ -114,12 +114,7 @@ async def handle_instagram_callback(
         # would still see the old unbound state, pass eligibility, and write its
         # credentials over a fresh account's id — pairing one account's id with
         # another's token.
-        target = await db.scalar(
-            select(User)
-            .where(User.id == bind_user_id)
-            .execution_options(populate_existing=True)
-            .with_for_update()
-        )
+        target = await lock_user(db, bind_user_id)
         if target is None or target.portal_role != PortalRole.ORG.value:
             raise BuzzAPIException(
                 errors.NOT_FOUND,
@@ -147,7 +142,21 @@ async def handle_instagram_callback(
             status=OrgUserStatus.PENDING_ORG_PROFILE.value,
         )
     else:
-        user = existing
+        # Selection is only a hint until the account lock is acquired. Keep
+        # this lock through issue_token_pair's commit so approval/erase cannot
+        # interleave between credential storage and Buzz session issuance.
+        locked_user = await lock_user(db, existing.id)
+        if locked_user is None:
+            raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
+        user = locked_user
+        if user.status != OrgUserStatus.ERASED.value and not (
+            {user.instagram_user_id, user.instagram_token_user_id} & {profile.id, short.user_id}
+        ):
+            raise BuzzAPIException(
+                errors.INVALID_ONBOARDING_STATE,
+                "This Instagram identity changed while signing in. Please try logging in again.",
+                status_code=409,
+            )
 
     if user.status == OrgUserStatus.ERASED.value:
         # Do not write Graph ids, the handle, or a token back onto a tombstone.
@@ -168,7 +177,11 @@ async def handle_instagram_callback(
             status_code=400,
         )
 
-    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    org = await db.scalar(
+        select(Organization)
+        .where(Organization.user_id == user.id)
+        .execution_options(populate_existing=True)
+    )
     if bind_user_id is None:
         # An ordinary Instagram login must not satisfy an approved switch. Target
         # enforcement lives on the Connect path (``bind_user_id``); without this
@@ -192,7 +205,8 @@ async def handle_instagram_callback(
     if bind_user_id is not None:
         open_switches = list(
             await db.scalars(
-                select(OrgIgChangeRequest).where(
+                select(OrgIgChangeRequest)
+                .where(
                     OrgIgChangeRequest.user_id == user.id,
                     OrgIgChangeRequest.status == "awaiting_connect",
                     OrgIgChangeRequest.decided_kind == "account_switch",
@@ -202,6 +216,8 @@ async def handle_instagram_callback(
                 # retarget commit C, and the callback then bind B and mark the
                 # request approved — the portal opening on credentials that do
                 # not satisfy the recorded approval.
+                .execution_options(populate_existing=True)
+                .order_by(OrgIgChangeRequest.id)
                 .with_for_update()
             )
         )
@@ -434,12 +450,15 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
     """
 
     user = await db.scalar(
-        select(User).where(
+        select(User)
+        .where(
             or_(
                 User.instagram_user_id == instagram_user_id,
                 User.instagram_token_user_id == instagram_user_id,
             )
         )
+        .execution_options(populate_existing=True)
+        .with_for_update()
     )
     if user is None:
         return False
