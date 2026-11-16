@@ -48,6 +48,14 @@ function setInput(id: string, value: string) {
   });
 }
 
+function setSelect(id: string, value: string) {
+  const el = document.body.querySelector(`#${id}`) as HTMLSelectElement;
+  act(() => {
+    el.value = value;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}
+
 function submit() {
   return act(async () => {
     document.body
@@ -67,10 +75,16 @@ describe("ContactModal", () => {
   it("renders the message form and the three channels from siteIdentity", () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
-    expect(field("contact-first-name")).not.toBeNull();
-    expect(field("contact-last-name")).not.toBeNull();
+    expect(field("contact-name")).not.toBeNull();
+    expect(document.body.querySelector("#contact-type")).not.toBeNull();
+    expect(document.body.textContent).toContain("Select type");
     expect(field("contact-email")).not.toBeNull();
     expect(field("contact-message")).not.toBeNull();
+    expect((field("contact-name") as HTMLInputElement).placeholder).toBe("First Last");
+    expect((field("contact-email") as HTMLInputElement).placeholder).toBe("you@company.com");
+    expect((field("contact-message") as HTMLTextAreaElement).placeholder).toContain(
+      "Tell us a little about what you have in mind",
+    );
 
     // Channels come from siteIdentity, not hardcoded copy.
     expect(document.body.textContent).toContain("@exampleorg");
@@ -88,15 +102,16 @@ describe("ContactModal", () => {
   it("posts the form once with the honeypot left empty", async () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "We want to run a drop.");
     await submit();
 
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
     expect(mockMutateAsync).toHaveBeenCalledWith({
-      firstName: "Jordan",
-      lastName: "",
+      name: "Jordan",
+      type: "organization",
       email: "jordan@example.edu",
       message: "We want to run a drop.",
       website: "",
@@ -107,7 +122,8 @@ describe("ContactModal", () => {
     mockMutateAsync.mockRejectedValueOnce(new Error("network down"));
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "Please keep this text.");
     await submit();
@@ -144,7 +160,8 @@ describe("ContactModal", () => {
     );
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "We want to run a drop.");
     await submit();
@@ -165,22 +182,23 @@ describe("ContactModal", () => {
     mockMutateAsync.mockRejectedValueOnce(
       new ApiError("VALIDATION_ERROR", "Request validation failed.", 422, {
         errors: [
-          { loc: ["body", "first_name"], msg: "Value error, First name is required" },
+          { loc: ["body", "name"], msg: "Value error, Name is required" },
           { loc: ["body", "message"], msg: "Value error, Message is required" },
         ],
       }),
     );
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
 
-    const firstName = field("contact-first-name") as HTMLInputElement;
+    const name = field("contact-name") as HTMLInputElement;
     const body = field("contact-message") as HTMLTextAreaElement;
-    expect(firstName.getAttribute("aria-invalid")).toBe("true");
+    expect(name.getAttribute("aria-invalid")).toBe("true");
     expect(body.getAttribute("aria-invalid")).toBe("true");
-    expect(document.body.textContent).toContain("First name is required");
+    expect(document.body.textContent).toContain("Name is required");
     expect(document.body.textContent).toContain("Message is required");
   });
 
@@ -191,7 +209,8 @@ describe("ContactModal", () => {
       }),
     );
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -208,7 +227,8 @@ describe("ContactModal", () => {
       }),
     );
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -220,7 +240,8 @@ describe("ContactModal", () => {
   it("shows a banner when the error carries no validation details at all", async () => {
     mockMutateAsync.mockRejectedValueOnce(new ApiError("INTERNAL_ERROR", "", 500, null));
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -236,7 +257,8 @@ describe("ContactModal", () => {
       }),
     );
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
-    setInput("contact-first-name", "Jordan");
+    setInput("contact-name", "Jordan");
+    setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -254,8 +276,7 @@ describe("ContactModal", () => {
   it("caps each field at the backend's length limit", () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
-    expect((field("contact-first-name") as HTMLInputElement).maxLength).toBe(100);
-    expect((field("contact-last-name") as HTMLInputElement).maxLength).toBe(100);
+    expect((field("contact-name") as HTMLInputElement).maxLength).toBe(100);
     expect((field("contact-email") as HTMLInputElement).maxLength).toBe(320);
     expect((field("contact-message") as HTMLTextAreaElement).maxLength).toBe(2000);
   });

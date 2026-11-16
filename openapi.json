@@ -5498,17 +5498,20 @@
             "title": "Email",
             "type": "string"
           },
-          "firstName": {
-            "title": "Firstname",
-            "type": "string"
-          },
-          "lastName": {
-            "default": "",
-            "title": "Lastname",
-            "type": "string"
-          },
           "message": {
             "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organization",
+              "brand"
+            ],
+            "title": "Type",
             "type": "string"
           },
           "website": {
@@ -5518,7 +5521,8 @@
           }
         },
         "required": [
-          "firstName",
+          "name",
+          "type",
           "email",
           "message"
         ],
