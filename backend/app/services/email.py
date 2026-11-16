@@ -46,7 +46,9 @@ _IDEMPOTENCY_KEY_MAX = 256
 KIND_VERIFICATION = "verification"
 KIND_BRAND_APPLIED = "brand-applied"
 # Public contact modal: ops notice (Reply reaches the sender) + sender copy.
-KIND_CONTACT = "contact"
+# The notice body format changed to message + signature, so a new key kind
+# avoids reusing a provider key for a different payload during deploy retries.
+KIND_CONTACT = "contact-v2"
 KIND_CONTACT_ACK = "contact-ack"
 KIND_BRAND_INVITE = "brand-invite"
 KIND_ORG_APPROVED = "org-approved"
@@ -1019,15 +1021,7 @@ async def send_contact_notice(
     # identical retry, because the route derives the Idempotency-Key from the
     # same content; a per-attempt value would make Resend return 409 and turn
     # every retry into a permanent 502. The provider records the send time.
-    body = "\n".join(
-        [
-            f"Type: {type_label}",
-            f"Name: {contact_name}",
-            f"Email: {sender_email}",
-            "",
-            message,
-        ]
-    )
+    body = f"{message}\n\n-- {contact_name} <{sender_email}>"
     if settings.ENVIRONMENT == "development":
         logger.info(
             "DEV EMAIL — Contact notice: to=%s from=%s type=%s name=%s",
