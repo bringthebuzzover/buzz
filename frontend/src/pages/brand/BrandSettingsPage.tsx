@@ -211,9 +211,8 @@ export default function BrandSettingsPage() {
                 </div>
                 <Button
                   type="submit"
-                  size="field"
                   fullWidth
-                  className="sm:self-start sm:w-auto"
+                  className="sm:self-start sm:w-auto sm:mt-1"
                   disabled={updateProfile.isPending || !shownName.trim()}
                   data-testid="brand-name-save"
                 >

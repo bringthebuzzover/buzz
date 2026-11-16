@@ -70,43 +70,72 @@
 @layer components {
   /** Pink light pools behind transparent panels, using the shared palette token. */
   .buzz-app-atmosphere {
+    --buzz-atmosphere-intensity: 1;
     background-color: #0b0b0b;
     background-image:
       radial-gradient(
         ellipse 950px 850px at -12% 7%,
-        color-mix(in srgb, theme(colors.buzz.pink) 20%, transparent),
+        color-mix(in srgb, theme(colors.buzz.pink) calc(20% * var(--buzz-atmosphere-intensity)), transparent),
         transparent 70%
       ),
       radial-gradient(
         ellipse 900px 900px at 96% 7%,
-        color-mix(in srgb, theme(colors.buzz.pink) 24%, transparent),
+        color-mix(in srgb, theme(colors.buzz.pink) calc(24% * var(--buzz-atmosphere-intensity)), transparent),
         transparent 66%
       ),
       radial-gradient(
         ellipse 520px 900px at 60% 66%,
-        color-mix(in srgb, theme(colors.buzz.pink) 9%, transparent),
+        color-mix(in srgb, theme(colors.buzz.pink) calc(9% * var(--buzz-atmosphere-intensity)), transparent),
         transparent 80%
       );
     background-attachment: fixed;
   }
 
-  /** Shared 72% dark glass for primary cards and dashboard surfaces. */
+  /**
+   * Scrim with irregular pink atmosphere and blur for modal overlays.
+   * Leverages the exact same pool coordinates with a master glow multiplier
+   * over a 70% dark scrim, unifying dialog backdrops with the app atmosphere.
+   */
+  .buzz-scrim-atmosphere {
+    --buzz-scrim-glow: 0.75;
+    background-color: rgba(0, 0, 0, 0.70);
+    background-image:
+      radial-gradient(
+        ellipse 950px 850px at -12% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(20% * var(--buzz-scrim-glow)), transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 900px 900px at 96% 7%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(24% * var(--buzz-scrim-glow)), transparent),
+        transparent 66%
+      ),
+      radial-gradient(
+        ellipse 520px 900px at 60% 66%,
+        color-mix(in srgb, theme(colors.buzz.pink) calc(9% * var(--buzz-scrim-glow)), transparent),
+        transparent 80%
+      );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /** Tier 1: Shared 74% dark glass for primary cards, panels, and dialog surfaces. */
   .buzz-glass-surface {
-    background: rgba(18, 15, 13, 0.72);
+    background: rgba(18, 15, 13, 0.74);
     backdrop-filter: blur(26px) saturate(1.15);
     -webkit-backdrop-filter: blur(26px) saturate(1.15);
     box-shadow: inset 0 1px 0 rgba(255, 239, 205, 0.08), 0 20px 56px rgba(0, 0, 0, 0.18);
   }
 
-  /** Dense portal/admin panels keep the glass lighter than the outer card. */
+  /** Dense portal/admin panels share the 74% glass tier with subtle inset hairline. */
   .buzz-glass-panel {
-    background: rgba(12, 11, 11, 0.68);
-    backdrop-filter: blur(24px) saturate(1.1);
-    -webkit-backdrop-filter: blur(24px) saturate(1.1);
+    background: rgba(18, 15, 13, 0.74);
+    backdrop-filter: blur(26px) saturate(1.15);
+    -webkit-backdrop-filter: blur(26px) saturate(1.15);
     box-shadow: inset 0 1px 0 rgba(240, 240, 240, 0.06);
   }
 
-  /** Nested stats and compact blocks stay distinct without opaque fills. */
+  /** Tier 2: Nested stats and compact blocks stay distinct at 46% glass. */
   .buzz-glass-tile {
     background: rgba(8, 8, 8, 0.46);
     backdrop-filter: blur(18px) saturate(1.08);
@@ -114,7 +143,7 @@
   }
 
   .buzz-glass-nav {
-    background: rgba(18, 15, 13, 0.76);
+    background: rgba(18, 15, 13, 0.74);
     backdrop-filter: blur(26px) saturate(1.15);
     -webkit-backdrop-filter: blur(26px) saturate(1.15);
   }
@@ -155,6 +184,7 @@
   .buzz-glass-panel { background: #111111; }
   .buzz-glass-tile { background: #151515; }
   .buzz-glass-nav { background: #0b0b0b; }
+  .buzz-scrim-atmosphere { background: #000000b3; backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
 
 @layer utilities {

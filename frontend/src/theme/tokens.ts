@@ -127,20 +127,15 @@ export const SURFACE = {
   stat: "rounded-buzzCard border border-line buzz-glass-tile",
   /** Inset glass block inside a card. */
   inset: "rounded-buzzField border border-line buzz-glass-tile",
-  /** General modal shell with the same 77% glass as the contact modal. */
+  /** General modal shell unified with Tier 1 primary glass. */
   modal:
-    "rounded-buzzBoard border border-line bg-[rgba(22,22,22,0.77)] p-8 shadow-buzzModal backdrop-blur-[28px] backdrop-saturate-[0.8]",
+    "rounded-buzzBoard border border-line buzz-glass-surface p-8 shadow-buzzModal",
   /**
-   * Translucent modal shell for the wide marketing dialogs (contact).
-   *
-   * Ink-pop at 77% over the blurred page behind it, per the approved contact
-   * design. Kept as a token rather than inline utilities so every glass surface
-   * matches and the alpha lives in one place. `backdrop-saturate` keeps the
-   * yellow from going grey through the blur. No padding: the wide dialogs own
-   * their own grid.
+   * Translucent modal shell for wide dialogs (contact), unified with Tier 1
+   * primary glass. No inner padding: wide dialogs own their grid layout.
    */
   glassModal:
-    "rounded-buzzBoard border border-line bg-[rgba(22,22,22,0.77)] shadow-buzzModal backdrop-blur-[28px] backdrop-saturate-[0.8]",
+    "rounded-buzzBoard border border-line buzz-glass-surface shadow-buzzModal",
 } as const;
 
 /**
