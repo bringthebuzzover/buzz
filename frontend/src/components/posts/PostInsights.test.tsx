@@ -1,6 +1,6 @@
 import { renderToString } from "react-dom/server";
 import PostInsights from "./PostInsights";
-import { INSIGHT_MISSING } from "./postInsights";
+import { INSIGHT_MISSING } from "./insightMetrics";
 
 describe("PostInsights", () => {
   it("renders feed metrics with an em dash for values Graph did not store", () => {
