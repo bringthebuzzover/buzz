@@ -41,7 +41,7 @@ describe("AuthChooserModal", () => {
     );
   }
 
-  it("renders with default signup mode and title", () => {
+  it("renders with default signup mode and title without top badge or tags", () => {
     renderModal({ initialMode: "signup" });
 
     expect(
@@ -49,8 +49,13 @@ describe("AuthChooserModal", () => {
     ).toBe("How are you joining BUZZ?");
     expect(document.body.textContent).toContain("Organization");
     expect(document.body.textContent).toContain("Brand");
-    expect(document.body.textContent).toContain("Free merch drops");
-    expect(document.body.textContent).toContain("Campus reach");
+
+    // Verified: no top kicker badge or tags
+    expect(document.body.textContent).not.toContain("JOIN THE COMMUNITY");
+    expect(document.body.textContent).not.toContain("WELCOME BACK");
+    expect(document.body.textContent).not.toContain("Free merch drops");
+    expect(document.body.textContent).not.toContain("Campus reach");
+    expect(document.body.textContent).not.toContain("Continue");
   });
 
   it("renders with initial login mode and title", () => {
@@ -74,70 +79,44 @@ describe("AuthChooserModal", () => {
     ).toBe("How are you logging into BUZZ?");
   });
 
-  it("selects organization card when clicked", () => {
-    renderModal({ initialType: "brand" });
+  it("directly navigates to /org/apply when clicking Organization card in signup mode", () => {
+    renderModal({ initialMode: "signup" });
 
-    const radios = document.body.querySelectorAll('[role="radio"]');
-    expect(radios[0]?.getAttribute("aria-checked")).toBe("false");
-    expect(radios[1]?.getAttribute("aria-checked")).toBe("true");
-
-    click(radios[0]!);
-
-    expect(radios[0]?.getAttribute("aria-checked")).toBe("true");
-    expect(radios[1]?.getAttribute("aria-checked")).toBe("false");
-  });
-
-  it("navigates to /org/apply when continuing as Organization with signup", () => {
-    renderModal({ initialMode: "signup", initialType: "organization" });
-
-    const continueBtn = Array.from(document.body.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.includes("Continue"),
-    );
-    expect(continueBtn).toBeDefined();
-
-    click(continueBtn!);
+    const orgCard = document.body.querySelectorAll('[role="radio"]')[0]!;
+    click(orgCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("organization", "signup");
     expect(defaultOnClose).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/org/apply");
   });
 
-  it("navigates to /login when continuing as Organization with login", () => {
-    renderModal({ initialMode: "login", initialType: "organization" });
+  it("directly navigates to /login when clicking Organization card in login mode", () => {
+    renderModal({ initialMode: "login" });
 
-    const continueBtn = Array.from(document.body.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.includes("Continue"),
-    );
-
-    click(continueBtn!);
+    const orgCard = document.body.querySelectorAll('[role="radio"]')[0]!;
+    click(orgCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("organization", "login");
     expect(defaultOnClose).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/login");
   });
 
-  it("navigates to /brand/apply when continuing as Brand with signup", () => {
-    renderModal({ initialMode: "signup", initialType: "brand" });
+  it("directly navigates to /brand/apply when clicking Brand card in signup mode", () => {
+    renderModal({ initialMode: "signup" });
 
-    const continueBtn = Array.from(document.body.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.includes("Continue"),
-    );
-
-    click(continueBtn!);
+    const brandCard = document.body.querySelectorAll('[role="radio"]')[1]!;
+    click(brandCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("brand", "signup");
     expect(defaultOnClose).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/brand/apply");
   });
 
-  it("navigates to /brand/login when continuing as Brand with login", () => {
-    renderModal({ initialMode: "login", initialType: "brand" });
+  it("directly navigates to /brand/login when clicking Brand card in login mode", () => {
+    renderModal({ initialMode: "login" });
 
-    const continueBtn = Array.from(document.body.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.includes("Continue"),
-    );
-
-    click(continueBtn!);
+    const brandCard = document.body.querySelectorAll('[role="radio"]')[1]!;
+    click(brandCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("brand", "login");
     expect(defaultOnClose).toHaveBeenCalled();
