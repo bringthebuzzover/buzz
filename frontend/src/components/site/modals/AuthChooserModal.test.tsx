@@ -69,10 +69,10 @@ describe("AuthChooserModal", () => {
   it("switches mode between login and signup", () => {
     renderModal({ initialMode: "signup" });
 
-    const loginTab = document.body.querySelector('button[role="tab"]:nth-child(1)') as HTMLButtonElement;
-    expect(loginTab.textContent).toBe("Log in");
+    const loginBtn = document.body.querySelector('button[aria-pressed]:nth-child(1)') as HTMLButtonElement;
+    expect(loginBtn.textContent).toBe("Log in");
 
-    click(loginTab);
+    click(loginBtn);
 
     expect(
       document.body.querySelector("h2")?.textContent,
@@ -82,7 +82,9 @@ describe("AuthChooserModal", () => {
   it("directly navigates to /org/apply when clicking Organization card in signup mode", () => {
     renderModal({ initialMode: "signup" });
 
-    const orgCard = document.body.querySelectorAll('[role="radio"]')[0]!;
+    const cards = Array.from(document.body.querySelectorAll('div[aria-label="Account type"] button'));
+    const orgCard = cards.find((b) => b.textContent?.includes("Organization"))!;
+    expect(orgCard).toBeDefined();
     click(orgCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("organization", "signup");
@@ -93,7 +95,9 @@ describe("AuthChooserModal", () => {
   it("directly navigates to /login when clicking Organization card in login mode", () => {
     renderModal({ initialMode: "login" });
 
-    const orgCard = document.body.querySelectorAll('[role="radio"]')[0]!;
+    const cards = Array.from(document.body.querySelectorAll('div[aria-label="Account type"] button'));
+    const orgCard = cards.find((b) => b.textContent?.includes("Organization"))!;
+    expect(orgCard).toBeDefined();
     click(orgCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("organization", "login");
@@ -104,7 +108,9 @@ describe("AuthChooserModal", () => {
   it("directly navigates to /brand/apply when clicking Brand card in signup mode", () => {
     renderModal({ initialMode: "signup" });
 
-    const brandCard = document.body.querySelectorAll('[role="radio"]')[1]!;
+    const cards = Array.from(document.body.querySelectorAll('div[aria-label="Account type"] button'));
+    const brandCard = cards.find((b) => b.textContent?.includes("Brand"))!;
+    expect(brandCard).toBeDefined();
     click(brandCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("brand", "signup");
@@ -115,7 +121,9 @@ describe("AuthChooserModal", () => {
   it("directly navigates to /brand/login when clicking Brand card in login mode", () => {
     renderModal({ initialMode: "login" });
 
-    const brandCard = document.body.querySelectorAll('[role="radio"]')[1]!;
+    const cards = Array.from(document.body.querySelectorAll('div[aria-label="Account type"] button'));
+    const brandCard = cards.find((b) => b.textContent?.includes("Brand"))!;
+    expect(brandCard).toBeDefined();
     click(brandCard);
 
     expect(defaultOnSelect).toHaveBeenCalledWith("brand", "login");

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, Check, X } from "lucide-react";
 import { MOTION } from "../../../theme/motion";
 import { focusRingClass } from "../../../theme/controls";
-import { TEXT } from "../../../theme/tokens";
+import { TEXT, SURFACE } from "../../../theme/tokens";
 import { cn } from "../../../theme/cn";
 
 export type AuthMode = "signup" | "login";
@@ -29,6 +29,10 @@ export default function AuthChooserModal({
   const [open, setOpen] = useState(isOpen);
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [hoveredType, setHoveredType] = useState<AccountType | null>(initialType);
+
+  const [returnFocus] = useState(() =>
+    typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null),
+  );
 
   useEffect(() => {
     setOpen(isOpen);
@@ -78,15 +82,17 @@ export default function AuthChooserModal({
     >
       <Dialog.Portal>
         <Dialog.Overlay
-          className={cn(
-            "fixed inset-0 z-buzzModal bg-black/70 backdrop-blur-md buzz-scrim-atmosphere",
-            MOTION.scrim,
-          )}
+          className={cn("fixed inset-0 z-buzzModal buzz-scrim-atmosphere", MOTION.scrim)}
         />
         <Dialog.Content
           aria-describedby="auth-chooser-description"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            returnFocus?.focus();
+          }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-buzzModal w-[calc(100vw-2rem)] max-w-[680px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[24px] border border-white/10 bg-[#0f0e11]/90 p-6 sm:p-9 shadow-buzzModal backdrop-blur-2xl focus:outline-none",
+            "fixed left-1/2 top-1/2 z-buzzModal max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[680px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 sm:p-9 focus:outline-none",
+            SURFACE.glassModal,
             MOTION.modal,
           )}
         >
@@ -103,7 +109,7 @@ export default function AuthChooserModal({
           {/* Close button */}
           <Dialog.Close
             className={cn(
-              "absolute right-4 top-4 sm:right-6 sm:top-6 z-10 flex h-8 w-8 items-center justify-center rounded-buzzControl border border-white/10 bg-white/5 text-quiet transition-colors hover:bg-white/10 hover:text-primary",
+              "absolute right-4 top-4 sm:right-6 sm:top-6 z-10 flex h-8 w-8 items-center justify-center rounded-buzzControl border border-line bg-buzz-paper04 text-quiet transition-colors hover:bg-buzz-paper08 hover:text-primary cursor-pointer",
               focusRingClass,
             )}
             aria-label="Close"
@@ -133,46 +139,40 @@ export default function AuthChooserModal({
 
           {/* Selection Cards Grid */}
           <div
-            role="radiogroup"
+            role="group"
             aria-label="Account type"
             className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4"
           >
             {/* Card: Organization */}
-            <div
-              role="radio"
-              tabIndex={0}
-              aria-checked={hoveredType === "organization"}
+            <button
+              type="button"
               onClick={() => handleChoose("organization")}
-              onKeyDown={(e) => {
-                if (e.key === " " || e.key === "Enter") {
-                  e.preventDefault();
-                  handleChoose("organization");
-                }
-              }}
               onMouseEnter={() => setHoveredType("organization")}
+              onFocus={() => setHoveredType("organization")}
               className={cn(
                 "group relative flex min-h-[180px] sm:min-h-[200px] flex-col justify-between rounded-buzzBoard p-6 cursor-pointer border text-left transition-all duration-200 select-none",
                 hoveredType === "organization"
-                  ? "border-accent/80 shadow-[0_0_24px_rgba(217,180,74,0.18),inset_0_1px_0_rgba(255,235,160,0.2)]"
-                  : "border-white/10 hover:border-accent/40 hover:bg-white/[0.02]",
+                  ? "border-accent/80 shadow-[0_0_24px_rgba(246,211,42,0.18),inset_0_1px_0_rgba(255,235,160,0.2)]"
+                  : "border-line hover:border-accent/40 hover:bg-buzz-paper04",
                 MOTION.press,
                 focusRingClass,
               )}
               style={{
                 background:
                   hoveredType === "organization"
-                    ? "radial-gradient(120% 120% at 20% 0%, rgba(217, 180, 74, 0.18) 0%, rgba(36, 32, 16, 0.45) 50%, rgba(16, 15, 17, 0.95) 100%)"
-                    : "radial-gradient(120% 120% at 20% 0%, rgba(217, 180, 74, 0.08) 0%, rgba(24, 22, 14, 0.3) 50%, rgba(16, 15, 17, 0.8) 100%)",
+                    ? "radial-gradient(120% 120% at 20% 0%, rgba(246, 211, 42, 0.18) 0%, rgba(36, 32, 16, 0.45) 50%, rgba(16, 15, 17, 0.95) 100%)"
+                    : "radial-gradient(120% 120% at 20% 0%, rgba(246, 211, 42, 0.08) 0%, rgba(24, 22, 14, 0.3) 50%, rgba(16, 15, 17, 0.8) 100%)",
               }}
             >
-              {/* Radio Indicator (Top Right) */}
+              {/* Check Indicator (Top Right) */}
               <div className="flex justify-end">
                 <div
+                  aria-hidden
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150",
                     hoveredType === "organization"
                       ? "border-accent bg-accent text-on-accent"
-                      : "border-white/30 group-hover:border-white/50",
+                      : "border-line group-hover:border-buzz-fg/50",
                   )}
                 >
                   {hoveredType === "organization" ? (
@@ -209,26 +209,19 @@ export default function AuthChooserModal({
                   aria-hidden
                 />
               </div>
-            </div>
+            </button>
 
             {/* Card: Brand */}
-            <div
-              role="radio"
-              tabIndex={0}
-              aria-checked={hoveredType === "brand"}
+            <button
+              type="button"
               onClick={() => handleChoose("brand")}
-              onKeyDown={(e) => {
-                if (e.key === " " || e.key === "Enter") {
-                  e.preventDefault();
-                  handleChoose("brand");
-                }
-              }}
               onMouseEnter={() => setHoveredType("brand")}
+              onFocus={() => setHoveredType("brand")}
               className={cn(
                 "group relative flex min-h-[180px] sm:min-h-[200px] flex-col justify-between rounded-buzzBoard p-6 cursor-pointer border text-left transition-all duration-200 select-none",
                 hoveredType === "brand"
                   ? "border-buzz-pink/90 shadow-[0_0_24px_rgba(241,123,191,0.22),inset_0_1px_0_rgba(255,182,217,0.25)]"
-                  : "border-white/10 hover:border-buzz-pink/40 hover:bg-white/[0.02]",
+                  : "border-line hover:border-buzz-pink/40 hover:bg-buzz-paper04",
                 MOTION.press,
                 focusRingClass,
               )}
@@ -239,14 +232,15 @@ export default function AuthChooserModal({
                     : "radial-gradient(120% 120% at 50% 0%, rgba(241, 123, 191, 0.1) 0%, rgba(30, 16, 24, 0.3) 50%, rgba(16, 15, 17, 0.8) 100%)",
               }}
             >
-              {/* Radio Indicator (Top Right) */}
+              {/* Check Indicator (Top Right) */}
               <div className="flex justify-end">
                 <div
+                  aria-hidden
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150",
                     hoveredType === "brand"
-                      ? "border-buzz-pink bg-buzz-pink text-white"
-                      : "border-white/30 group-hover:border-white/50",
+                      ? "border-buzz-pink bg-buzz-pink text-on-accent"
+                      : "border-line group-hover:border-buzz-fg/50",
                   )}
                 >
                   {hoveredType === "brand" ? (
@@ -283,25 +277,24 @@ export default function AuthChooserModal({
                   aria-hidden
                 />
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Modal Footer Controls: Centered Auth Mode Switcher */}
           <div className="mt-8 flex items-center justify-center pt-2">
             <div
-              role="tablist"
+              role="group"
               aria-label="Authentication mode"
-              className="inline-flex items-center rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md"
+              className="inline-flex items-center rounded-full border border-line bg-surface-pop p-1 backdrop-blur-md"
             >
               <button
                 type="button"
-                role="tab"
-                aria-selected={mode === "login"}
+                aria-pressed={mode === "login"}
                 onClick={() => setMode("login")}
                 className={cn(
                   "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer",
                   mode === "login"
-                    ? "bg-white/15 text-primary"
+                    ? "bg-buzz-paper08 text-primary"
                     : "text-quiet hover:text-primary",
                   focusRingClass,
                 )}
@@ -310,13 +303,12 @@ export default function AuthChooserModal({
               </button>
               <button
                 type="button"
-                role="tab"
-                aria-selected={mode === "signup"}
+                aria-pressed={mode === "signup"}
                 onClick={() => setMode("signup")}
                 className={cn(
                   "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer",
                   mode === "signup"
-                    ? "bg-white/15 text-primary"
+                    ? "bg-buzz-paper08 text-primary"
                     : "text-quiet hover:text-primary",
                   focusRingClass,
                 )}
