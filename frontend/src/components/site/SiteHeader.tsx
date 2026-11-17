@@ -15,7 +15,6 @@ import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
 import { useAuth } from "../../contexts/AuthContext";
 import { pathForUser } from "../../utils/landing";
-import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 import { Logo } from "../ui/BrandMark";
 import { BRAND_PORTAL_LINKS, ORG_PORTAL_LINKS } from "./PortalHeader";
 import { Button } from "../forms/controls";
@@ -29,7 +28,7 @@ const COMPACT_DESKTOP_MIN_PX = 650;
 export default function SiteHeader() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { openContactModal } = useSiteChrome();
+  const { openContactModal, openAuthModal } = useSiteChrome();
   const { user, status: authStatus } = useAuth();
   const signOut = useSignOut();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -142,7 +141,7 @@ export default function SiteHeader() {
   const join =
     pathname.startsWith("/for-brands")
       ? { label: "Apply", onClick: () => navigate("/brand/apply") }
-      : { label: "Join Us!", onClick: () => goToHomeJoin(pathname, navigate) };
+      : { label: "Join Us!", onClick: () => openAuthModal("signup") };
 
   const linkClass = (active: boolean) =>
     cn(
@@ -239,7 +238,7 @@ export default function SiteHeader() {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={() => openAuthModal("login")}
                   className={linkClass(false)}
                   aria-label="Log in"
                 >
@@ -317,7 +316,7 @@ export default function SiteHeader() {
                 className={cn("flex w-full items-center justify-between border-b border-line py-4 text-left text-sm", focusRingClass)}
                 onClick={() => {
                   setMobileNavOpen(false);
-                  navigate("/login");
+                  openAuthModal("login");
                 }}
               >
                 Login

@@ -4,6 +4,7 @@
 import { MarketingPage } from "../../components/marketing/MarketingPage";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { CollegeNetwork } from "../../components/marketing/CollegeNetwork";
 import { PinnedHow } from "../../components/marketing/PinnedHow";
 import {
@@ -23,6 +24,7 @@ import {
 export default function HomePage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { openAuthModal } = useSiteChrome();
 
   useEffect(() => {
     const state = location.state as HomeLocationState | null;
@@ -40,7 +42,7 @@ export default function HomePage() {
         media="video"
         title={"Campus marketing,\npowered by\nstudent communities."}
         sub="BUZZ connects brands with student organizations to execute large-scale campus activations."
-        primary={{ label: "Join", onClick: scrollToHomeJoin }}
+        primary={{ label: "Join", onClick: () => openAuthModal("signup") }}
         aside={{ kicker: "Collaboration", line: siteIdentity.content.heroSpotlightLine }}
       />
       <Statement
