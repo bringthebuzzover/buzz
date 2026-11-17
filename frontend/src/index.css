@@ -143,6 +143,21 @@
     -webkit-backdrop-filter: blur(18px) saturate(1.08);
   }
 
+  /**
+   * Tier 3: Floating popovers and menus that must not show page text through
+   * them. Near-opaque, with a heavy blur so any edge bleed stays soft. Use for
+   * pickers, dropdowns and context menus — not for cards, which are meant to
+   * let the atmosphere read through.
+   */
+  .buzz-glass-popover {
+    background: rgba(16, 14, 12, 0.97);
+    backdrop-filter: blur(40px) saturate(1.2);
+    -webkit-backdrop-filter: blur(40px) saturate(1.2);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 239, 205, 0.07),
+      0 24px 64px rgba(0, 0, 0, 0.6);
+  }
+
   .buzz-glass-nav {
     background: rgba(18, 15, 13, 0.74);
     backdrop-filter: blur(26px) saturate(1.15);
@@ -184,6 +199,7 @@
   .buzz-glass-surface { background: #121212; }
   .buzz-glass-panel { background: #111111; }
   .buzz-glass-tile { background: #151515; }
+  .buzz-glass-popover { background: #121212; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .buzz-glass-nav { background: #0b0b0b; }
   .buzz-scrim-atmosphere { background: #000000b3; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .buzz-admin-table-row { background: #151515; }

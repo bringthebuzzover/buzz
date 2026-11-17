@@ -24,8 +24,12 @@ import { BeeMark, Logo } from "../../components/ui/BrandMark";
 import {
   Banner,
   Button,
+  Calendar,
   Checkbox,
+  DatePicker,
+  DateRangePicker,
   DateTimeField,
+  DateTimePicker,
   ErrorBanner,
   LinkButton,
   Radio,
@@ -33,6 +37,7 @@ import {
   SuccessBanner,
   TextArea,
   TextField,
+  TimePicker,
   WarningBanner,
 } from "../../components/forms/controls";
 import { MOTION } from "../../theme/motion";
@@ -167,6 +172,72 @@ export default function UiKitPage() {
           <div className={cx("flex items-end", GAP.tight)}>
             <TextField id="k-inline" label="Inline with button" size="compact" />
             <Button size="compact">Save</Button>
+          </div>
+        </Card>
+      </Section>
+
+      <Section title="Calendar & Time Pickers (Glass Aesthetic)">
+        <Card kind="panel" className={STACK.group}>
+          <p className="text-sm text-muted">
+            One stack, three layers. <code>CalendarGrid</code> and{" "}
+            <code>TimeList</code> are the primitives; <code>Calendar</code> /{" "}
+            <code>TimePicker</code> add footers; <code>DatePicker</code>,{" "}
+            <code>DateTimePicker</code> and <code>DateRangePicker</code> add the
+            glass field and popover.
+          </p>
+
+          {/* Layer 1 — primitives, inline. */}
+          <div>
+            <div className="mb-3 text-buzzLabel font-medium uppercase tracking-wider text-muted">
+              Layer 1 — Primitives (inline)
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="w-fit rounded-buzzModal border border-line p-4 buzz-glass-surface">
+                <Calendar />
+              </div>
+              <div className="w-fit rounded-buzzModal border border-line p-4 buzz-glass-surface">
+                <TimePicker value="14:30" />
+              </div>
+            </div>
+          </div>
+
+          {/* Layer 2 — date and date+time fields. */}
+          <div className="border-t border-line pt-6">
+            <div className="mb-3 text-buzzLabel font-medium uppercase tracking-wider text-muted">
+              Layer 2 — Date, and Date + Time
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <DatePicker
+                id="k-dp-showcase"
+                label="Date only"
+                defaultValue="2026-11-24"
+                hint="Click to open the glass calendar"
+              />
+              <DateTimePicker
+                id="k-dtp-showcase"
+                label="Date and time"
+                defaultValue="2026-11-24T14:30"
+                hint="Calendar and clock in one panel"
+              />
+            </div>
+          </div>
+
+          {/* Layer 3 — the range extension. */}
+          <div className="border-t border-line pt-6">
+            <div className="mb-3 text-buzzLabel font-medium uppercase tracking-wider text-muted">
+              Layer 3 — Date and time range
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <DateRangePicker
+                id="k-drp-showcase"
+                label="Application window"
+                defaultValue={{
+                  start: "2026-11-19T09:00",
+                  end: "2026-11-30T23:45",
+                }}
+                hint="Single month, two endpoints, Apply · N days"
+              />
+            </div>
           </div>
         </Card>
       </Section>
