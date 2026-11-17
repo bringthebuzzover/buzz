@@ -225,6 +225,7 @@ test("home how-to cards open role tours", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: /brand drops/i }),
   ).toBeVisible();
+  await page.getByText("Who can apply?").hover();
   await expect(page.getByText(/business or creator/i).first()).toBeVisible();
   await expect(
     page.getByRole("img", { name: "Kappa Alpha Theta x Yerba Madre" }).first(),
