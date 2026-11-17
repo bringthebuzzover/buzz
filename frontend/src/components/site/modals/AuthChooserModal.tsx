@@ -153,8 +153,8 @@ export default function AuthChooserModal({
               className={cn(
                 "group relative flex min-h-[180px] sm:min-h-[200px] flex-col justify-between rounded-buzzBoard p-6 cursor-pointer border text-left transition-all duration-200 select-none",
                 hoveredType === "organization"
-                  ? "border-amber-400/80 shadow-[0_0_24px_rgba(217,180,74,0.18),inset_0_1px_0_rgba(255,235,160,0.2)]"
-                  : "border-white/10 hover:border-amber-400/40 hover:bg-white/[0.02]",
+                  ? "border-accent/80 shadow-[0_0_24px_rgba(217,180,74,0.18),inset_0_1px_0_rgba(255,235,160,0.2)]"
+                  : "border-white/10 hover:border-accent/40 hover:bg-white/[0.02]",
                 MOTION.press,
                 focusRingClass,
               )}
@@ -171,7 +171,7 @@ export default function AuthChooserModal({
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150",
                     hoveredType === "organization"
-                      ? "border-amber-400 bg-amber-400 text-black shadow-sm"
+                      ? "border-accent bg-accent text-on-accent"
                       : "border-white/30 group-hover:border-white/50",
                   )}
                 >
@@ -186,7 +186,7 @@ export default function AuthChooserModal({
                 <h3
                   className={cn(
                     TEXT.h3,
-                    "text-primary tracking-tight group-hover:text-amber-100 transition-colors",
+                    "text-primary tracking-tight transition-colors",
                   )}
                 >
                   Organization
@@ -203,8 +203,8 @@ export default function AuthChooserModal({
                   className={cn(
                     "transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
                     hoveredType === "organization"
-                      ? "text-amber-400"
-                      : "text-quiet group-hover:text-amber-300",
+                      ? "text-accent"
+                      : "text-quiet group-hover:text-accent",
                   )}
                   aria-hidden
                 />
@@ -245,7 +245,7 @@ export default function AuthChooserModal({
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150",
                     hoveredType === "brand"
-                      ? "border-buzz-pink bg-buzz-pink text-white shadow-sm"
+                      ? "border-buzz-pink bg-buzz-pink text-white"
                       : "border-white/30 group-hover:border-white/50",
                   )}
                 >
@@ -260,7 +260,7 @@ export default function AuthChooserModal({
                 <h3
                   className={cn(
                     TEXT.h3,
-                    "text-primary tracking-tight group-hover:text-pink-100 transition-colors",
+                    "text-primary tracking-tight transition-colors",
                   )}
                 >
                   Brand
@@ -278,7 +278,7 @@ export default function AuthChooserModal({
                     "transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
                     hoveredType === "brand"
                       ? "text-buzz-pink"
-                      : "text-quiet group-hover:text-pink-300",
+                      : "text-quiet group-hover:text-buzz-pink",
                   )}
                   aria-hidden
                 />
@@ -301,7 +301,7 @@ export default function AuthChooserModal({
                 className={cn(
                   "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer",
                   mode === "login"
-                    ? "bg-white/15 text-primary shadow-sm"
+                    ? "bg-white/15 text-primary"
                     : "text-quiet hover:text-primary",
                   focusRingClass,
                 )}
@@ -316,7 +316,7 @@ export default function AuthChooserModal({
                 className={cn(
                   "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer",
                   mode === "signup"
-                    ? "bg-white/15 text-primary shadow-sm"
+                    ? "bg-white/15 text-primary"
                     : "text-quiet hover:text-primary",
                   focusRingClass,
                 )}

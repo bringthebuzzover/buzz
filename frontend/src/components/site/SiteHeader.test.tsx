@@ -218,7 +218,7 @@ describe("SiteHeader", () => {
     mockOpenAuthModal.mockClear();
     const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
     const loginButton = Array.from(
-      container.querySelectorAll('nav[aria-label="Primary"] button'),
+      container.querySelectorAll<HTMLButtonElement>('nav[aria-label="Primary"] button'),
     ).find((btn) => btn.textContent === "Login");
     expect(loginButton).toBeDefined();
 
@@ -232,7 +232,7 @@ describe("SiteHeader", () => {
     mockOpenAuthModal.mockClear();
     const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
     const joinButton = Array.from(
-      container.querySelectorAll('nav[aria-label="Primary"] button'),
+      container.querySelectorAll<HTMLButtonElement>('nav[aria-label="Primary"] button'),
     ).find((btn) => btn.textContent === "Join Us!");
     expect(joinButton).toBeDefined();
 
