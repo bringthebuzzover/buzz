@@ -220,7 +220,11 @@ export function PickerField({
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        aria-invalid={error ? true : undefined}
+        aria-describedby={
+          id && (error || hint)
+            ? `${id}-${error ? "error" : "hint"}`
+            : undefined
+        }
         onClick={() => setOpen(!isOpen)}
         className={cn(
           "flex w-full items-center justify-between gap-2 rounded-buzzField border border-line text-left",
@@ -270,9 +274,16 @@ export function PickerField({
       {hiddenInput}
 
       {error ? (
-        <p className="mt-1.5 text-xs font-medium text-buzz-dangerInk">{error}</p>
+        <p
+          id={id ? `${id}-error` : undefined}
+          className="mt-1.5 text-xs font-medium text-buzz-dangerInk"
+        >
+          {error}
+        </p>
       ) : hint ? (
-        <p className={fieldHintClass}>{hint}</p>
+        <p id={id ? `${id}-hint` : undefined} className={fieldHintClass}>
+          {hint}
+        </p>
       ) : null}
     </div>
   );

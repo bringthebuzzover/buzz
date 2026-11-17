@@ -9,7 +9,7 @@
  * into the form. The value shape is the pair the forms already use:
  * `{ start, end }`, each `YYYY-MM-DDTHH:mm`.
  */
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "../../../theme/cn";
 import { MOTION } from "../../../theme/motion";
 import { focusRingClass } from "../../../theme/controls";

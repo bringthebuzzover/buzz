@@ -167,6 +167,25 @@ describe("<DateTimePicker />", () => {
 });
 
 describe("<DateRangePicker />", () => {
+  it("connects field errors to the trigger description", () => {
+    const view = mount(
+      <DateRangePicker
+        id="application-window"
+        error="Choose a valid application window."
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(
+      view.container
+        .querySelector("#application-window-trigger")
+        ?.getAttribute("aria-describedby"),
+    ).toBe("application-window-error");
+    expect(
+      view.container.querySelector("#application-window-error")?.textContent,
+    ).toBe("Choose a valid application window.");
+  });
+
   it("builds a range across two clicks and applies it", () => {
     const onChange = jest.fn();
     const view = mount(
