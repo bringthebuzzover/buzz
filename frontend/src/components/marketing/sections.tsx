@@ -216,6 +216,8 @@ export function CurrentDrops() {
   const [transitionEnabled, setTransitionEnabled] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [hoveredSlideIndex, setHoveredSlideIndex] = useState<number | null>(null);
+  const [hasFocusVisible, setHasFocusVisible] = useState(false);
   const [isDocHidden, setIsDocHidden] = useState(
     typeof document !== "undefined" ? document.hidden : false,
   );
@@ -237,6 +239,12 @@ export function CurrentDrops() {
   }, [items.length, index]);
   const displayedIndex = items.length ? (index - 1 + items.length) % items.length : 0;
   const collab = items[displayedIndex];
+  const metadataIndex = hasFocusVisible
+    ? index
+    : hoveredSlideIndex === index + 1
+      ? hoveredSlideIndex
+      : index;
+  const metadataItem = slides[metadataIndex] ?? collab;
 
   const move = async (direction: -1 | 1) => {
     if (direction < 0) {
@@ -300,11 +308,22 @@ export function CurrentDrops() {
       <div
         className="mx-auto w-full"
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onFocusCapture={() => setIsFocused(true)}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          setHoveredSlideIndex(null);
+        }}
+        onFocusCapture={(event) => {
+          setIsFocused(true);
+          setHasFocusVisible(
+            event.target instanceof HTMLElement &&
+              event.target.matches(":focus-visible"),
+          );
+        }}
+        onPointerDownCapture={() => setHasFocusVisible(false)}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
             setIsFocused(false);
+            setHasFocusVisible(false);
           }
         }}
       >
@@ -351,6 +370,8 @@ export function CurrentDrops() {
           <div
             className={DROP_CAROUSEL.container}
             style={DROP_CAROUSEL.style as React.CSSProperties}
+            data-drop-interaction
+            onMouseLeave={() => setHoveredSlideIndex(null)}
           >
           <div className="overflow-hidden">
             <div
@@ -376,6 +397,9 @@ export function CurrentDrops() {
                     to={publicDropPath(item.id)}
                     tabIndex={itemIndex === index ? 0 : -1}
                     aria-hidden={itemIndex !== index}
+                    onMouseEnter={() => {
+                      setHoveredSlideIndex(itemIndex === index + 1 ? itemIndex : null);
+                    }}
                     className={cn("block", DROP_CAROUSEL.slide, focusRingClass)}
                   >
                     <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
@@ -410,10 +434,20 @@ export function CurrentDrops() {
               })}
             </div>
           </div>
-          <div className={DROP_CAROUSEL.meta}>
-            <p className="min-w-0 text-base">{collab.title} · {collab.location}</p>
+          <div
+            className={cn(
+              DROP_CAROUSEL.meta,
+              "transition-transform duration-300 motion-reduce:transition-none",
+            )}
+            style={{
+              transform: metadataIndex === index + 1
+                ? "translateX(clamp(0px, calc(100% + var(--drop-slide-gap)), calc(100cqw - 100%)))"
+                : undefined,
+            }}
+          >
+            <p className="min-w-0 text-base">{metadataItem.title} · {metadataItem.location}</p>
             <LinkButton
-              to={publicDropPath(collab.id)}
+              to={publicDropPath(metadataItem.id)}
               variant="secondary"
               className="shrink-0"
             >

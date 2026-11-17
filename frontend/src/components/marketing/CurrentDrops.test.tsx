@@ -37,6 +37,155 @@ describe("CurrentDrops", () => {
       .toContain("w-[var(--drop-slide-width)]");
   });
 
+  it("shows the hovered drop metadata and restores the selected drop on pointer exit", () => {
+    mockCatalog.mockReturnValue({
+      items: [row, { ...row, id: "drop-2", title: "Second drop", location: "Austin, TX" }],
+      isLoading: false, error: null, hasNextPage: false,
+      fetchNextPage: jest.fn(), refetch: jest.fn(),
+    });
+    const { container } = renderWithProviders(<CurrentDrops />);
+    const metadata = container.querySelector(".mt-4.flex");
+    const carouselRegion = container.querySelector("[data-drop-interaction]");
+    const secondSlide = container.querySelectorAll<HTMLAnchorElement>("[data-drop-track] a")[2];
+    const heading = container.querySelector("h2");
+    const nextButton = container.querySelector('button[aria-label="Next drop"]');
+    const metadataLink = () => metadata?.querySelector("a");
+
+    expect(metadata?.textContent).toContain("Campus sampler · Ithaca, NY");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+
+    act(() => secondSlide?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    expect(metadata?.textContent).toContain("Second drop · Austin, TX");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/drop-2");
+    expect((metadata as HTMLElement | null)?.style.transform)
+      .toBe("translateX(clamp(0px, calc(100% + var(--drop-slide-gap)), calc(100cqw - 100%)))");
+    expect(metadata?.className).toContain("w-[var(--drop-slide-width)]");
+    expect(carouselRegion?.contains(metadataLink() ?? null)).toBe(true);
+
+    act(() => secondSlide?.dispatchEvent(new MouseEvent("mouseout", {
+      bubbles: true,
+      relatedTarget: metadataLink(),
+    })));
+    expect(metadata?.textContent).toContain("Second drop · Austin, TX");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/drop-2");
+
+    act(() => carouselRegion?.dispatchEvent(new MouseEvent("mouseout", {
+      bubbles: true,
+      relatedTarget: heading,
+    })));
+    expect(metadata?.textContent).toContain("Campus sampler · Ithaca, NY");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+
+    act(() => secondSlide?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    act(() => carouselRegion?.dispatchEvent(new MouseEvent("mouseout", {
+      bubbles: true,
+      relatedTarget: nextButton,
+    })));
+    expect(metadata?.textContent).toContain("Campus sampler · Ithaca, NY");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+  });
+
+  it("keeps the selected drop destination when keyboard focus overrides stale hover", () => {
+    mockCatalog.mockReturnValue({
+      items: [row, { ...row, id: "drop-2", title: "Second drop", location: "Austin, TX" }],
+      isLoading: false, error: null, hasNextPage: false,
+      fetchNextPage: jest.fn(), refetch: jest.fn(),
+    });
+    const { container } = renderWithProviders(<CurrentDrops />);
+    const slides = container.querySelectorAll<HTMLAnchorElement>("[data-drop-track] a");
+    const metadata = container.querySelector(".mt-4.flex");
+
+    act(() => slides[2].dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    expect(metadata?.querySelector("a")?.getAttribute("href")).toBe("/d/drop-2");
+
+    act(() => slides[1].focus());
+    expect(metadata?.textContent).toContain("Campus sampler · Ithaca, NY");
+    expect(metadata?.querySelector("a")?.getAttribute("href"))
+      .toBe("/d/00000000-0000-0000-0000-000000000123");
+
+    act(() => metadata?.querySelector<HTMLAnchorElement>("a")?.focus());
+    expect(metadata?.querySelector("a")?.getAttribute("href"))
+      .toBe("/d/00000000-0000-0000-0000-000000000123");
+  });
+
+  it("ignores passive hover during focus-visible mode until focus leaves or pointerdown occurs", () => {
+    mockCatalog.mockReturnValue({
+      items: [row, { ...row, id: "drop-2", title: "Second drop", location: "Austin, TX" }],
+      isLoading: false, error: null, hasNextPage: false,
+      fetchNextPage: jest.fn(), refetch: jest.fn(),
+    });
+    const { container } = renderWithProviders(<CurrentDrops />);
+    const slides = container.querySelectorAll<HTMLAnchorElement>("[data-drop-track] a");
+    const metadata = container.querySelector(".mt-4.flex");
+    const outsideButton = document.createElement("button");
+    container.appendChild(outsideButton);
+    const metadataLink = () => metadata?.querySelector("a");
+
+    act(() => slides[1].focus());
+    act(() => slides[2].dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    expect(metadata?.textContent).toContain("Campus sampler · Ithaca, NY");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+
+    act(() => metadataLink()?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+
+    act(() => outsideButton.focus());
+    expect(metadata?.textContent).toContain("Second drop · Austin, TX");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/drop-2");
+
+    act(() => slides[1].focus());
+    act(() => slides[2].dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+    act(() => slides[2].dispatchEvent(new Event("pointerdown", { bubbles: true })));
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/drop-2");
+  });
+
+  it("keeps View drop synced to the selected slide after focus-visible arrow activation", () => {
+    mockCatalog.mockReturnValue({
+      items: [row, { ...row, id: "drop-2", title: "Second drop" },
+        { ...row, id: "drop-3", title: "Third drop" }],
+      isLoading: false, error: null, hasNextPage: false,
+      fetchNextPage: jest.fn(), refetch: jest.fn(),
+    });
+    const { container } = renderWithProviders(<CurrentDrops />);
+    const slides = container.querySelectorAll<HTMLAnchorElement>("[data-drop-track] a");
+    const next = container.querySelector<HTMLButtonElement>('button[aria-label="Next drop"]');
+    const previous = container.querySelector<HTMLButtonElement>('button[aria-label="Previous drop"]');
+    const metadata = container.querySelector(".mt-4.flex");
+    const metadataLink = () => metadata?.querySelector("a");
+
+    act(() => slides[2].dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/drop-2");
+
+    act(() => next?.focus());
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+    act(() => next?.click());
+    expect(metadata?.textContent).toContain("Second drop");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/drop-2");
+
+    act(() => previous?.click());
+    expect(metadata?.textContent).toContain("Campus sampler");
+    expect(metadataLink()?.getAttribute("href")).toBe("/d/00000000-0000-0000-0000-000000000123");
+  });
+
+  it("ignores hover on the offscreen previous-slide clone", () => {
+    mockCatalog.mockReturnValue({
+      items: [row, { ...row, id: "drop-2", title: "Second drop" },
+        { ...row, id: "drop-3", title: "Third drop", location: "Austin, TX" }],
+      isLoading: false, error: null, hasNextPage: false,
+      fetchNextPage: jest.fn(), refetch: jest.fn(),
+    });
+    const { container } = renderWithProviders(<CurrentDrops />);
+    const previousSlide = container.querySelectorAll<HTMLAnchorElement>("[data-drop-track] a")[0];
+    const metadata = container.querySelector(".mt-4.flex");
+
+    act(() => previousSlide.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+    expect(metadata?.textContent).toContain("Campus sampler · Ithaca, NY");
+    expect(metadata?.querySelector("a")?.getAttribute("href"))
+      .toBe("/d/00000000-0000-0000-0000-000000000123");
+    expect((metadata as HTMLElement | null)?.style.transform).toBe("");
+  });
+
   it("repeats a lone drop and loops in both directions", () => {
     mockCatalog.mockReturnValue({
       items: [row], isLoading: false, error: null, hasNextPage: false,

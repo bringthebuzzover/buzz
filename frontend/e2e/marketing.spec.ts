@@ -132,6 +132,82 @@ test("Current drops keyboard focus stays on the selected slide at desktop and mo
   }
 });
 
+test("Current drops hover routes metadata to the visible right card within the carousel", async ({ page }) => {
+  const items = [
+    {
+      id: "00000000-0000-0000-0000-000000000001",
+      brandName: "Test Brand", title: "First drop", description: "Test campaign",
+      image: null, location: "Test City", capacityTotal: 10, applyOpenAt: 1,
+      applyCloseAt: 2, stage: "applying",
+    },
+    {
+      id: "00000000-0000-0000-0000-000000000002",
+      brandName: "Test Brand", title: "Second drop", description: "Test campaign",
+      image: null, location: "Austin, TX", capacityTotal: 10, applyOpenAt: 1,
+      applyCloseAt: 2, stage: "applying",
+    },
+    {
+      id: "00000000-0000-0000-0000-000000000003",
+      brandName: "Test Brand", title: "Third drop", description: "Test campaign",
+      image: null, location: "Test City", capacityTotal: 10, applyOpenAt: 1,
+      applyCloseAt: 2, stage: "applying",
+    },
+  ];
+  await page.route("**/api/drops/public?*", (route) => route.fulfill({
+    json: { data: items, meta: { page: 1, per_page: 12, total: items.length }, error: null },
+  }));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const current = page.getByRole("heading", { name: "Current drops" }).locator("..").locator("..");
+    const region = current.locator("[data-drop-interaction]");
+    const clip = region.locator("[data-drop-track]").locator("..");
+    const rightSlide = region.locator("[data-drop-track] a").nth(2);
+    const selectedSlide = region.locator("[data-drop-track] a").nth(1);
+    const viewDrop = region.getByRole("link", { name: "View drop", exact: true });
+    const slideBox = await rightSlide.boundingBox();
+    const clipBox = await clip.boundingBox();
+    expect(slideBox).not.toBeNull();
+    expect(clipBox).not.toBeNull();
+
+    const visibleLeft = Math.max(slideBox!.x, clipBox!.x);
+    const visibleRight = Math.min(slideBox!.x + slideBox!.width, clipBox!.x + clipBox!.width);
+    const visibleWidth = visibleRight - visibleLeft;
+    expect(visibleWidth, `right slide should be partly visible at ${width}px`).toBeGreaterThan(0);
+    const hoverX = Math.max(0.5, Math.min(
+      slideBox!.width - 0.5,
+      visibleLeft + visibleWidth / 2 - slideBox!.x,
+    ));
+    await selectedSlide.focus();
+    await page.keyboard.press("Tab");
+    await expect(viewDrop).toBeFocused();
+    await expect(viewDrop).toHaveAttribute("href", `/d/${items[0].id}`);
+    await rightSlide.hover({ position: { x: hoverX, y: slideBox!.height / 2 } });
+
+    const metadata = region.locator(".mt-4.flex");
+    await expect(viewDrop).toBeFocused();
+    await expect(metadata.locator("p")).toHaveText("First drop · Test City");
+    await expect(viewDrop).toHaveAttribute("href", `/d/${items[0].id}`);
+
+    await viewDrop.evaluate((element) => (element as HTMLAnchorElement).blur());
+    await expect(metadata.locator("p")).toHaveText("Second drop · Austin, TX");
+    await expect(viewDrop).toHaveAttribute("href", `/d/${items[1].id}`);
+
+    const regionBox = await region.boundingBox();
+    const metadataBox = await metadata.boundingBox();
+    const linkBox = await viewDrop.boundingBox();
+    expect(regionBox).not.toBeNull();
+    expect(metadataBox).not.toBeNull();
+    expect(linkBox).not.toBeNull();
+    expect(metadataBox!.x).toBeGreaterThanOrEqual(regionBox!.x - 1);
+    expect(metadataBox!.x + metadataBox!.width).toBeLessThanOrEqual(regionBox!.x + regionBox!.width + 1);
+    expect(linkBox!.x).toBeGreaterThanOrEqual(regionBox!.x - 1);
+    expect(linkBox!.x + linkBox!.width).toBeLessThanOrEqual(regionBox!.x + regionBox!.width + 1);
+  }
+});
+
 for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
   (["no-preference", "reduce"] as const).map((reducedMotion) => ({ width, reducedMotion })),
 )) {
