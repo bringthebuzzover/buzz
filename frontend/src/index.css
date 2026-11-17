@@ -97,12 +97,12 @@
     background-image:
       radial-gradient(
         ellipse 740px 560px at 84% 10%,
-        color-mix(in srgb, theme(colors.buzz.pink) 15%, transparent),
+        color-mix(in srgb, theme(colors.buzz.pink) 11%, transparent),
         transparent 70%
       ),
       radial-gradient(
         ellipse 690px 680px at 77% 88%,
-        color-mix(in srgb, theme(colors.buzz.pink) 13%, transparent),
+        color-mix(in srgb, theme(colors.buzz.pink) 9%, transparent),
         transparent 68%
       );
     background-attachment: fixed;
