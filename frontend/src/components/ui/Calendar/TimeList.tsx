@@ -23,6 +23,12 @@ export interface TimeListProps {
   heightClass?: string;
   /** Tighter column and AM/PM widths, for the range footer. */
   compact?: boolean;
+  /**
+   * `fill` lets the time column take the remaining width and gives the AM/PM
+   * pills a comfortable size. Use inside a sized popover so the content fills
+   * the panel instead of leaving dead space on the right.
+   */
+  layout?: "fixed" | "fill";
 }
 
 const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -46,6 +52,7 @@ export function TimeList({
   className,
   heightClass = "h-[196px]",
   compact = false,
+  layout = "fixed",
 }: TimeListProps) {
   const parsed = value.match(/^(\d{1,2}):(\d{2})/);
   const hours24 = parsed ? Math.min(23, parseInt(parsed[1], 10)) : 12;
@@ -66,10 +73,21 @@ export function TimeList({
     : [...times, { label: `${padZero(hour12)}:${padZero(minutesNow)}`, hour12, minutes: minutesNow }]
         .sort((a, b) => a.hour12 * 60 + a.minutes - (b.hour12 * 60 + b.minutes));
 
-  // Center the active time whenever the panel opens or the half-day changes.
+  /**
+   * Center the selected time once per half-day, not on every value change.
+   *
+   * This used to depend on `value`, so clicking any time re-centered the list
+   * and the column visibly jumped under the pointer. The key below only
+   * changes when the AM/PM half changes (or on first open), so picking a time
+   * never scrolls.
+   */
+  const centeredForKey = useRef<string | null>(null);
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
+    const key = ampm;
+    if (centeredForKey.current === key) return;
+    centeredForKey.current = key;
     const active = list.querySelector<HTMLButtonElement>('[aria-selected="true"]');
     if (!active) return;
     list.scrollTop = Math.max(
@@ -83,18 +101,26 @@ export function TimeList({
   };
 
   return (
-    <div className={cn("flex", compact ? "gap-2" : "gap-2.5", className)}>
+    <div
+      className={cn(
+        "flex",
+        compact ? "gap-2" : "gap-2.5",
+        layout === "fill" && "w-full",
+        className,
+      )}
+    >
       <div
         ref={listRef}
         role="listbox"
         aria-label={`Times in the ${ampm === "AM" ? "morning" : "afternoon and evening"}, every ${step} minutes`}
         className={cn(
-          // Narrow on purpose: the widest entry is "11:45" (5 characters at
-          // 12px), so a fixed ~5.5rem column keeps the yellow pill hugging its
-          // label instead of stretching across a 256px track.
-          "shrink-0 overflow-y-auto overscroll-contain rounded-buzzField border border-line bg-buzz-paper04 p-1",
+          // Sized to the widest label ("11:45" is ~30px at 12px) plus a small
+          // inset, so the hours column reads as a narrow list rather than a
+          // wide empty track. The pill then hugs its digits.
+          "overflow-y-auto overscroll-contain rounded-buzzField border border-line",
+          "bg-buzz-paper04 p-1",
           "[scrollbar-color:rgba(240,240,240,0.22)_transparent] [scrollbar-width:thin]",
-          compact ? "w-[5.25rem]" : "w-[5.75rem]",
+          layout === "fill" ? "w-[3.375rem] shrink-0" : "w-[3.625rem] shrink-0",
           heightClass,
         )}
       >
@@ -126,7 +152,13 @@ export function TimeList({
       <div
         role="group"
         aria-label="AM or PM"
-        className={cn("flex flex-col gap-1.5", compact ? "w-9" : "w-11")}
+        className={cn(
+          "flex flex-col gap-1.5",
+          // Wide enough that "AM" / "PM" sit in a real pill rather than a
+          // cramped 36px box, and in `fill` layout they take a fair share of
+          // the popover so no dead space is left on the right.
+          layout === "fill" ? "w-14 shrink-0" : compact ? "w-9" : "w-11",
+        )}
       >
         {(["AM", "PM"] as const).map((period) => {
           const active = period === ampm;

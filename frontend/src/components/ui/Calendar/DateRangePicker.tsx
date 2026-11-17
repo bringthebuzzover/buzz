@@ -2,7 +2,7 @@
  * DateRangePicker — the range layer.
  *
  * Same base as the other two: `PickerField` chrome + `CalendarGrid` in range
- * mode + two `TimeList`s behind the footer's time buttons. A single month is
+ * mode + two `TimePopover`s for the endpoint clocks. A single month is
  * shown on purpose; the reference's two-month spread was the main complaint.
  *
  * Nothing is committed until **Apply**, so a half-finished range never leaks
@@ -10,13 +10,12 @@
  * `{ start, end }`, each `YYYY-MM-DDTHH:mm`.
  */
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Clock } from "lucide-react";
 import { cn } from "../../../theme/cn";
 import { MOTION } from "../../../theme/motion";
 import { focusRingClass } from "../../../theme/controls";
 import { PickerField, type ControlSize } from "./PickerField";
 import { CalendarGrid } from "./CalendarGrid";
-import { TimeList } from "./TimeList";
+import { TimePopover } from "./TimePopover";
 import {
   MONTH_SHORT_NAMES,
   countDaysInclusive,
@@ -105,7 +104,6 @@ export function DateRangePicker({
   const [startTime, setStartTime] = useState(DEFAULT_TIME.start);
   const [endTime, setEndTime] = useState(DEFAULT_TIME.end);
   const [hoverDate, setHoverDate] = useState<string | null>(null);
-  const [editing, setEditing] = useState<"start" | "end" | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -116,7 +114,6 @@ export function DateRangePicker({
     setStartTime(start.time);
     setEndTime(end.time);
     setHoverDate(null);
-    setEditing(start.date ? null : "start");
   }, [isOpen, committed?.start, committed?.end]);
 
   const count = useMemo(
@@ -133,7 +130,6 @@ export function DateRangePicker({
       setStartDate(iso);
       setEndDate(null);
       setHoverDate(null);
-      setEditing("start");
       return;
     }
     if (compareISO(iso, startDate) < 0) {
@@ -143,7 +139,6 @@ export function DateRangePicker({
       setEndDate(iso);
     }
     setHoverDate(null);
-    setEditing(null);
   };
 
   const apply = () => {
@@ -161,7 +156,6 @@ export function DateRangePicker({
     setHoverDate(null);
     setStartTime(DEFAULT_TIME.start);
     setEndTime(DEFAULT_TIME.end);
-    setEditing("start");
   };
 
   const display = useMemo(() => {
@@ -173,10 +167,6 @@ export function DateRangePicker({
 
   const today = getTodayParts();
   const todayIso = formatISODate(today.year, today.month, today.day);
-
-  const openEditor = (endpoint: "start" | "end") => {
-    setEditing((current) => (current === endpoint ? null : endpoint));
-  };
 
   return (
     <PickerField
@@ -208,53 +198,33 @@ export function DateRangePicker({
         initialMonth={startDate ?? todayIso}
       />
 
-      {/* Range capsule readout: OPENS … → CLOSES …, each with its clock. */}
+      {/*
+        Range readout: OPENS … CLOSES …, each with its own time popover.
+        The lists no longer expand inline, so opening a clock never reflows
+        the panel or pushes the calendar around.
+      */}
       <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
         {(["start", "end"] as const).map((endpoint) => {
           const date = endpoint === "start" ? startDate : endDate;
           const time = endpoint === "start" ? startTime : endTime;
           const setTime = endpoint === "start" ? setStartTime : setEndTime;
-          const active = editing === endpoint;
           return (
-            <div key={endpoint}>
-              <div className="flex items-center justify-between gap-2">
+            <div key={endpoint} className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
                 <span className="text-buzzLabel uppercase tracking-[0.07em] text-muted">
                   {endpoint === "start" ? "Opens" : "Closes"}
                 </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-buzzSmall text-primary">{shortDate(date)}</span>
-                  <button
-                    type="button"
-                    onClick={() => openEditor(endpoint)}
-                    aria-expanded={active}
-                    disabled={!date}
-                    className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-buzzField border px-2.5 text-buzzSmall tabular-nums",
-                      MOTION.transitionColors,
-                      focusRingClass,
-                      active
-                        ? "border-buzz-yellow bg-accent-wash text-buzz-yellow"
-                        : "border-line bg-buzz-paper04 text-primary hover:border-quiet",
-                      !date && "cursor-not-allowed opacity-50",
-                    )}
-                  >
-                    {clock(time)}
-                    <Clock className="size-3.5 text-muted" />
-                  </button>
-                </div>
-              </div>
-
-              {active && (
-                <div className="mt-2 animate-buzz-fade motion-reduce:animate-none">
-                  <TimeList
-                    value={time}
-                    onChange={setTime}
-                    heightClass="h-[132px]"
-                    compact
-                    className="text-left"
-                  />
-                </div>
-              )}
+                <span className={cn("text-buzzSmall", date ? "text-primary" : "text-quiet")}>
+                  {date ? shortDate(date) : "—"}
+                </span>
+              </span>
+              <TimePopover
+                label={endpoint === "start" ? "Opening time" : "Closing time"}
+                triggerLabel={endpoint === "start" ? "Set opening time" : "Set closing time"}
+                value={time}
+                onChange={setTime}
+                disabled={!date}
+              />
             </div>
           );
         })}

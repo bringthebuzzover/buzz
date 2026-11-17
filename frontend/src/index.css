@@ -145,17 +145,26 @@
 
   /**
    * Tier 3: Floating popovers and menus that must not show page text through
-   * them. Near-opaque, with a heavy blur so any edge bleed stays soft. Use for
+   * them. A faint paper wash plus a light rim lifts the panel off the
+   * near-black page, and a heavy blur keeps anything behind it soft. Use for
    * pickers, dropdowns and context menus — not for cards, which are meant to
    * let the atmosphere read through.
    */
   .buzz-glass-popover {
-    background: rgba(16, 14, 12, 0.97);
-    backdrop-filter: blur(40px) saturate(1.2);
-    -webkit-backdrop-filter: blur(40px) saturate(1.2);
+    background:
+      linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.07),
+        rgba(255, 255, 255, 0.03) 48%,
+        rgba(255, 255, 255, 0.012)
+      ),
+      rgba(14, 13, 12, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(40px) saturate(1.3);
+    -webkit-backdrop-filter: blur(40px) saturate(1.3);
     box-shadow:
-      inset 0 1px 0 rgba(255, 239, 205, 0.07),
-      0 24px 64px rgba(0, 0, 0, 0.6);
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 24px 64px rgba(0, 0, 0, 0.62);
   }
 
   .buzz-glass-nav {

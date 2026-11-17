@@ -181,12 +181,11 @@ export function CalendarGrid({
           onClick={jumpToToday}
           title="Show the current month"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border border-buzz-yellowLine bg-accent-wash px-2.5 py-1 text-buzzLabel text-buzz-yellow hover:bg-buzz-yellow/20",
+            "inline-flex items-center rounded-full border border-buzz-yellowLine bg-accent-wash px-3 py-1 text-buzzLabel text-buzz-yellow hover:bg-buzz-yellow/20",
             MOTION.transitionColors,
             focusRingClass,
           )}
         >
-          <span className="size-1.5 rounded-full bg-buzz-yellow" aria-hidden />
           Today, {MONTH_SHORT_NAMES[today.month]} {today.day}
         </button>
 
@@ -260,13 +259,10 @@ export function CalendarGrid({
               }}
               onKeyDown={(event) => handleKeyDown(event, cell)}
               className={cn(
-                // 52px tall with a fixed 44px content column (32px circle +
-                // 3px gap + 9px caption), leaving 4px of padding above and
-                // below. The caption row is reserved on every cell, so the
-                // circle never shifts and the range bar stays aligned.
-                // Earlier h-10 overlapped the circle by 5px, and h-12 left only
-                // 4px to the next row's circle.
-                "group/day relative isolate flex h-[52px] flex-col items-center justify-center text-buzzLabel outline-none",
+                // 40px cell with the 32px circle centered, leaving 4px above and
+                // below. There is no caption row: the today ring alone marks the
+                // current day.
+                "group/day relative isolate flex h-10 items-center justify-center text-buzzLabel outline-none",
                 cell.isDisabled
                   ? "cursor-not-allowed opacity-25"
                   : "cursor-pointer",
@@ -278,8 +274,8 @@ export function CalendarGrid({
                 <span
                   aria-hidden
                   className={cn(
-                    // Matches the circle band exactly: 52px cell with a 44px
-                    // centered content column -> circle starts 4px from the top.
+                    // Matches the circle band exactly: a 32px circle centered
+                    // in a 40px cell starts 4px from the top.
                     "absolute left-0 right-0 top-[4px] h-8 -z-10 bg-accent-wash",
                     first && "rounded-l-full",
                     last && "rounded-r-full",
@@ -303,19 +299,6 @@ export function CalendarGrid({
                 )}
               >
                 {cell.day}
-              </span>
-              {/*
-                Caption slot. Rendered for every cell (empty elsewhere) so all
-                circles share one baseline and the range capsule lines up.
-              */}
-              <span
-                aria-hidden={!todayRing}
-                className={cn(
-                  "mt-[3px] h-[9px] text-[9px] leading-none tracking-[0.06em]",
-                  todayRing ? "text-buzz-yellow" : "text-transparent",
-                )}
-              >
-                {todayRing ? "TODAY" : ""}
               </span>
             </button>
           );
