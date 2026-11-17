@@ -10,6 +10,7 @@ import { Button, LinkButton } from "../forms/controls";
 import { focusRingClass } from "../../theme/controls";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
+import { MOTION } from "../../theme/motion";
 import { useReducedMotion } from "./useReducedMotion";
 import { publicAsset } from "../../utils/publicAsset";
 import { usePublicDropCatalog } from "../../api/hooks/useDropHooks";
@@ -341,7 +342,8 @@ export function CurrentDrops() {
                     aria-label={direction < 0 ? "Previous drop" : "Next drop"}
                     onClick={() => void move(direction)}
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-full border border-line text-primary cursor-pointer transition-all duration-150 hover:border-accent hover:bg-accent hover:text-on-accent active:scale-95",
+                      "flex h-10 w-10 items-center justify-center rounded-full border border-line text-primary hover:border-accent hover:bg-accent hover:text-on-accent",
+                      MOTION.press,
                       focusRingClass,
                     )}
                   >
@@ -378,7 +380,7 @@ export function CurrentDrops() {
               className={cn(
                 DROP_CAROUSEL.track,
                 transitionEnabled
-                  ? "transition-transform duration-500 motion-reduce:transition-none"
+                  ? MOTION.carouselTrack
                   : "transition-none",
               )}
               data-drop-track
@@ -518,14 +520,15 @@ function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { 
           <ChevronRight
             size={16}
             aria-hidden
-            className="transition-transform duration-300 group-hover:translate-x-1.5 group-focus-within:translate-x-1.5 motion-reduce:transform-none motion-reduce:transition-none"
+            className={MOTION.hoverArrow}
           />
         </LinkButton>
         {quiet ? (
           <Link
             to={quiet.to}
             className={cn(
-              "text-sm text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
+              "text-sm",
+              MOTION.interactiveLink,
               focusRingClass,
             )}
           >
@@ -574,7 +577,8 @@ export function FaqList({ items }: { items: { q: string; a: string }[] }) {
                     setOpenIndex(isOpen ? null : index);
                   }}
                   className={cn(
-                    "flex cursor-pointer list-none items-center justify-between gap-4 text-base transition-colors duration-150",
+                    "flex cursor-pointer list-none items-center justify-between gap-4 text-base",
+                    MOTION.transitionColors,
                     isOpen ? "text-accent" : "text-primary hover:text-accent",
                     focusRingClass,
                   )}
@@ -582,7 +586,7 @@ export function FaqList({ items }: { items: { q: string; a: string }[] }) {
                   <span>{item.q}</span>
                   <span
                     className={cn(
-                      "transition-transform duration-300 group-open:rotate-45 motion-reduce:transition-none",
+                      MOTION.accordionIndicator,
                       isOpen ? "text-accent" : "text-muted",
                     )}
                     aria-hidden
@@ -680,7 +684,8 @@ export function GoalChips() {
             key={goal}
             to="/brand/apply"
             className={cn(
-              "inline-flex h-11 items-center rounded-full border border-primary px-6 text-sm text-primary transition-all duration-200 active:scale-95 hover:border-accent hover:bg-accent hover:text-on-accent focus-visible:bg-accent focus-visible:text-on-accent focus-visible:border-accent motion-reduce:transition-none",
+              "inline-flex h-11 items-center border border-primary px-6 text-sm text-primary hover:border-accent hover:bg-accent hover:text-on-accent focus-visible:bg-accent focus-visible:text-on-accent focus-visible:border-accent",
+              MOTION.chip,
               focusRingClass,
             )}
           >

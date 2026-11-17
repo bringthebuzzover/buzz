@@ -12,6 +12,7 @@ import { ArrowUpRight } from "lucide-react";
 import AdminSidebar, { AdminWordmark } from "../components/admin/AdminSidebar";
 import { focusRingClass } from "../theme/controls";
 import { cn } from "../theme/cn";
+import { MOTION } from "../theme/motion";
 
 const AdminChromeContext = createContext<(bare: boolean) => void>(() => {});
 
@@ -40,7 +41,8 @@ export default function AdminLayout() {
             <Link
               to="/"
               className={cn(
-                "inline-flex items-center gap-2 text-sm text-muted hover:text-primary transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 cursor-pointer",
+                "inline-flex items-center gap-2 text-sm",
+                MOTION.interactiveLink,
                 focusRingClass,
               )}
             >

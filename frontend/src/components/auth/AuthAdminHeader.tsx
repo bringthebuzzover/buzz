@@ -8,6 +8,7 @@ import { Logo } from "../ui/BrandMark";
 import { Chip } from "../ui/Chip";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
+import { MOTION } from "../../theme/motion";
 
 export default function AuthAdminHeader() {
   return (
@@ -29,7 +30,8 @@ export default function AuthAdminHeader() {
       <Link
         to="/"
         className={cn(
-          "inline-flex items-center gap-2 rounded-full text-sm text-muted hover:text-primary transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 cursor-pointer",
+          "inline-flex items-center gap-2 rounded-full text-sm",
+          MOTION.interactiveLink,
           focusRingClass,
         )}
       >

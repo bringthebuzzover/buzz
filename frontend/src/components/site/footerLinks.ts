@@ -2,9 +2,11 @@
 import { siteIdentity } from "../../data/siteIdentity";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
+import { MOTION } from "../../theme/motion";
 
 export const footerLinkClass = cn(
-  "text-sm text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
+  "text-sm",
+  MOTION.interactiveLink,
   focusRingClass,
 );
 
