@@ -25,8 +25,14 @@ export const focusRingClass =
 export const focusRingOnPaperClass =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-surface-paper";
 
+/**
+ * Focus treatment for text fields. One yellow edge, not two: the 1px border
+ * and a 1px ring sit flush (no offset), so they read as a single 2px line.
+ * Previously the ring carried a 2px offset while the border also turned
+ * yellow, which looked like a double outline around the field.
+ */
 const FIELD_FOCUS =
-  "focus:border-buzz-yellow focus:ring-2 focus:ring-buzz-yellow focus:ring-offset-2 focus:ring-offset-page";
+  "focus:border-buzz-yellow focus:outline-none focus:ring-1 focus:ring-buzz-yellow focus:ring-offset-0";
 
 const FIELD_BASE =
   `w-full rounded-buzzField border border-line text-primary outline-none transition placeholder:text-quiet backdrop-blur-md backdrop-saturate-125 disabled:cursor-not-allowed disabled:bg-buzz-neutral disabled:text-muted disabled:opacity-100 ${FIELD_FOCUS}`;
