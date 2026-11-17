@@ -49,8 +49,8 @@ export default function HomePage() {
         tone="dark"
       />
       <CollegeNetwork />
-      <PinnedHow />
       <StackCards />
+      <PinnedHow />
       <CurrentDrops />
       <JoinSplit
         id="home-join"

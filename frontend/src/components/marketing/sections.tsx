@@ -504,6 +504,8 @@ function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { 
 }
 
 export function FaqList({ items }: { items: { q: string; a: string }[] }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   return (
     <section
       data-nav-surface="ink"
@@ -514,29 +516,50 @@ export function FaqList({ items }: { items: { q: string; a: string }[] }) {
           Questions
         </h2>
         <div>
-          {items.map((item, index) => (
-            <details
-              key={item.q}
-              open={index === 0}
-              className="group border-b border-line py-4"
-            >
-              <summary
-                className={cn(
-                  "flex cursor-pointer list-none items-center justify-between gap-4 text-base transition-colors duration-150 hover:text-accent",
-                  focusRingClass,
-                )}
+          {items.map((item, index) => {
+            const isOpen = openIndex === index;
+            return (
+              <details
+                key={item.q}
+                open={isOpen}
+                onMouseEnter={() => {
+                  if (
+                    typeof window !== "undefined" &&
+                    typeof window.matchMedia === "function" &&
+                    window.matchMedia("(hover: none)").matches
+                  ) {
+                    return;
+                  }
+                  setOpenIndex(index);
+                }}
+                className="group border-b border-line py-4"
               >
-                {item.q}
-                <span
-                  className="text-muted transition-transform duration-300 group-open:rotate-45 motion-reduce:transition-none"
-                  aria-hidden
+                <summary
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setOpenIndex(isOpen ? null : index);
+                  }}
+                  className={cn(
+                    "flex cursor-pointer list-none items-center justify-between gap-4 text-base transition-colors duration-150",
+                    isOpen ? "text-accent" : "text-primary hover:text-accent",
+                    focusRingClass,
+                  )}
                 >
-                  +
-                </span>
-              </summary>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">{item.a}</p>
-            </details>
-          ))}
+                  <span>{item.q}</span>
+                  <span
+                    className={cn(
+                      "transition-transform duration-300 group-open:rotate-45 motion-reduce:transition-none",
+                      isOpen ? "text-accent" : "text-muted",
+                    )}
+                    aria-hidden
+                  >
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">{item.a}</p>
+              </details>
+            );
+          })}
         </div>
       </div>
     </section>
