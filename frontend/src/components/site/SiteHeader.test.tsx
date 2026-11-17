@@ -11,8 +11,13 @@ jest.mock("../../contexts/AuthContext", () => ({
   useAuth: jest.fn(),
 }));
 
+const mockOpenAuthModal = jest.fn();
+
 jest.mock("../../contexts/SiteChromeContext", () => ({
-  useSiteChrome: () => ({ openContactModal: jest.fn() }),
+  useSiteChrome: () => ({
+    openContactModal: jest.fn(),
+    openAuthModal: mockOpenAuthModal,
+  }),
 }));
 
 jest.mock("../../api/hooks/useSignOut", () => ({
@@ -207,6 +212,34 @@ describe("SiteHeader", () => {
     expect(container.querySelector("#mobile-nav-menu")?.textContent).not.toContain(
       "How it works",
     );
+  });
+
+  it("opens auth modal with login mode when Login button is clicked", () => {
+    mockOpenAuthModal.mockClear();
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+    const loginButton = Array.from(
+      container.querySelectorAll('nav[aria-label="Primary"] button'),
+    ).find((btn) => btn.textContent === "Login");
+    expect(loginButton).toBeDefined();
+
+    act(() => {
+      loginButton?.click();
+    });
+    expect(mockOpenAuthModal).toHaveBeenCalledWith("login");
+  });
+
+  it("opens auth modal with signup mode when Join Us! button is clicked on home", () => {
+    mockOpenAuthModal.mockClear();
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+    const joinButton = Array.from(
+      container.querySelectorAll('nav[aria-label="Primary"] button'),
+    ).find((btn) => btn.textContent === "Join Us!");
+    expect(joinButton).toBeDefined();
+
+    act(() => {
+      joinButton?.click();
+    });
+    expect(mockOpenAuthModal).toHaveBeenCalledWith("signup");
   });
 });
 
