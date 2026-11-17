@@ -93,7 +93,6 @@
 
   /** Focused, lower-intensity rose pools for public authentication screens. */
   .buzz-auth-atmosphere {
-    background-color: #0b0b0b;
     background-image:
       radial-gradient(
         ellipse 740px 560px at 84% 10%,
@@ -105,7 +104,6 @@
         color-mix(in srgb, theme(colors.buzz.pink) 9%, transparent),
         transparent 68%
       );
-    background-attachment: fixed;
   }
 
   /**
