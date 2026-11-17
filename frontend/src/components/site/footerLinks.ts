@@ -5,7 +5,7 @@ import { cn } from "../../theme/cn";
 import { MOTION } from "../../theme/motion";
 
 export const footerLinkClass = cn(
-  "text-sm",
+  "text-sm inline-block",
   MOTION.interactiveLink,
   focusRingClass,
 );

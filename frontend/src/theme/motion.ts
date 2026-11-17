@@ -23,12 +23,12 @@ export const MOTION = {
   /** Scrim. */
   scrim:
     "data-[state=open]:animate-buzz-fade data-[state=closed]:animate-buzz-fade-exit motion-reduce:animate-none",
-  /** Click/tap scale feedback on interactive buttons and pills (active:scale-95). */
+  /** Click/tap scale feedback on interactive buttons and pills (active:scale-95, transition-all 150ms). */
   press:
-    "cursor-pointer transition-transform duration-150 active:scale-95 motion-reduce:transform-none motion-reduce:transition-none",
-  /** Subtle interactive link with muted-to-primary color fade and press feedback. */
+    "cursor-pointer transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 motion-reduce:transition-none",
+  /** Subtle interactive link with muted-to-primary color fade and press feedback (does not enforce display so inline-flex callers stay flex). */
   interactiveLink:
-    "text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100 cursor-pointer",
+    "text-muted hover:text-primary transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 motion-reduce:transition-none cursor-pointer",
   /** Animated arrow icon sliding right on group hover or group focus. */
   hoverArrow:
     "transition-transform duration-300 group-hover:translate-x-1.5 group-focus-within:translate-x-1.5 motion-reduce:transform-none motion-reduce:transition-none",
@@ -40,7 +40,7 @@ export const MOTION = {
     "relative whitespace-nowrap text-sm cursor-pointer transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 motion-reduce:transition-none after:absolute after:inset-x-0 after:-bottom-2 after:h-px after:origin-left after:bg-current after:content-[''] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-[180ms]",
   /** Interactive filter chip / pill transition. */
   chip:
-    "cursor-pointer rounded-full transition-all duration-200 active:scale-95 motion-reduce:transition-none",
+    "cursor-pointer rounded-full transition-all duration-200 active:scale-95 motion-reduce:active:scale-100 motion-reduce:transition-none",
   /** Smooth carousel track transition. */
   carouselTrack:
     "transition-transform duration-500 motion-reduce:transition-none",

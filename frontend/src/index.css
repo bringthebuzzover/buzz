@@ -178,31 +178,6 @@
   .buzz-icon-on-ink {
     filter: brightness(0) invert(1);
   }
-
-  /** Standard interactive click/tap press scale feedback (95% scale, 150ms). */
-  .buzz-press {
-    @apply cursor-pointer transition-transform duration-150 active:scale-95;
-  }
-
-  /** Subtle interactive link with muted-to-primary color fade and press feedback. */
-  .buzz-interactive-link {
-    @apply text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100 cursor-pointer;
-  }
-
-  /** Animated arrow icon sliding right on group hover or group focus. */
-  .buzz-hover-arrow {
-    @apply transition-transform duration-300 group-hover:translate-x-1.5 group-focus-within:translate-x-1.5;
-  }
-
-  /** Accordion toggle plus/chevron indicator rotating 45 degrees when open. */
-  .buzz-accordion-indicator {
-    @apply transition-transform duration-300 group-open:rotate-45;
-  }
-
-  /** Nav link with sliding animated bottom underline indicator. */
-  .buzz-nav-link {
-    @apply relative whitespace-nowrap text-sm cursor-pointer transition-all duration-150 active:scale-95 after:absolute after:inset-x-0 after:-bottom-2 after:h-px after:origin-left after:bg-current after:content-[''] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-[180ms];
-  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -221,19 +196,8 @@
    * transform when the user asks for less motion.
    */
   @media (prefers-reduced-motion: reduce) {
-    .buzz-hover-lift:hover,
-    .buzz-press:active,
-    .buzz-hover-arrow {
-      transform: none !important;
-    }
-
-    .buzz-press,
-    .buzz-hover-lift,
-    .buzz-hover-arrow,
-    .buzz-accordion-indicator,
-    .buzz-interactive-link,
-    .buzz-nav-link {
-      transition: none !important;
+    .buzz-hover-lift:hover {
+      transform: none;
     }
 
     .animate-buzz-rise,

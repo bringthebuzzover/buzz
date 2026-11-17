@@ -17,7 +17,7 @@ const ASIDE_STATEMENT =
 
 /** Quiet legal links for auth frames that hide the site footer. */
 function AuthLegalLinks() {
-  const linkClass = cn("rounded-full", MOTION.interactiveLink, focusRingClass);
+  const linkClass = cn("rounded-full inline-block", MOTION.interactiveLink, focusRingClass);
   return (
     <p className="text-sm text-quiet" data-testid="auth-legal-links">
       <Link to="/privacy" className={linkClass}>

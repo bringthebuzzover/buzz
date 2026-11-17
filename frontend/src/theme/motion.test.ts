@@ -1,4 +1,5 @@
 import { MOTION, type MotionKind } from "./motion";
+import { cn } from "./cn";
 
 describe("MOTION tokens", () => {
   it("defines standard motion tokens with appropriate durations and states", () => {
@@ -15,10 +16,12 @@ describe("MOTION tokens", () => {
   it("includes interactive tokens for click, tap, and hover effects", () => {
     expect(MOTION.press).toContain("active:scale-95");
     expect(MOTION.press).toContain("duration-150");
+    expect(MOTION.press).toContain("transition-all");
 
     expect(MOTION.interactiveLink).toContain("text-muted");
     expect(MOTION.interactiveLink).toContain("hover:text-primary");
     expect(MOTION.interactiveLink).toContain("active:scale-95");
+    expect(MOTION.interactiveLink).not.toContain("inline-block");
 
     expect(MOTION.hoverArrow).toContain("group-hover:translate-x-1.5");
     expect(MOTION.hoverArrow).toContain("duration-300");
@@ -36,17 +39,44 @@ describe("MOTION tokens", () => {
     expect(MOTION.transitionColors).toContain("duration-150");
   });
 
-  it("respects prefers-reduced-motion across all animated tokens", () => {
+  it("respects prefers-reduced-motion across all animated and scaled tokens", () => {
     const motionTokens = Object.entries(MOTION) as [MotionKind, string][];
 
     for (const [key, value] of motionTokens) {
-      // Every motion token must include either motion-reduce:* or motion-safe:*
+      // 1. Every motion token must include either motion-reduce:* or motion-safe:*
       const hasAccessibilityGuard =
         value.includes("motion-reduce:") || value.includes("motion-safe:");
       expect({ key, hasAccessibilityGuard }).toEqual({
         key,
         hasAccessibilityGuard: true,
       });
+
+      // 2. Any active:scale transition must neutralize scale under reduced motion
+      if (value.includes("active:scale-")) {
+        expect(value).toContain("motion-reduce:active:scale-100");
+      }
+
+      // 3. Any transition must neutralize under reduced motion unless motion-safe scoped
+      if (value.includes("transition-") && !value.includes("motion-safe:")) {
+        expect(value).toContain("motion-reduce:transition-none");
+      }
     }
+  });
+
+  it("does not conflict with display layout when merged via cn/tailwind-merge", () => {
+    const mergedFlex = cn(
+      "inline-flex items-center gap-2 rounded-full text-sm",
+      MOTION.interactiveLink,
+    );
+    expect(mergedFlex).toContain("inline-flex");
+    expect(mergedFlex).toContain("items-center");
+    expect(mergedFlex).toContain("gap-2");
+    expect(mergedFlex).not.toContain("inline-block");
+
+    const mergedBlock = cn(
+      "text-sm inline-block",
+      MOTION.interactiveLink,
+    );
+    expect(mergedBlock).toContain("inline-block");
   });
 });

@@ -65,12 +65,12 @@ export default function SiteFooter({
               {primary.label}
             </LinkButton>
             {audience === "both" ? (
-              <Link to="/brand/apply" className={cn("text-sm text-primary", footerLinkClass)}>
+              <Link to="/brand/apply" className={footerLinkClass}>
                 Apply as a brand
               </Link>
             ) : null}
             {audience === "org" ? (
-              <Link to="/login" className={cn("text-sm text-primary", footerLinkClass)}>
+              <Link to="/login" className={footerLinkClass}>
                 Already connected? Log in
               </Link>
             ) : null}
