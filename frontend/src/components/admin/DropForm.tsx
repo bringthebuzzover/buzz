@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { AdminDropDetail } from "../../api/hooks/useAdminHooks";
-import { Checkbox, DateTimeField, TextArea, TextField } from "../forms/controls";
+import { Checkbox, TextArea, TextField } from "../forms/controls";
+import { ApplyWindowField } from "../forms/ApplyWindowField";
 import { Toggle } from "../ui/Toggle";
 import { toDatetimeLocalValue } from "./labels";
 import { STACK, TEXT } from "../../theme/tokens";
@@ -77,16 +78,21 @@ export function DropFormSection({
   description,
   children,
   config = false,
+  className,
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   config?: boolean;
+  className?: string;
 }) {
   return (
-    <section className={config
-      ? "mb-6 space-y-4 rounded-buzzBoard border border-line buzz-glass-surface p-6"
-      : cn(STACK.tight, "border-t border-line px-4 py-4")}
+    <section className={cn(
+      config
+        ? "mb-6 space-y-4 rounded-buzzBoard border border-line buzz-glass-surface p-6"
+        : cn(STACK.tight, "border-t border-line px-4 py-4"),
+      className,
+    )}
     >
       <div>
         <h3 className={TEXT.h3}>{title}</h3>
@@ -240,7 +246,7 @@ export function DropFormFields({
         />
         {!config && preview}
       </DropFormSection>
-      <DropFormSection config={config} title="Logistics" description={config
+      <DropFormSection config={config} className="relative z-20" title="Logistics" description={config
         ? copyOnly
           ? "Wrapped up: only the copy and location can change. Unwrap the drop to change seats, units, dates or the hashtag."
           : "Where it runs, how many seats, and the apply window. To reopen applications, move the close date later."
@@ -270,23 +276,31 @@ export function DropFormFields({
               />
             </div>
           ) : unitsField}
-          <div className={config ? "lg:col-span-3" : undefined}>
-            <DateTimeField
-              {...fieldProps("open-at")} label="Apply opens" size="compact"
-              value={form.openAt} disabled={logisticsLocked}
-              onChange={(e) => setField("openAt", e.target.value)}
-            />
-          </div>
-          <div className={config ? "lg:col-span-3" : undefined}>
-            <DateTimeField
-              {...fieldProps("close-at")} label="Apply closes" size="compact"
-              value={form.closeAt} disabled={logisticsLocked}
-              onChange={(e) => setField("closeAt", e.target.value)}
+          <div className={config ? "lg:col-span-4" : "lg:col-span-2"}>
+            <ApplyWindowField
+              label="Application window"
+              openId={`${prefix}-open-at`}
+              closeId={`${prefix}-close-at`}
+              openTestId={config ? undefined : `${prefix}-open-at`}
+              closeTestId={config ? undefined : `${prefix}-close-at`}
+              size="compact"
+              disabled={logisticsLocked}
+              openValue={form.openAt}
+              closeValue={form.closeAt}
+              onChange={({ openAt, closeAt }) => {
+                setField("openAt", openAt);
+                setField("closeAt", closeAt);
+              }}
+              hint={
+                config
+                  ? undefined
+                  : "Tap a start date, then an end date. Times default to 9:00 AM and 11:45 PM."
+              }
             />
           </div>
         </div>
       </DropFormSection>
-      <DropFormSection config={config} title="Settings"
+      <DropFormSection config={config} className="relative z-10" title="Settings"
         description="Hashtag matching and who may edit creative after publish.">
         <TextField
           {...fieldProps("hashtag")} label="Campaign hashtag" size="compact"

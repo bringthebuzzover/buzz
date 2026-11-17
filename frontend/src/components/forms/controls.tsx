@@ -23,6 +23,45 @@ import {
 import FieldError from "./FieldError";
 import { TONE, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import {
+  Calendar,
+  CalendarGrid,
+  DatePicker,
+  DateRangePicker,
+  DateTimePicker,
+  PickerField,
+  TimeList,
+  TimePicker,
+  type CalendarGridProps,
+  type CalendarProps,
+  type DatePickerProps,
+  type DateRange,
+  type DateRangePickerProps,
+  type DateTimePickerProps,
+  type PickerFieldProps,
+  type TimeListProps,
+  type TimePickerProps,
+} from "../ui/Calendar";
+
+export {
+  Calendar,
+  CalendarGrid,
+  DatePicker,
+  DateRangePicker,
+  DateTimePicker,
+  PickerField,
+  TimeList,
+  TimePicker,
+  type CalendarGridProps,
+  type CalendarProps,
+  type DatePickerProps,
+  type DateRange,
+  type DateRangePickerProps,
+  type DateTimePickerProps,
+  type PickerFieldProps,
+  type TimeListProps,
+  type TimePickerProps,
+};
 
 export { fieldClass, fieldLabelClass, fieldLabelCompactClass };
 
@@ -181,25 +220,39 @@ export function TextArea({
 
 export function DateTimeField({
   id,
+  name,
   label,
   size = "compact",
   className,
+  value,
+  defaultValue,
+  onChange,
+  disabled,
+  required,
+  min,
+  max,
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   label?: ReactNode;
   size?: ControlSize;
 }) {
   return (
-    <TextField
+    <DateTimePicker
       id={id}
+      name={name}
       label={label}
       size={size}
-      // `buzz-datetime` restyles the browser's calendar glyph to match the
-      // Select chevron (see index.css). Keeping `type="datetime-local"` is a
-      // hard requirement — E2E fills these fields.
-      className={cn("buzz-datetime", className)}
-      {...props}
-      type="datetime-local"
+      className={className}
+      value={value !== undefined ? String(value) : undefined}
+      defaultValue={
+        defaultValue !== undefined ? String(defaultValue) : undefined
+      }
+      onChange={onChange as any}
+      disabled={disabled}
+      required={required}
+      min={min !== undefined ? String(min) : undefined}
+      max={max !== undefined ? String(max) : undefined}
+      {...(props as any)}
     />
   );
 }

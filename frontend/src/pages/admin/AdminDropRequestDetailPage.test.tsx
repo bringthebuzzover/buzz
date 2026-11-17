@@ -98,6 +98,18 @@ describe("AdminDropRequestDetailPage", () => {
 
   afterEach(() => jest.restoreAllMocks());
 
+  it("uses one range picker for the draft application window", () => {
+    container = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1",
+      path: "/admin/requests/:requestId",
+    }).container;
+
+    expect(container.querySelector("#draft-open-at-trigger")).toBeTruthy();
+    expect(container.querySelector("#draft-close-at-trigger")).toBeNull();
+    expect(container.querySelector('[data-testid="draft-open-at"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="draft-close-at"]')).toBeTruthy();
+  });
+
   it("disables Publish until a draft exists with required fields", () => {
     container = renderWithProviders(<AdminDropRequestDetailPage />, {
       route: "/admin/requests/req-1",

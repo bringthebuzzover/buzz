@@ -68,6 +68,17 @@ describe("BrandRequestDropPage", () => {
     ).container;
   }
 
+  it("keeps the requested live date as a single-date picker", () => {
+    renderPage();
+
+    expect(container.querySelector("#targetDate-trigger")).toBeTruthy();
+    expect(container.querySelector("#targetDate-end-trigger")).toBeNull();
+    expect(container.querySelector('[name="targetDate"]')).toHaveProperty(
+      "type",
+      "date",
+    );
+  });
+
   it("submits message/notes to drop-requests and does not navigate to /brand/drops/", async () => {
     mockMutate.mockImplementation((_body, opts) => {
       opts?.onSuccess?.({

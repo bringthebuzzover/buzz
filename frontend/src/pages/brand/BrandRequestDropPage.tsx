@@ -17,6 +17,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { userFacingApiError } from "../../api/userFacingError";
 import {
   Button,
+  DatePicker,
   ErrorBanner,
   Notice,
   TextArea,
@@ -244,10 +245,9 @@ function RequestForm({
               placeholder="City, region, or “Anywhere”"
               error={errorFor("location")}
             />
-            <TextField
+            <DatePicker
               id="targetDate"
               name="targetDate"
-              type="date"
               label={optional("When do you want this live?")}
               min={minDate}
               max={maxDate}
