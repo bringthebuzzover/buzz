@@ -33,6 +33,7 @@ import {
 import { PAD, STACK, SURFACE, TEXT } from "../../theme/tokens";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
+import { MOTION } from "../../theme/motion";
 
 function dropNotAvailable(error: unknown): boolean {
   return error instanceof ApiError && error.code === "DROP_NOT_OPEN";
@@ -155,7 +156,7 @@ export default function PublicDropPage() {
       {anonymous && feedStatus !== "open" ? (
         <p className="text-sm text-muted">
           Already on Buzz?{" "}
-          <Link to={loginHref} className={cn("text-accent hover:underline hover:text-buzz-yellowHover transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100", focusRingClass)}>
+          <Link to={loginHref} className={cn("text-accent hover:underline hover:text-buzz-yellowHover inline-block", MOTION.press, focusRingClass)}>
             Organization login
           </Link>
         </p>

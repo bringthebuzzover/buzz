@@ -10,6 +10,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../theme/cn";
+import { MOTION } from "../../theme/motion";
 import { ORG_LAPTOP_STEPS } from "./mockups";
 import { LaptopMockup } from "./LaptopMockup";
 import { useReducedMotion } from "./useReducedMotion";
@@ -157,7 +158,8 @@ export function PinnedHow() {
                 aria-selected={idx === step}
                 onClick={() => scrollToStep(idx)}
                 className={cn(
-                  "cursor-pointer rounded-full px-3.5 py-1 text-xs font-medium transition-all duration-200 active:scale-95 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                  "px-3.5 py-1 text-xs font-medium outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                  MOTION.chip,
                   idx === step
                     ? "bg-accent text-on-accent font-semibold"
                     : "text-muted hover:text-primary hover:bg-white/10",

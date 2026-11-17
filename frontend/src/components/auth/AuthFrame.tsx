@@ -17,7 +17,7 @@ const ASIDE_STATEMENT =
 
 /** Quiet legal links for auth frames that hide the site footer. */
 function AuthLegalLinks() {
-  const linkClass = cn("rounded-full text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100", focusRingClass);
+  const linkClass = cn("rounded-full inline-block", MOTION.interactiveLink, focusRingClass);
   return (
     <p className="text-sm text-quiet" data-testid="auth-legal-links">
       <Link to="/privacy" className={linkClass}>
@@ -117,7 +117,8 @@ export function AuthSplit({
           <Link
             to="/"
             className={cn(
-              "inline-flex items-center gap-2 rounded-full text-sm text-muted hover:text-primary transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 cursor-pointer",
+              "inline-flex items-center gap-2 rounded-full text-sm",
+              MOTION.interactiveLink,
               focusRingClass,
             )}
           >
@@ -178,7 +179,8 @@ export function AuthHeading({
 }
 
 const linkClass = cn(
-  "inline-flex items-center gap-2 rounded-full text-sm text-muted hover:text-primary transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 cursor-pointer",
+  "inline-flex items-center gap-2 rounded-full text-sm",
+  MOTION.interactiveLink,
   focusRingClass,
 );
 

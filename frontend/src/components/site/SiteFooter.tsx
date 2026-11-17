@@ -5,6 +5,7 @@ import { BeeMark, Logo } from "../ui/BrandMark";
 import { LinkButton } from "../forms/controls";
 import { cn } from "../../theme/cn";
 import { focusRingClass } from "../../theme/controls";
+import { MOTION } from "../../theme/motion";
 import { footerLinkClass, SOCIAL_LINKS } from "./footerLinks";
 
 export type SiteFooterAudience = "both" | "org" | "brand";
@@ -64,12 +65,12 @@ export default function SiteFooter({
               {primary.label}
             </LinkButton>
             {audience === "both" ? (
-              <Link to="/brand/apply" className={cn("text-sm text-primary", footerLinkClass)}>
+              <Link to="/brand/apply" className={footerLinkClass}>
                 Apply as a brand
               </Link>
             ) : null}
             {audience === "org" ? (
-              <Link to="/login" className={cn("text-sm text-primary", footerLinkClass)}>
+              <Link to="/login" className={footerLinkClass}>
                 Already connected? Log in
               </Link>
             ) : null}
@@ -79,7 +80,8 @@ export default function SiteFooter({
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              "mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement hover:text-accent transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
+              "mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement hover:text-accent inline-block",
+              MOTION.press,
               focusRingClass,
             )}
           >
