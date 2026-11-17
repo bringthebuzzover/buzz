@@ -11,8 +11,13 @@ jest.mock("../../contexts/AuthContext", () => ({
   useAuth: jest.fn(),
 }));
 
+const mockOpenAuthModal = jest.fn();
+
 jest.mock("../../contexts/SiteChromeContext", () => ({
-  useSiteChrome: () => ({ openContactModal: jest.fn() }),
+  useSiteChrome: () => ({
+    openContactModal: jest.fn(),
+    openAuthModal: mockOpenAuthModal,
+  }),
 }));
 
 jest.mock("../../api/hooks/useSignOut", () => ({
@@ -207,6 +212,78 @@ describe("SiteHeader", () => {
     expect(container.querySelector("#mobile-nav-menu")?.textContent).not.toContain(
       "How it works",
     );
+  });
+
+  it("opens auth modal with login mode when Login button is clicked", () => {
+    mockOpenAuthModal.mockClear();
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+    const loginButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('nav[aria-label="Primary"] button'),
+    ).find((btn) => btn.textContent === "Login");
+    expect(loginButton).toBeDefined();
+
+    act(() => {
+      loginButton?.click();
+    });
+    expect(mockOpenAuthModal).toHaveBeenCalledWith("login");
+  });
+
+  it("opens auth modal with signup mode when Join Us! button is clicked on home", () => {
+    mockOpenAuthModal.mockClear();
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+    const joinButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('nav[aria-label="Primary"] button'),
+    ).find((btn) => btn.textContent === "Join Us!");
+    expect(joinButton).toBeDefined();
+
+    act(() => {
+      joinButton?.click();
+    });
+    expect(mockOpenAuthModal).toHaveBeenCalledWith("signup");
+  });
+
+  it("opens auth modal with organization preset on /for-orgs Join Us! click", () => {
+    mockOpenAuthModal.mockClear();
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/for-orgs" });
+    const joinButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('nav[aria-label="Primary"] button'),
+    ).find((btn) => btn.textContent === "Join Us!");
+    expect(joinButton).toBeDefined();
+
+    act(() => {
+      joinButton?.click();
+    });
+    expect(mockOpenAuthModal).toHaveBeenCalledWith("signup", "organization");
+  });
+
+  it("renders Apply button on /for-brands without triggering auth modal", () => {
+    mockOpenAuthModal.mockClear();
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/for-brands" });
+    const applyButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('nav[aria-label="Primary"] button'),
+    ).find((btn) => btn.textContent === "Apply");
+    expect(applyButton).toBeDefined();
+    expect(mockOpenAuthModal).not.toHaveBeenCalled();
+  });
+
+  it("opens auth modal from mobile drawer Login button", () => {
+    mockOpenAuthModal.mockClear();
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+
+    const mobileMenuBtn = container.querySelector<HTMLButtonElement>('button[aria-controls="mobile-nav-menu"]');
+    act(() => {
+      mobileMenuBtn?.click();
+    });
+
+    const mobileLoginBtn = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("#mobile-nav-menu button"),
+    ).find((btn) => btn.textContent?.includes("Login"));
+    expect(mobileLoginBtn).toBeDefined();
+
+    act(() => {
+      mobileLoginBtn?.click();
+    });
+    expect(mockOpenAuthModal).toHaveBeenCalledWith("login");
   });
 });
 
