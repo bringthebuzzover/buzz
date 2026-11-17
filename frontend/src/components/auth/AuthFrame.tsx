@@ -110,7 +110,7 @@ export function AuthSplit({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-page lg:flex-row">
+    <div className="buzz-app-atmosphere buzz-auth-atmosphere flex min-h-screen w-full flex-col lg:flex-row">
       <AuthAside asideStatement={asideStatement} />
       <div className="flex flex-1 flex-col px-6 py-6 lg:px-12 lg:py-8">
         <div className="flex w-full justify-end">
