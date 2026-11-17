@@ -24,7 +24,7 @@ export default function AuthPending({
       role="status"
       aria-live="polite"
       aria-label={label}
-      className="fixed inset-0 z-buzzBanner flex items-center justify-center bg-page"
+      className="buzz-app-atmosphere fixed inset-0 z-buzzBanner flex items-center justify-center"
     >
       {show ? <Loader label={label} /> : null}
     </div>
