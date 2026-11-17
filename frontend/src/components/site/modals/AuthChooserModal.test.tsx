@@ -20,11 +20,11 @@ describe("AuthChooserModal", () => {
   const defaultOnSelect = jest.fn();
 
   beforeEach(() => {
+    document.body.innerHTML = "";
     jest.clearAllMocks();
   });
 
   function renderModal(props?: {
-    isOpen?: boolean;
     initialMode?: AuthMode;
     initialType?: AccountType;
     onClose?: () => void;
@@ -32,9 +32,8 @@ describe("AuthChooserModal", () => {
   }) {
     return renderWithProviders(
       <AuthChooserModal
-        isOpen={props?.isOpen ?? true}
         initialMode={props?.initialMode ?? "signup"}
-        initialType={props?.initialType ?? "brand"}
+        initialType={props?.initialType}
         onClose={props?.onClose ?? defaultOnClose}
         onSelect={props?.onSelect ?? defaultOnSelect}
       />,

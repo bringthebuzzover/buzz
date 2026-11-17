@@ -71,7 +71,6 @@ export function SiteChromeProvider({ children }: { children: ReactNode }) {
       ) : null}
       {authModal.open ? (
         <AuthChooserModal
-          isOpen={authModal.open}
           initialMode={authModal.mode}
           initialType={authModal.initialType}
           onClose={closeAuthModal}

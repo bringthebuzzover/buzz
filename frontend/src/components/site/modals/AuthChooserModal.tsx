@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, Check, X } from "lucide-react";
@@ -11,7 +11,6 @@ export type AuthMode = "signup" | "login";
 export type AccountType = "organization" | "brand";
 
 export interface AuthChooserModalProps {
-  isOpen?: boolean;
   initialMode?: AuthMode;
   initialType?: AccountType;
   onClose: () => void;
@@ -19,46 +18,71 @@ export interface AuthChooserModalProps {
 }
 
 export default function AuthChooserModal({
-  isOpen = true,
   initialMode = "signup",
-  initialType = "brand",
+  initialType,
   onClose,
   onSelect,
 }: AuthChooserModalProps) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(isOpen);
+  const [open, setOpen] = useState(true);
+  const closingRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const [hoveredType, setHoveredType] = useState<AccountType | null>(initialType);
+  const [hoveredType, setHoveredType] = useState<AccountType | null>(initialType ?? null);
 
   const [returnFocus] = useState(() =>
     typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null),
   );
 
   useEffect(() => {
-    setOpen(isOpen);
-  }, [isOpen]);
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
-  useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode]);
+  const requestClose = useCallback(
+    (customAction?: () => void) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      setOpen(false);
 
-  useEffect(() => {
-    if (initialType) {
-      setHoveredType(initialType);
-    }
-  }, [initialType]);
+      const execute = () => {
+        if (customAction) {
+          customAction();
+          if (customAction !== onCloseRef.current) {
+            onCloseRef.current();
+          }
+        } else {
+          onCloseRef.current();
+        }
+      };
 
-  const handleClose = useCallback(() => {
-    setOpen(false);
-    onClose();
-  }, [onClose]);
+      const isTest =
+        typeof process !== "undefined" && process.env?.NODE_ENV === "test";
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (isTest || prefersReducedMotion) {
+        execute();
+      } else {
+        timerRef.current = window.setTimeout(execute, 150);
+      }
+    },
+    [],
+  );
 
   const handleChoose = useCallback(
     (type: AccountType) => {
       if (onSelect) {
         onSelect(type, mode);
       }
-      handleClose();
 
       let target = "/org/apply";
       if (type === "organization") {
@@ -66,9 +90,10 @@ export default function AuthChooserModal({
       } else {
         target = mode === "signup" ? "/brand/apply" : "/brand/login";
       }
-      navigate(target);
+
+      requestClose(() => navigate(target));
     },
-    [mode, onSelect, handleClose, navigate],
+    [mode, onSelect, requestClose, navigate],
   );
 
   const isSignup = mode === "signup";
@@ -77,7 +102,7 @@ export default function AuthChooserModal({
     <Dialog.Root
       open={open}
       onOpenChange={(next) => {
-        if (!next) handleClose();
+        if (!next) requestClose();
       }}
     >
       <Dialog.Portal>
@@ -85,10 +110,16 @@ export default function AuthChooserModal({
           className={cn("fixed inset-0 z-buzzModal buzz-scrim-atmosphere", MOTION.scrim)}
         />
         <Dialog.Content
-          aria-describedby="auth-chooser-description"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
-            returnFocus?.focus();
+            if (
+              returnFocus &&
+              typeof returnFocus.focus === "function" &&
+              document.body.contains(returnFocus) &&
+              !returnFocus.closest('[aria-hidden="true"]')
+            ) {
+              returnFocus.focus();
+            }
           }}
           className={cn(
             "fixed left-1/2 top-1/2 z-buzzModal max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[680px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 sm:p-9 focus:outline-none",
@@ -99,17 +130,17 @@ export default function AuthChooserModal({
           {/* Ambient subtle color orbs behind glass */}
           <div
             aria-hidden
-            className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-accent/10 blur-[80px]"
+            className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-accent/10 blur-3xl motion-reduce:hidden"
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-buzz-pink/10 blur-[80px]"
+            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-buzz-pink/10 blur-3xl motion-reduce:hidden"
           />
 
           {/* Close button */}
           <Dialog.Close
             className={cn(
-              "absolute right-4 top-4 sm:right-6 sm:top-6 z-10 flex h-8 w-8 items-center justify-center rounded-buzzControl border border-line bg-buzz-paper04 text-quiet transition-colors hover:bg-buzz-paper08 hover:text-primary cursor-pointer",
+              "absolute right-4 top-4 sm:right-6 sm:top-6 z-10 flex h-8 w-8 items-center justify-center rounded-buzzControl border border-line bg-buzz-paper04 text-quiet transition-colors hover:bg-buzz-paper08 hover:text-primary cursor-pointer motion-reduce:transition-none",
               focusRingClass,
             )}
             aria-label="Close"
@@ -119,18 +150,11 @@ export default function AuthChooserModal({
 
           {/* Modal Header */}
           <div className="text-center pt-2 sm:pt-4">
-            <Dialog.Title
-              className={cn(
-                "text-[28px] sm:text-[32px] font-medium tracking-tight text-primary leading-tight",
-              )}
-            >
+            <Dialog.Title className={cn(TEXT.h2, "text-primary text-center")}>
               {isSignup ? "How are you joining BUZZ?" : "How are you logging into BUZZ?"}
             </Dialog.Title>
 
-            <Dialog.Description
-              id="auth-chooser-description"
-              className={cn("mt-2 text-sm text-quiet max-w-md mx-auto leading-relaxed")}
-            >
+            <Dialog.Description className="mt-2 text-sm text-quiet max-w-md mx-auto leading-relaxed">
               {isSignup
                 ? "Select your account type to get started."
                 : "Select your account type to access your portal."}
@@ -150,7 +174,7 @@ export default function AuthChooserModal({
               onMouseEnter={() => setHoveredType("organization")}
               onFocus={() => setHoveredType("organization")}
               className={cn(
-                "group relative flex min-h-[180px] sm:min-h-[200px] flex-col justify-between rounded-buzzBoard p-6 cursor-pointer border text-left transition-all duration-200 select-none",
+                "group relative flex min-h-[180px] sm:min-h-[200px] flex-col justify-between rounded-buzzBoard p-6 cursor-pointer border text-left transition-all duration-200 select-none motion-reduce:transition-none",
                 hoveredType === "organization"
                   ? "border-accent/80 shadow-[0_0_24px_rgba(246,211,42,0.18),inset_0_1px_0_rgba(255,235,160,0.2)]"
                   : "border-line hover:border-accent/40 hover:bg-buzz-paper04",
@@ -169,7 +193,7 @@ export default function AuthChooserModal({
                 <div
                   aria-hidden
                   className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150",
+                    "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150 motion-reduce:transition-none",
                     hoveredType === "organization"
                       ? "border-accent bg-accent text-on-accent"
                       : "border-line group-hover:border-buzz-fg/50",
@@ -183,15 +207,10 @@ export default function AuthChooserModal({
 
               {/* Card Body */}
               <div className="my-auto">
-                <h3
-                  className={cn(
-                    TEXT.h3,
-                    "text-primary tracking-tight transition-colors",
-                  )}
-                >
+                <h3 className={cn(TEXT.h3, "text-primary tracking-tight transition-colors motion-reduce:transition-none")}>
                   Organization
                 </h3>
-                <p className={cn("mt-1.5 text-sm text-quiet leading-relaxed")}>
+                <p className="mt-1.5 text-sm text-muted leading-relaxed">
                   For student organizations and campus communities.
                 </p>
               </div>
@@ -201,7 +220,7 @@ export default function AuthChooserModal({
                 <ArrowUpRight
                   size={18}
                   className={cn(
-                    "transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
+                    "transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none",
                     hoveredType === "organization"
                       ? "text-accent"
                       : "text-quiet group-hover:text-accent",
@@ -218,7 +237,7 @@ export default function AuthChooserModal({
               onMouseEnter={() => setHoveredType("brand")}
               onFocus={() => setHoveredType("brand")}
               className={cn(
-                "group relative flex min-h-[180px] sm:min-h-[200px] flex-col justify-between rounded-buzzBoard p-6 cursor-pointer border text-left transition-all duration-200 select-none",
+                "group relative flex min-h-[180px] sm:min-h-[200px] flex-col justify-between rounded-buzzBoard p-6 cursor-pointer border text-left transition-all duration-200 select-none motion-reduce:transition-none",
                 hoveredType === "brand"
                   ? "border-buzz-pink/90 shadow-[0_0_24px_rgba(241,123,191,0.22),inset_0_1px_0_rgba(255,182,217,0.25)]"
                   : "border-line hover:border-buzz-pink/40 hover:bg-buzz-paper04",
@@ -237,7 +256,7 @@ export default function AuthChooserModal({
                 <div
                   aria-hidden
                   className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150",
+                    "flex h-5 w-5 items-center justify-center rounded-full border transition-all duration-150 motion-reduce:transition-none",
                     hoveredType === "brand"
                       ? "border-buzz-pink bg-buzz-pink text-on-accent"
                       : "border-line group-hover:border-buzz-fg/50",
@@ -251,15 +270,10 @@ export default function AuthChooserModal({
 
               {/* Card Body */}
               <div className="my-auto">
-                <h3
-                  className={cn(
-                    TEXT.h3,
-                    "text-primary tracking-tight transition-colors",
-                  )}
-                >
+                <h3 className={cn(TEXT.h3, "text-primary tracking-tight transition-colors motion-reduce:transition-none")}>
                   Brand
                 </h3>
-                <p className={cn("mt-1.5 text-sm text-quiet leading-relaxed")}>
+                <p className="mt-1.5 text-sm text-muted leading-relaxed">
                   For businesses and companies looking to reach students.
                 </p>
               </div>
@@ -269,7 +283,7 @@ export default function AuthChooserModal({
                 <ArrowUpRight
                   size={18}
                   className={cn(
-                    "transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
+                    "transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none",
                     hoveredType === "brand"
                       ? "text-buzz-pink"
                       : "text-quiet group-hover:text-buzz-pink",
@@ -292,7 +306,7 @@ export default function AuthChooserModal({
                 aria-pressed={mode === "login"}
                 onClick={() => setMode("login")}
                 className={cn(
-                  "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer",
+                  "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer motion-reduce:transition-none",
                   mode === "login"
                     ? "bg-buzz-paper08 text-primary"
                     : "text-quiet hover:text-primary",
@@ -306,7 +320,7 @@ export default function AuthChooserModal({
                 aria-pressed={mode === "signup"}
                 onClick={() => setMode("signup")}
                 className={cn(
-                  "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer",
+                  "rounded-full px-4 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer motion-reduce:transition-none",
                   mode === "signup"
                     ? "bg-buzz-paper08 text-primary"
                     : "text-quiet hover:text-primary",

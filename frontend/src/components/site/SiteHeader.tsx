@@ -141,7 +141,9 @@ export default function SiteHeader() {
   const join =
     pathname.startsWith("/for-brands")
       ? { label: "Apply", onClick: () => navigate("/brand/apply") }
-      : { label: "Join Us!", onClick: () => openAuthModal("signup") };
+      : pathname.startsWith("/for-orgs")
+        ? { label: "Join Us!", onClick: () => openAuthModal("signup", "organization") }
+        : { label: "Join Us!", onClick: () => openAuthModal("signup") };
 
   const linkClass = (active: boolean) =>
     cn(
