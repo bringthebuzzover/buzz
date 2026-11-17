@@ -14,6 +14,7 @@ describe("AuthAside and AuthSplit", () => {
     expect(aside).not.toBeNull();
     const split = aside?.parentElement;
     expect(split?.classList.contains("buzz-app-atmosphere")).toBe(true);
+    expect(split?.classList.contains("buzz-auth-atmosphere")).toBe(true);
     expect(split?.classList.contains("bg-page")).toBe(false);
     expect(aside?.textContent).toContain(
       "Connecting brands with campus communities for authentic college marketing, at scale.",

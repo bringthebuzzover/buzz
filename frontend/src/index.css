@@ -91,6 +91,23 @@
     background-attachment: fixed;
   }
 
+  /** Focused, lower-intensity rose pools for public authentication screens. */
+  .buzz-auth-atmosphere {
+    background-color: #0b0b0b;
+    background-image:
+      radial-gradient(
+        ellipse 740px 560px at 84% 10%,
+        color-mix(in srgb, theme(colors.buzz.pink) 15%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 690px 680px at 77% 88%,
+        color-mix(in srgb, theme(colors.buzz.pink) 13%, transparent),
+        transparent 68%
+      );
+    background-attachment: fixed;
+  }
+
   /**
    * Scrim with irregular pink atmosphere and blur for modal overlays.
    * Leverages the exact same pool coordinates with a master glow multiplier
