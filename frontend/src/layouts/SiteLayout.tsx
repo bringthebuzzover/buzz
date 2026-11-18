@@ -13,9 +13,11 @@ import SiteFooter from "../components/site/SiteFooter";
 import ImpersonationBanner from "../components/site/ImpersonationBanner";
 import AuthAdminHeader from "../components/auth/AuthAdminHeader";
 import PortalHeader, { type Portal } from "../components/site/PortalHeader";
+import AtmosphericBackdrop from "../components/marketing/AtmosphericBackdrop";
 import { useAuth } from "../contexts/AuthContext";
 import { isAdminAuthPath, isBareAuthPath } from "../components/auth/authPaths";
 import { LinkButton } from "../components/forms/controls";
+import { cn } from "../theme/cn";
 
 function isMarketingPath(pathname: string): boolean {
   return pathname === "/" || pathname === "/for-orgs" || pathname === "/for-brands";
@@ -34,9 +36,14 @@ export default function SiteLayout() {
         ? role
         : null;
 
+  const layoutClass = marketing
+    ? "buzz-marketing-glass relative bg-[#070708]"
+    : "buzz-app-atmosphere bg-page";
+
   return (
     <SiteChromeProvider>
-      <div className="buzz-app-atmosphere flex min-h-screen flex-col bg-page">
+      <div className={cn(layoutClass, "flex min-h-screen flex-col")}>
+        {marketing ? <AtmosphericBackdrop /> : null}
         <ImpersonationBanner />
         {bare ? (
           isAdminAuthPath(pathname) ? (

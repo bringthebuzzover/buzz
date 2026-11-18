@@ -144,7 +144,7 @@ export function Statement({
       data-reveal-group
       data-nav-surface={isDark ? "ink" : "paper"}
       className={cn(
-        "px-4 py-[68px] text-center md:py-[108px]",
+        "px-4 pt-[136px] pb-[88px] text-center md:pt-[216px] md:pb-[144px]",
         isDark ? "bg-page" : "bg-surface-paper",
       )}
     >
