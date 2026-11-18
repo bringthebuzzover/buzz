@@ -1,21 +1,24 @@
-"""My-Campaigns routes — ``/api/campaigns`` (architecture.md §5.1, §7.2/§7.3/§7.4).
+"""My-Campaigns routes — ``/api/campaigns``.
 
-Org-only. Denied applications are never returned (filtered from the list, 404
-on detail). Every ``/{id}/*`` sub-resource verifies caller ownership via the
-service layer (404 otherwise) — no IDOR. Returns all rows (no pagination) per §7.2.
+See buzz-ops engineering/architecture.md §5.1, §7.2/§7.3/§7.4.
+
+Org-only. Ended seats (sent denials, withdrawals, removals) are never
+returned (filtered from the list, 404 on detail). Every ``/{id}/*``
+sub-resource verifies caller ownership via the service layer (404 otherwise)
+— no IDOR. Returns all rows (no pagination) per §7.2.
 """
 
 from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps.auth import CurrentOrg
 from app.deps.db import get_db
 from app.response import APIResponse, DataResponse, api_response
-from app.schemas.acks import OkResponse
+from app.schemas.acks import DeliveredRequest, OkResponse
 from app.schemas.campaigns import CampaignDetailResponse, CampaignListItem
 from app.schemas.posts import (
     CampaignAggregateResponse,
@@ -23,7 +26,12 @@ from app.schemas.posts import (
     PostResponse,
     SuggestionResponse,
 )
-from app.services.campaigns import get_my_campaign, list_my_campaigns
+from app.services.campaigns import (
+    get_my_campaign,
+    list_my_campaigns,
+    set_my_campaign_delivered,
+    withdraw_my_campaign,
+)
 from app.services.posts import (
     accept_suggestion,
     dismiss_suggestion,
@@ -41,7 +49,7 @@ async def list_campaigns(
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """The caller org's campaigns (non-denied applications + joined drop)."""
+    """The caller org's campaigns (seats that have not ended + joined drop)."""
 
     return api_response(data=await list_my_campaigns(db, user))
 
@@ -55,6 +63,32 @@ async def campaign_detail(
     """One campaign owned by the caller org (404 otherwise)."""
 
     return api_response(data=await get_my_campaign(db, user, application_id))
+
+
+@router.post("/{application_id}/withdraw", response_model=DataResponse[OkResponse])
+async def withdraw_campaign(
+    background_tasks: BackgroundTasks,
+    application_id: uuid.UUID,
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Withdraw: while applied, or accepted before shipping (409 after)."""
+
+    await withdraw_my_campaign(db, user, application_id, background_tasks=background_tasks)
+    return api_response(data=OkResponse())
+
+
+@router.put("/{application_id}/delivered", response_model=DataResponse[OkResponse])
+async def set_campaign_delivered(
+    application_id: uuid.UUID,
+    payload: DeliveredRequest,
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Org says "I got it": it has the product (a fact, never a gate)."""
+
+    await set_my_campaign_delivered(db, user, application_id, payload.delivered)
+    return api_response(data=OkResponse())
 
 
 @router.get(

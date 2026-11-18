@@ -1,4 +1,4 @@
-"""Background jobs (architecture.md §10).
+"""Background jobs (buzz-ops engineering/architecture.md §10).
 
 Each job is a pure async function taking an ``AsyncSession`` (and, for the
 Instagram-backed jobs, an ``InstagramClient``) and returning a small summary

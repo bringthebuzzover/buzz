@@ -12,7 +12,9 @@ import { Mail, Trash2 } from "lucide-react";
 import {
   useAdminBrand,
   useApproveBrand,
+  useApproveBrandIgChangeRequest,
   useDenyBrand,
+  useDenyBrandIgChangeRequest,
   useEraseBrand,
   useResendBrandInvite,
   useSendBrandEmail,
@@ -23,8 +25,10 @@ import {
 } from "../../api/hooks/useAdminHooks";
 import {
   ActionButton,
+  AdminBackLink,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   Field,
   FieldGrid,
@@ -35,19 +39,18 @@ import {
   QueryState,
   Row,
   StatusPill,
+  StagePill,
 } from "../../components/admin/AdminPrimitives";
 import {
-  STAGE_LABELS,
   formatDate,
   formatDateTime,
 } from "../../components/admin/labels";
 import { ApiError } from "../../api/errors";
 import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
+import { marketingBudgetLabel } from "../../utils/marketingBudget";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
-import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
-import { STACK } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
+import { SuccessBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 
 const DROP_HEADERS = ["Drop", "Stage", "Applied", "Accepted", "Closes"] as const;
 
@@ -60,14 +63,15 @@ export default function AdminBrandDetailPage() {
   const resend = useResendBrandInvite();
   const sendEmail = useSendBrandEmail();
   const erase = useEraseBrand();
+  const approveIg = useApproveBrandIgChangeRequest();
+  const denyIg = useDenyBrandIgChangeRequest();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeNotice, setComposeNotice] = useState<string | null>(null);
   const [eraseOpen, setEraseOpen] = useState(false);
-  const [eraseTyped, setEraseTyped] = useState("");
-  const [eraseError, setEraseError] = useState<string | null>(null);
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
+  const [igDecisionError, setIgDecisionError] = useState<string | null>(null);
 
   const data = brand.data;
   const busy =
@@ -83,11 +87,10 @@ export default function AdminBrandDetailPage() {
     (data.invite.expiresAt === null || data.invite.expiresAt <= Date.now());
   const erased = data?.status === "erased";
   const canErase = Boolean(data?.companyEmail) && !erased;
-  const confirmEmailMatches =
-    eraseTyped.trim().toLowerCase() === (data?.companyEmail ?? "").trim().toLowerCase();
   const canResendInvite = data?.status === "approved" && !data.passwordSet;
   const igHandle = data?.instagramHandle?.replace(/^@/, "") ?? "";
   const igProfileUrl = instagramProfileUrl(igHandle);
+  const pendingIg = data?.pendingIgChange ?? null;
 
   const onApprove = async () => {
     if (!data) return;
@@ -96,7 +99,7 @@ export default function AdminBrandDetailPage() {
       const result = (await approve.mutateAsync(
         data.id,
       )) as BrandInviteActionResult;
-      if (result.emailSent === false) {
+      if (result.emailQueued === false) {
         setInviteNotice(INVITE_EMAIL_FAILED_COPY);
       }
     } catch {
@@ -112,7 +115,7 @@ export default function AdminBrandDetailPage() {
     } catch (err) {
       if (err instanceof ApiError && err.code === "EMAIL_SEND_FAILED") {
         setInviteNotice(
-          "Could not send the invite email. The brand is still approved — try Resend invite again.",
+          "Could not queue the invite email. The brand is still approved — try Resend invite again.",
         );
         return;
       }
@@ -122,12 +125,7 @@ export default function AdminBrandDetailPage() {
 
   return (
     <div>
-      <Link
-        to="/admin/brands"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All brands
-      </Link>
+      <AdminBackLink to="/admin/brands">All brands</AdminBackLink>
 
       <QueryState
         isPending={brand.isPending}
@@ -226,11 +224,7 @@ export default function AdminBrandDetailPage() {
                     testId="erase-brand"
                     aria-label="Erase brand"
                     disabled={busy || erase.isPending}
-                    onClick={() => {
-                      setEraseError(null);
-                      setEraseTyped("");
-                      setEraseOpen(true);
-                    }}
+                    onClick={() => setEraseOpen(true)}
                   >
                     <Trash2 size={16} aria-hidden />
                   </HeadingIconButton>
@@ -240,74 +234,36 @@ export default function AdminBrandDetailPage() {
           />
 
           {eraseOpen && canErase && (
-            <Modal
-              onClose={() => {
-                setEraseOpen(false);
-                setEraseTyped("");
-                setEraseError(null);
-              }}
+            <ConfirmDialog
               title="Erase this brand"
               description="Removes login identity and contact details. Campaign history for organizations stays. Type the company email to confirm."
-            >
-              <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
-                {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
-                <TextField
-                  id="erase-brand-confirm"
-                  data-testid="erase-brand-confirm"
-                  label="Company email"
-                  size="compact"
-                  value={eraseTyped}
-                  autoComplete="off"
-                  onChange={(e) => setEraseTyped(e.target.value)}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    data-testid="erase-brand-cancel"
-                    onClick={() => {
-                      setEraseOpen(false);
-                      setEraseTyped("");
-                      setEraseError(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <ActionButton
-                    variant="danger"
-                    testId="erase-brand-submit"
-                    disabled={!confirmEmailMatches || erase.isPending}
-                    onClick={() => {
-                      void (async () => {
-                        setEraseError(null);
-                        try {
-                          const result = await erase.mutateAsync({
-                            brandId: data.id,
-                            confirm: eraseTyped,
-                          });
-                          setEraseOpen(false);
-                          setEraseTyped("");
-                          setEraseNotice(
-                            result.emailSent
-                              ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
-                              : "Account erased. No confirmation email was sent — notify the requester manually if needed.",
-                          );
-                        } catch (err) {
-                          setEraseError(
-                            err instanceof ApiError
-                              ? err.message
-                              : "Erase failed. Reload and try again.",
-                          );
-                        }
-                      })();
-                    }}
-                  >
-                    {erase.isPending ? "Erasing…" : "Erase account"}
-                  </ActionButton>
-                </div>
-              </div>
-            </Modal>
+              expected={data.companyEmail ?? ""}
+              inputLabel="Company email"
+              matches={(typed) =>
+                typed.trim().toLowerCase() ===
+                (data.companyEmail ?? "").trim().toLowerCase()
+              }
+              fallbackError="Erase failed. Reload and try again."
+              destructive
+              confirmLabel="Erase account"
+              pendingLabel="Erasing…"
+              pending={erase.isPending}
+              inputTestId="erase-brand-confirm"
+              cancelTestId="erase-brand-cancel"
+              submitTestId="erase-brand-submit"
+              onClose={() => setEraseOpen(false)}
+              onConfirm={async (typed) => {
+                const result = await erase.mutateAsync({
+                  brandId: data.id,
+                  confirm: typed,
+                });
+                setEraseNotice(
+                  result.emailQueued
+                    ? `Account erased. Confirmation email queued (…@${result.emailToDomain}).`
+                    : "Account erased. No confirmation email was queued — notify the requester manually if needed.",
+                );
+              }}
+            />
           )}
 
           {composeOpen && data.companyEmail && (
@@ -322,7 +278,7 @@ export default function AdminBrandDetailPage() {
                   subject,
                   body,
                 });
-                setComposeNotice("Email sent.");
+                setComposeNotice("Email queued.");
               }}
             />
           )}
@@ -345,11 +301,84 @@ export default function AdminBrandDetailPage() {
             </ErrorNote>
           )}
 
-          {data.intentMessage && (
-            <Panel title="Application message">
-              <p className="whitespace-pre-wrap px-4 py-4 text-sm font-medium text-buzz-ink">
-                {data.intentMessage}
-              </p>
+          {(data.contactName || data.marketingBudget || data.intentMessage) && (
+            <Panel title="Application">
+              <FieldGrid columns={2}>
+                <Field label="Contact">{data.contactName ?? "—"}</Field>
+                <Field label="Marketing budget">
+                  {marketingBudgetLabel(data.marketingBudget)}
+                </Field>
+              </FieldGrid>
+              {data.intentMessage && (
+                <div className="px-6 pb-5">
+                  <p className="text-xs text-quiet">Message</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-primary">
+                    {data.intentMessage}
+                  </p>
+                </div>
+              )}
+            </Panel>
+          )}
+
+          {pendingIg && (
+            <Panel
+              title="Instagram handle change"
+              description={`Submitted ${formatDateTime(pendingIg.createdAt)}`}
+            >
+              <FieldGrid columns={4}>
+                <Field label="Current">
+                  {pendingIg.currentHandle
+                    ? `@${pendingIg.currentHandle.replace(/^@/, "")}`
+                    : "—"}
+                </Field>
+                <Field label="Requested">
+                  @{pendingIg.requestedHandle.replace(/^@/, "")}
+                </Field>
+                <Field label="Reason" span={2}>
+                  <span className="whitespace-pre-wrap">{pendingIg.reason}</span>
+                </Field>
+              </FieldGrid>
+              {igDecisionError && (
+                <div className="px-6">
+                  <ErrorNote>{igDecisionError}</ErrorNote>
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2 px-6 pb-6">
+                <ActionButton
+                  variant="primary"
+                  testId="approve-brand-ig"
+                  disabled={approveIg.isPending || denyIg.isPending}
+                  onClick={() => {
+                    setIgDecisionError(null);
+                    void approveIg.mutateAsync(pendingIg.id).catch((err) => {
+                      setIgDecisionError(
+                        err instanceof ApiError
+                          ? err.message
+                          : "Could not approve the handle change.",
+                      );
+                    });
+                  }}
+                >
+                  Approve
+                </ActionButton>
+                <ActionButton
+                  variant="danger"
+                  testId="deny-brand-ig"
+                  disabled={approveIg.isPending || denyIg.isPending}
+                  onClick={() => {
+                    setIgDecisionError(null);
+                    void denyIg.mutateAsync(pendingIg.id).catch((err) => {
+                      setIgDecisionError(
+                        err instanceof ApiError
+                          ? err.message
+                          : "Could not deny the handle change.",
+                      );
+                    });
+                  }}
+                >
+                  Deny
+                </ActionButton>
+              </div>
             </Panel>
           )}
 
@@ -389,7 +418,7 @@ export default function AdminBrandDetailPage() {
                     href={igProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                    className={entityLinkClass}
                   >
                     @{igHandle}
                   </a>
@@ -417,13 +446,13 @@ export default function AdminBrandDetailPage() {
                   <Cell>
                     <Link
                       to={`/admin/drops/${drop.id}`}
-                      className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                      className={entityLinkClass}
                     >
                       {drop.title}
                     </Link>
                   </Cell>
                   <Cell muted>
-                    {STAGE_LABELS[drop.stage] ?? drop.stage}
+                    <StagePill stage={drop.stage} />
                   </Cell>
                   <Cell muted>{drop.appliedCount}</Cell>
                   <Cell muted>

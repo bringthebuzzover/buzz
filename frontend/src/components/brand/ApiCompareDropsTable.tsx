@@ -1,106 +1,101 @@
 /**
- * API-path "Compare drops" table for the brand aggregate dashboard
- * (PRODUCT.md §5.3.2). Renders directly from the per-drop aggregates already
- * returned by `GET /api/brands/me/drops` (`BrandDropItem`), so no extra fetch.
- * The demo `CompareDropsTable` recomputes from raw stores and can't take API
- * types — this is its production counterpart.
+ * "Compare drops" panel on the brand dashboard (buzz-ops product/PRODUCT.md
+ * §5.3.2). Renders from the per-drop totals already returned by
+ * `GET /api/brands/me/drops`, highest engagement first by default, so no extra fetch.
+ * Callers pass published drops only: a draft is a preview, not a result.
+ * Below `md` each drop is a stacked tile instead of a table row.
  */
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { BrandDropItem } from "../../api/hooks/useBrandHooks";
-import {
-  BRAND_DROP_TRACKER_COPY,
-  type BrandDropTrackerStage,
-} from "../../types/brandPortal";
 import { Card, CardHeader } from "../ui/Card";
-import { TEXT } from "../../theme/tokens";
+import { Table, TBody, THead, Td, Th, Tr } from "../ui/Table";
+import { entityLinkClass } from "../ui/navItem";
+import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import { useMdUp } from "../../hooks/useMdUp";
+import DropStageBadge from "./DropStageBadge";
 
-type Props = {
-  drops: BrandDropItem[];
-};
+const metrics = [
+  ["totalPosts", "Posts", "w-24"],
+  ["totalEngagement", "Engagement", "w-36"],
+  ["totalReach", "Reach", "w-36"],
+] as const;
 
-function stageLabel(stage: string): string {
-  return (
-    BRAND_DROP_TRACKER_COPY[stage as BrandDropTrackerStage]?.label ?? stage
-  );
-}
-
-const cellPad = "px-4 py-3 sm:px-6";
-
-export default function ApiCompareDropsTable({ drops }: Props) {
+export default function ApiCompareDropsTable({ drops }: { drops: BrandDropItem[] }) {
   const mdUp = useMdUp();
+  const [sort, setSort] = useState<{
+    key: typeof metrics[number][0];
+    direction: "descending" | "ascending";
+  }>({ key: "totalEngagement", direction: "descending" });
   if (drops.length === 0) return null;
 
-  // Highest-engagement first so the strongest drops surface at the top.
-  const rows = [...drops].sort((a, b) => b.totalEngagement - a.totalEngagement);
+  const rows = [...drops].sort((a, b) =>
+    sort.direction === "descending" ? b[sort.key] - a[sort.key] : a[sort.key] - b[sort.key],
+  );
 
   return (
-    <Card kind="card" pad="none" className="overflow-hidden">
-      <div className="border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <CardHeader title="Compare drops" className="mb-0" />
-      </div>
-      {!mdUp ? (
-      <div className="flex flex-col gap-3 p-4">
-        {rows.map((d) => (
-          <div
-            key={d.id}
-            className="rounded-buzzControl border border-buzz-lineMid bg-buzz-cream p-4"
-          >
-            <Link
-              to={`/brand/drops/${d.id}`}
-              className="font-semibold text-buzz-coral hover:underline"
-            >
-              {d.title}
-            </Link>
-            <p className={cn(TEXT.meta, "mt-1")}>{stageLabel(d.brandTrackerStage)}</p>
-            <p className={cn(TEXT.body, "mt-2 text-buzz-ink")}>
-              {d.totalPosts} posts · {d.totalEngagement} engagement ·{" "}
-              {d.totalReach} reach
-            </p>
-          </div>
-        ))}
-      </div>
-      ) : (
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className={cn("border-b border-buzz-line", TEXT.micro, "text-buzz-inkMuted")}>
-              <th className={cellPad}>Drop</th>
-              <th className={cellPad}>Stage</th>
-              <th className={cn(cellPad, "text-right")}>Posts</th>
-              <th className={cn(cellPad, "text-right")}>Engagement</th>
-              <th className={cn(cellPad, "text-right")}>Reach</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((d) => (
-              <tr key={d.id} className="border-b border-buzz-line last:border-0">
-                <td className={cellPad}>
-                  <Link
-                    to={`/brand/drops/${d.id}`}
-                    className="font-semibold text-buzz-coral hover:underline"
+    <Card kind="panel" pad="card">
+      <CardHeader title="Compare drops" className="mb-5" />
+      {mdUp ? (
+        <Table>
+          <THead>
+            <tr>
+              <Th>Drop</Th>
+              <Th className="w-48">Stage</Th>
+              {metrics.map(([key, label, width]) => (
+                <Th
+                  key={key}
+                  className={`${width} text-right`}
+                  aria-sort={sort.key === key ? sort.direction : "none"}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSort((current) => ({
+                      key,
+                      direction: current.key === key && current.direction === "descending"
+                        ? "ascending" : "descending",
+                    }))}
                   >
+                    {label}
+                  </button>
+                </Th>
+              ))}
+            </tr>
+          </THead>
+          <TBody>
+            {rows.map((d) => (
+              <Tr key={d.id} className="h-16">
+                <Td>
+                  <Link to={`/brand/drops/${d.id}`} className={entityLinkClass}>
                     {d.title}
                   </Link>
-                </td>
-                <td className={cn(cellPad, "text-buzz-inkMuted")}>
-                  {stageLabel(d.brandTrackerStage)}
-                </td>
-                <td className={cn(cellPad, "text-right font-semibold text-buzz-ink")}>
-                  {d.totalPosts}
-                </td>
-                <td className={cn(cellPad, "text-right font-semibold text-buzz-coral")}>
-                  {d.totalEngagement}
-                </td>
-                <td className={cn(cellPad, "text-right text-buzz-ink")}>
-                  {d.totalReach}
-                </td>
-              </tr>
+                </Td>
+                <Td>
+                  <DropStageBadge stage={d.stage} />
+                </Td>
+                <Td className="text-right tabular-nums">{d.totalPosts}</Td>
+                <Td className="text-right tabular-nums">{d.totalEngagement}</Td>
+                <Td className="text-right tabular-nums">{d.totalReach}</Td>
+              </Tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TBody>
+        </Table>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {rows.map((d) => (
+            <li key={d.id} className={cn(SURFACE.inset, "flex flex-col gap-2 p-4")}>
+              <Link to={`/brand/drops/${d.id}`} className={entityLinkClass}>
+                {d.title}
+              </Link>
+              <DropStageBadge stage={d.stage} />
+              <p className={cn(TEXT.body, "text-muted")}>
+                {d.totalPosts} posts · {d.totalEngagement} engagement · {d.totalReach}{" "}
+                reach
+              </p>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

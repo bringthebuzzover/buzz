@@ -57,3 +57,13 @@ export function CardHeader({
     </div>
   );
 }
+
+/** Pen `Stat`: a quiet label over a big number on a paper-04 tile. */
+export function StatCard({ label, value }: { label: ReactNode; value: ReactNode }) {
+  return (
+    <Card kind="stat" pad="default" className="flex min-w-0 flex-col gap-3">
+      <p className={cn(TEXT.body, "text-quiet")}>{label}</p>
+      <p className={cn(TEXT.h2, "leading-none tabular-nums")}>{value}</p>
+    </Card>
+  );
+}

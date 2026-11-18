@@ -1,30 +1,28 @@
 /**
- * BrandDropDetailPage — Campaign creative editor only when brandCanEditCreative.
+ * BrandDropDetailPage — creative editor gating and per-seat decisions.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
+import { ApiError } from "../../api/errors";
+import BrandDropDetailPage from "./BrandDropDetailPage";
 
 const mockUseBrandDropDetail = jest.fn();
-const mockFinalizeMutate = jest.fn();
+const mockDecide = jest.fn();
+const mockSend = jest.fn();
+const mockShipment = jest.fn();
 
 jest.mock("../../api/hooks/useBrandHooks", () => ({
+  useAddBrandShipment: () => ({ mutateAsync: mockShipment, isPending: false }),
+  useUpdateBrandShipment: () => ({ mutateAsync: mockShipment, isPending: false }),
+  useDeleteBrandShipment: () => ({ mutateAsync: mockShipment, isPending: false }),
   useBrandDropDetail: (...args: unknown[]) => mockUseBrandDropDetail(...args),
-  useFinalizeApplicants: () => ({
-    mutate: mockFinalizeMutate,
-    isPending: false,
-  }),
+  useSetSeatDecision: () => ({ mutate: mockDecide, isPending: false, error: null }),
+  useSendDecisions: () => ({ mutateAsync: mockSend, isPending: false, error: null }),
   usePatchBrandDropCreative: () => ({
     mutateAsync: jest.fn(),
     isPending: false,
   }),
 }));
-
-import BrandDropDetailPage from "./BrandDropDetailPage";
 
 const now = Date.now();
 
@@ -40,10 +38,8 @@ function brandDrop(brandCanEditCreative: boolean) {
     capacityTotal: 8,
     applyOpenAt: now - 86400000,
     applyCloseAt: now + 7 * 86400000,
-    manualReopen: false,
-    brandTrackerStage: "request_received",
+    stage: "applying",
     totalProductUnits: null,
-    applicantSelectionFinalizedAt: null,
     createdAt: now,
     campaignHashtag: null,
     applications: [],
@@ -59,22 +55,16 @@ function brandDrop(brandCanEditCreative: boolean) {
 
 describe("BrandDropDetailPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
   const originalMatchMedia = window.matchMedia;
 
   beforeEach(() => {
     mockUseBrandDropDetail.mockReset();
-    mockFinalizeMutate.mockReset();
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
+    mockDecide.mockReset();
+    mockShipment.mockReset().mockResolvedValue(undefined);
+    mockSend.mockReset().mockResolvedValue(undefined);
   });
 
   afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
     if (originalMatchMedia) {
       window.matchMedia = originalMatchMedia;
     } else {
@@ -83,23 +73,10 @@ describe("BrandDropDetailPage", () => {
   });
 
   function renderPage() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/brand/drops/drop-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/brand/drops/:dropId"
-                element={<BrandDropDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<BrandDropDetailPage />, {
+      route: "/brand/drops/drop-1",
+      path: "/brand/drops/:dropId",
+    }).container;
   }
 
   it("hides the campaign editor when brandCanEditCreative is false", () => {
@@ -122,14 +99,93 @@ describe("BrandDropDetailPage", () => {
     ).toBeTruthy();
   });
 
-  it("shows drop KPIs while awaiting products", () => {
+  it.each([
+    ["upcoming", true, "Available"],
+    ["applying", true, "Available"],
+    ["selecting", true, "Available"],
+    ["live", false, "Not allowed"],
+    ["wrapped", true, "Allowed by setup; locked for this ended drop"],
+    ["canceled", true, "Allowed by setup; locked for this ended drop"],
+  ] as const)("shows configuration for %s drops and respects creative access", (stage, canEdit, expected) => {
     mockUseBrandDropDetail.mockReturnValue({
-      data: { ...brandDrop(false), brandTrackerStage: "awaiting_products" },
+      data: { ...brandDrop(canEdit), stage, totalProductUnits: null },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    const summary = container.querySelector('[data-testid="brand-drop-configuration"]');
+    expect(summary?.textContent).toContain("Bay Area");
+    expect(summary?.textContent).toContain("Spot-only");
+    expect(summary?.textContent).toContain("Not set");
+    expect(summary?.textContent).toContain(expected);
+    expect(summary?.querySelector('img[alt="Spring Drop campaign"]')).not.toBeNull();
+    expect(summary?.textContent).not.toMatch(/Ship to:|shipping address/i);
+    expect(container.querySelector('[data-testid="brand-campaign-editor"]') !== null).toBe(
+      canEdit && stage !== "wrapped" && stage !== "canceled",
+    );
+  });
+
+  it("shows configured units, hashtag, and localized full application times", () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        totalProductUnits: 24,
+        campaignHashtag: "#BuzzSpring",
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    const summary = container.querySelector('[data-testid="brand-drop-configuration"]');
+    expect(summary?.textContent).toContain("24");
+    expect(summary?.textContent).toContain("#BuzzSpring");
+    expect(summary?.textContent).toContain("Applications open");
+    expect(summary?.textContent).toContain("Applications close");
+    expect(summary?.textContent).toContain(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  });
+
+  it("shows drop KPIs once the drop is live", () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: { ...brandDrop(false), stage: "live" },
       isLoading: false,
       error: null,
     });
     renderPage();
     expect(container.textContent).toContain("Total engagement");
+  });
+
+  it("opens editable shipments for a live brand seat", async () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false), stage: "live",
+        applications: [{
+          id: "app-1", dropId: "drop-1", orgName: "Test Org",
+          decision: "accepted", decisionSentAt: now, accountErased: false,
+          attributedPostCount: 0, attributedLikes: 0, attributedComments: 0,
+          attributedEngagement: 0, posts: [],
+          shipments: [{ id: "shipment-1", trackingNumber: "1ZTEST", carrier: "ups", trackUrl: null }],
+        }],
+      },
+      isLoading: false, error: null,
+    });
+    renderPage();
+    const manage = Array.from(container.querySelectorAll("button"))
+      .find((button) => button.textContent === "Manage shipments") as HTMLButtonElement;
+    act(() => manage.click());
+    const dialog = document.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.textContent).toContain("Shipments · Test Org");
+    expect(dialog.querySelector('[data-testid="add-shipment-app-1"]')?.textContent).toBe("Add");
+    expect((dialog.querySelector('[aria-label="Remove #1ZTEST"]') as HTMLButtonElement).disabled).toBe(false);
+    act(() => (dialog.querySelector('[aria-label="Edit #1ZTEST"]') as HTMLButtonElement).click());
+    expect((dialog.querySelector('[aria-label="Tracking number"]') as HTMLInputElement).value).toBe("1ZTEST");
+    expect(dialog.querySelector('[data-testid="add-shipment-app-1"]')?.textContent).toBe("Save");
+    await act(async () => {
+      (dialog.querySelector('[data-testid="add-shipment-app-1"]') as HTMLButtonElement).click();
+    });
+    expect(mockShipment).toHaveBeenCalledWith({
+      shipmentId: "shipment-1", trackingNumber: "1ZTEST", carrier: "ups",
+    });
+    expect(dialog.querySelector('[data-testid="delivered-app-1"]')).toBeNull();
   });
 
   it("hides the public URL until the drop is published", () => {
@@ -160,7 +216,7 @@ describe("BrandDropDetailPage", () => {
     ).toBeTruthy();
   });
 
-  it("renders one Accept control as a stacked card below md", () => {
+  it("renders one decision control as a stacked card below md", () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       configurable: true,
@@ -179,7 +235,7 @@ describe("BrandDropDetailPage", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
-        brandTrackerStage: "finalizing_agreements",
+        stage: "selecting",
         applyCloseAt: now - 1000,
         applications: [
           {
@@ -193,8 +249,9 @@ describe("BrandDropDetailPage", () => {
             followerCount: 100,
             memberCount: 40,
             pitch: "We host weekly mixers.",
-            decision: "applied",
+            decision: "accepted",
             decisionAt: null,
+            decisionSentAt: null,
             appliedAt: now,
             allocatedUnits: null,
             deliveryAddress: "Ithaca, NY",
@@ -213,21 +270,20 @@ describe("BrandDropDetailPage", () => {
     });
     renderPage();
 
-    const accept = container.querySelectorAll(
-      'input[aria-label="Accept Campus Greeks"]',
+    const decision = container.querySelectorAll(
+      'select[aria-label="Decision for Campus Greeks"]',
     );
-    expect(accept).toHaveLength(1);
+    expect(decision).toHaveLength(1);
     expect(container.querySelector("table")).toBeNull();
     expect(container.textContent).toContain("We host weekly mixers.");
     expect(container.textContent).toContain("Ship to: Ithaca, NY");
   });
 
-  it("asks for in-app finalize confirm instead of window.confirm", () => {
-    const confirmSpy = jest.spyOn(window, "confirm");
+  it("shows a missing accepted address as Address pending in the warn tone", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
-        brandTrackerStage: "finalizing_agreements",
+        stage: "selecting",
         applyCloseAt: now - 1000,
         applications: [
           {
@@ -241,11 +297,12 @@ describe("BrandDropDetailPage", () => {
             followerCount: 100,
             memberCount: 40,
             pitch: null,
-            decision: "applied",
+            decision: "accepted",
             decisionAt: null,
+            decisionSentAt: null,
             appliedAt: now,
             allocatedUnits: null,
-            deliveryAddress: "Ithaca, NY",
+            deliveryAddress: null,
             accountErased: false,
             shipments: [],
             attributedComments: 0,
@@ -261,31 +318,123 @@ describe("BrandDropDetailPage", () => {
     });
     renderPage();
 
+    expect(container.textContent).toContain("Ship to: Address pending");
+    const pending = container.querySelector('[data-testid="address-pending"]');
+    expect(pending?.textContent).toBe("Address pending");
+    expect(pending?.className).toContain("text-accent");
+  });
+
+  it("drafts a decision per seat, then sends through the in-app confirm", async () => {
+    const confirmSpy = jest.spyOn(window, "confirm");
+    const seat = {
+      id: "app-1",
+      dropId: "drop-1",
+      orgId: "org-1",
+      orgName: "Campus Greeks",
+      university: "Cornell",
+      instagramHandle: "campusgreeks",
+      category: "fraternity",
+      followerCount: 100,
+      memberCount: 40,
+      pitch: null,
+      decision: "applied",
+      decisionAt: null,
+      decisionSentAt: null,
+      appliedAt: now,
+      allocatedUnits: null,
+      deliveryAddress: "Ithaca, NY",
+      accountErased: false,
+      shipments: [],
+      attributedComments: 0,
+      attributedEngagement: 0,
+      attributedLikes: 0,
+      attributedPostCount: 0,
+      posts: [],
+    };
+    const detail = (decision: string) => ({
+      data: {
+        ...brandDrop(false),
+        stage: "selecting",
+        applyCloseAt: now - 1000,
+        applications: [{ ...seat, decision }],
+      },
+      isLoading: false,
+      error: null,
+    });
+    mockUseBrandDropDetail.mockReturnValue(detail("applied"));
+    renderPage();
+
+    const select = container.querySelector(
+      'select[aria-label="Decision for Campus Greeks"]',
+    ) as HTMLSelectElement;
+    expect(
+      (container.querySelector('[data-testid="send-decisions"]') as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    act(() => {
+      select.value = "accepted";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(mockDecide).toHaveBeenCalledWith({
+      applicationId: "app-1",
+      decision: "accepted",
+      allocatedUnits: null,
+    });
+
+    // The draft comes back from the server; Send is now live.
+    mockUseBrandDropDetail.mockReturnValue(detail("accepted"));
+    renderPage();
+    expect(container.textContent).toContain("Ready to send: accept 1 · deny 0");
     const start = container.querySelector(
-      '[data-testid="finalize-selection"]',
+      '[data-testid="send-decisions"]',
     ) as HTMLButtonElement;
     act(() => {
       start.click();
     });
     expect(confirmSpy).not.toHaveBeenCalled();
-    expect(mockFinalizeMutate).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("cannot be undone");
+    expect(mockSend).not.toHaveBeenCalled();
+    // The confirm dialog portals to <body>.
+    expect(document.body.textContent).toContain("sent decisions can't be changed");
 
-    const confirmBtn = container.querySelector(
-      '[data-testid="finalize-confirm"]',
+    const confirmBtn = document.querySelector(
+      '[data-testid="send-decisions-confirm"]',
     ) as HTMLButtonElement;
-    act(() => {
+    await act(async () => {
       confirmBtn.click();
     });
-    expect(mockFinalizeMutate).toHaveBeenCalledTimes(1);
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Decisions sent.");
     confirmSpy.mockRestore();
+  });
+
+  it("keeps a failed send open with the error in the dialog and no success banner", async () => {
+    mockSend.mockRejectedValueOnce(new ApiError("FAILED", "Send failed.", 500));
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        stage: "selecting",
+        applyCloseAt: now - 1000,
+        applications: [{ id: "app-1", orgName: "Test Org", decision: "denied", decisionSentAt: null }],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    act(() => (container.querySelector('[data-testid="send-decisions"]') as HTMLButtonElement).click());
+    await act(async () => {
+      (document.querySelector('[data-testid="send-decisions-confirm"]') as HTMLButtonElement).click();
+    });
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent)
+      .toBe("Send failed.");
+    expect(container.textContent).not.toContain("Decisions sent");
   });
 
   it("omits an erased org from the applicant list", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
-        brandTrackerStage: "finalizing_agreements",
+        stage: "selecting",
         applyCloseAt: now - 1000,
         applications: [
           {
@@ -301,6 +450,7 @@ describe("BrandDropDetailPage", () => {
             pitch: null,
             decision: "applied",
             decisionAt: null,
+            decisionSentAt: null,
             appliedAt: now,
             allocatedUnits: null,
             deliveryAddress: null,
@@ -323,5 +473,50 @@ describe("BrandDropDetailPage", () => {
     expect(container.textContent).not.toContain("Cornell University");
     expect(container.textContent).not.toContain("Shipping details removed");
     expect(container.textContent).not.toContain("Account deleted");
+  });
+
+  it("lists applicants read-only while applications are open", () => {
+    const applicant = (id: string, orgName: string, decision: string) => ({
+      id,
+      dropId: "drop-1",
+      orgId: `org-${id}`,
+      orgName,
+      university: "Cornell University",
+      instagramHandle: "@org",
+      category: "fraternity",
+      followerCount: 100,
+      memberCount: 40,
+      pitch: "We love it",
+      decision,
+      decisionAt: null,
+      decisionSentAt: null,
+      appliedAt: now,
+      allocatedUnits: null,
+      deliveryAddress: null,
+      accountErased: false,
+      shipments: [],
+      attributedComments: 0,
+      attributedEngagement: 0,
+      attributedLikes: 0,
+      attributedPostCount: 0,
+      posts: [],
+    });
+    const closeAt = Date.UTC(2026, 10, 10, 12);
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        applyCloseAt: closeAt,
+        applications: [applicant("a", "Alpha", "applied"), applicant("b", "Gone", "withdrew")],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Alpha");
+    expect(container.textContent).not.toContain("Gone");
+    expect(container.textContent).toContain("You can choose once applications close on Nov 10.");
+    expect(container.querySelector('[data-testid="decision-a"]')).toBeNull();
+    expect(container.querySelector('[data-testid="send-decisions"]')).toBeNull();
   });
 });

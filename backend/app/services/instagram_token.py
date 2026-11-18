@@ -1,4 +1,4 @@
-"""Instagram long-lived token refresh (architecture.md §10.5).
+"""Instagram long-lived token refresh (buzz-ops engineering/architecture.md §10.5).
 
 Long-lived tokens last 60 days and can only be refreshed while still valid. Two
 triggers keep them fresh:
@@ -21,7 +21,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import BackgroundTasks
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app import errors
 from app.deps.db import async_session_factory
@@ -30,15 +32,12 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.security.session import bump_token_version
 from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
-from app.services.instagram import InstagramClient, get_instagram_client
+from app.services.instagram import InstagramClient, LongLivedToken, get_instagram_client
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
 REFRESH_WINDOW_DAYS = 30  # start refreshing this far from expiry (on-login)
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def clear_unusable_instagram_token(user: User, *, bump_session: bool = True) -> None:
@@ -56,6 +55,50 @@ def clear_unusable_instagram_token(user: User, *, bump_session: bool = True) -> 
         bump_token_version(user)
 
 
+async def clear_stale_instagram_token(db: AsyncSession, user: User) -> bool:
+    """Clear only the identity and ciphertext observed by the failing operation.
+
+    A conditional UPDATE obtains the user lock and rechecks after waiting, so
+    delayed cleanup cannot revoke a newly bound account or its Buzz sessions.
+    """
+    if not user.instagram_access_token:
+        return False
+    result = await db.execute(
+        update(User)
+        .where(
+            User.id == user.id,
+            User.status != OrgUserStatus.ERASED.value,
+            User.instagram_user_id == user.instagram_user_id,
+            User.instagram_token_user_id == user.instagram_token_user_id,
+            User.instagram_access_token == user.instagram_access_token,
+        )
+        .values(
+            instagram_access_token=None,
+            instagram_token_issued_at=None,
+            instagram_token_expires_at=None,
+            instagram_token_refreshed_at=None,
+            token_version=func.coalesce(User.token_version, 0) + 1,
+        )
+        .returning(User.token_version)
+        .execution_options(synchronize_session=False)
+    )
+    version = result.scalar_one_or_none()
+    if version is None:
+        return False
+    # On-login cleanup uses a separate transaction. Reflect its successful CAS
+    # without leaving dirty fields in the request session that could later flush
+    # over another account's bind.
+    for field in (
+        "instagram_access_token",
+        "instagram_token_issued_at",
+        "instagram_token_expires_at",
+        "instagram_token_refreshed_at",
+    ):
+        set_committed_value(user, field, None)
+    set_committed_value(user, "token_version", version)
+    return True
+
+
 def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta | None:
     """Remaining time until the user's IG token expires, or None if not applicable."""
     if user.portal_role != PortalRole.ORG.value or not user.instagram_access_token:
@@ -65,19 +108,7 @@ def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta |
     exp = user.instagram_token_expires_at
     if exp.tzinfo is None:
         exp = exp.replace(tzinfo=timezone.utc)
-    return exp - (now or _now())
-
-
-def days_until_expiry(user: User, *, now: datetime | None = None) -> int | None:
-    """Whole days of remaining IG token lifetime (floor), or None if not applicable.
-
-    Prefer :func:`time_until_expiry` for expiry decisions — a token with 12 hours
-    left has ``days_until_expiry == 0`` but is still valid.
-    """
-    remaining = time_until_expiry(user, now=now)
-    if remaining is None:
-        return None
-    return int(remaining.total_seconds() // 86400)
+    return exp - (now or utcnow())
 
 
 async def maybe_refresh_on_login(
@@ -103,11 +134,8 @@ async def maybe_refresh_on_login(
             user.id,
         )
         async with async_session_factory() as clear_db:
-            row = await clear_db.get(User, user.id)
-            if row is not None and row.instagram_access_token:
-                clear_unusable_instagram_token(row)
-                await clear_db.commit()
-        clear_unusable_instagram_token(user)
+            await clear_stale_instagram_token(clear_db, user)
+            await clear_db.commit()
         raise BuzzAPIException(
             code=errors.INSTAGRAM_TOKEN_EXPIRED,
             message="Your Instagram connection has expired. Please reconnect.",
@@ -123,11 +151,8 @@ async def maybe_refresh_on_login(
             user.id,
         )
         async with async_session_factory() as clear_db:
-            row = await clear_db.get(User, user.id)
-            if row is not None and row.instagram_access_token:
-                clear_unusable_instagram_token(row)
-                await clear_db.commit()
-        clear_unusable_instagram_token(user)
+            await clear_stale_instagram_token(clear_db, user)
+            await clear_db.commit()
         raise BuzzAPIException(
             code=errors.INSTAGRAM_TOKEN_EXPIRED,
             message="Your Instagram connection has expired. Please reconnect.",
@@ -135,6 +160,40 @@ async def maybe_refresh_on_login(
         )
     if remaining < timedelta(days=REFRESH_WINDOW_DAYS) and background_tasks is not None:
         background_tasks.add_task(refresh_instagram_token, user.id)
+
+
+async def store_refreshed_instagram_token(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    expected_identity: tuple[str | None, str | None],
+    expected_token: str,
+    token: LongLivedToken,
+    now: datetime,
+) -> bool:
+    """Rotate only credentials that still belong to the account Graph refreshed."""
+    updated_id = await db.scalar(
+        update(User)
+        .where(
+            User.id == user_id,
+            User.status != OrgUserStatus.ERASED.value,
+            User.instagram_user_id == expected_identity[0],
+            User.instagram_token_user_id == expected_identity[1],
+            User.instagram_access_token == expected_token,
+        )
+        .values(
+            instagram_access_token=encrypt_token(token.access_token),
+            instagram_token_issued_at=now,
+            instagram_token_expires_at=now + timedelta(seconds=token.expires_in),
+            instagram_token_refreshed_at=now,
+        )
+        .returning(User.id)
+        .execution_options(synchronize_session="fetch")
+    )
+    if updated_id is None:
+        logger.info("Discarding stale Instagram token refresh for user %s", user_id)
+        return False
+    return True
 
 
 async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
@@ -163,6 +222,8 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
             or not user.instagram_access_token
         ):
             return False
+        previous_identity = (user.instagram_user_id, user.instagram_token_user_id)
+        previous_token = user.instagram_access_token
         try:
             current = decrypt_token(user.instagram_access_token)
             new = await ig.refresh_long_lived(current)
@@ -171,7 +232,7 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
                 "clearing undecryptable Instagram token for user %s",
                 user_id,
             )
-            clear_unusable_instagram_token(user)
+            await clear_stale_instagram_token(db, user)
             await db.commit()
             return False
         except Exception:  # noqa: BLE001 — best-effort; keep the old token
@@ -182,16 +243,13 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
             )
             return False
 
-        # Erase may have committed while Graph was in flight. Reload before
-        # writing so this refresh cannot restore a token the wipe just cleared.
-        await db.refresh(user)
-        if user.status == OrgUserStatus.ERASED.value or not user.instagram_access_token:
-            return False
-
-        now = _now()
-        user.instagram_access_token = encrypt_token(new.access_token)
-        user.instagram_token_issued_at = now
-        user.instagram_token_expires_at = now + timedelta(seconds=new.expires_in)
-        user.instagram_token_refreshed_at = now
+        rotated = await store_refreshed_instagram_token(
+            db,
+            user_id=user_id,
+            expected_identity=previous_identity,
+            expected_token=previous_token,
+            token=new,
+            now=utcnow(),
+        )
         await db.commit()
-        return True
+        return rotated

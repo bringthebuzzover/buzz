@@ -19,10 +19,10 @@ export default function SessionRestorePanel({
 
   const body = (
     <div data-testid="session-restore-panel">
-      <h1 className={cn(TEXT.h1, "mb-2 text-buzz-ink")}>
+      <h1 className={cn(TEXT.h1, "mb-2 text-primary")}>
         Couldn&apos;t restore your session
       </h1>
-      <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
+      <p className="mb-8 text-sm text-muted">
         We couldn&apos;t reach the server. Your session may still be valid.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">

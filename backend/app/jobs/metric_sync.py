@@ -1,4 +1,4 @@
-"""Instagram metric sync (architecture.md §10.1).
+"""Instagram metric sync (buzz-ops engineering/architecture.md §10.1).
 
 Every 8 hours (03:00 / 11:00 / 19:00 UTC). For each org with a live campaign
 and a valid long-lived token:
@@ -26,24 +26,26 @@ and a valid long-lived token:
    ``followers_skipped``.
 
 Stories are unsupported (v1): discovery skips ``media_product_type == STORY``;
-there is no ``/stories`` poller. See ``gaps/posts.stories-unsupported`` / META.md.
+there is no ``/stories`` poller. See buzz-ops
+``engineering/gaps/archive/posts.stories-unsupported.md``.
 
 Per-post / per-org failures don't block the batch (rate limits, deleted posts,
 expired tokens). Posts older than 30 days are frozen (skipped). Idempotent via
 ``UNIQUE(org_id, platform, external_id)``.
 
-Media eligibility (``_LIVE_STAGES``) is intentional for discovery/refresh: orgs
-need an accepted application on ``awaiting_products`` / ``drop_active`` /
-``drop_finished``. Follower refresh is broader (any tokened org). The finalize →
-awaiting_products gap remains a media-sync blackout only.
+Media eligibility is intentional for discovery/refresh: orgs need a live seat
+(accepted and sent) on a drop that is not hidden and not wrapped up more than
+``METRIC_SYNC_AFTER_WRAP`` ago. Follower refresh is broader (any tokened org).
 """
 
 from __future__ import annotations
 
 import logging
 import math
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -52,8 +54,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import (
-    ApplicationDecision,
-    BrandTrackerStage,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -62,21 +62,19 @@ from app.models.enums import (
 from app.models.organization import Organization
 from app.models.social_post import SocialPost
 from app.models.user import User
+from app.security.session import lock_user
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
+from app.services.erased_org_participation import post_metrics_are_frozen
 from app.services.insight_units import clamp_reels_skip_rate
 from app.services.instagram import InstagramClient, MediaFields, merge_follower_count
-from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.instagram_token import clear_stale_instagram_token
+from app.services.lifecycle import metrics_sync_open, seat_is_live
 
 logger = logging.getLogger(__name__)
 
 # Exported for admin health (must stay aligned with the sync lookback).
 METRIC_WINDOW_DAYS = 30
 _WINDOW = timedelta(days=METRIC_WINDOW_DAYS)
-_LIVE_STAGES = (
-    BrandTrackerStage.AWAITING_PRODUCTS.value,
-    BrandTrackerStage.DROP_ACTIVE.value,
-    BrandTrackerStage.DROP_FINISHED.value,
-)
 # insight name -> SocialPost column
 _INSIGHT_COLUMNS = (
     "reach",
@@ -223,18 +221,8 @@ def _apply_insights(post: SocialPost, insights: dict[str, int | float]) -> None:
     post.insights_raw = stored
 
 
-def _apply_metrics(
-    post: SocialPost, fields: MediaFields, insights: dict[str, int | float], now: datetime
-) -> None:
-    """Full apply (basics + insights + stamp) — used by tests and happy path."""
-
-    _apply_basics(post, fields)
-    _apply_insights(post, insights)
-    post.metrics_updated_at = now
-
-
 async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
-    """Orgs with at least one accepted application on a live-stage drop.
+    """Orgs with a live seat on a drop that still syncs (``metrics_sync_open``).
 
     Erased accounts are excluded. Their posts stay linked with last-known
     numbers and ``metrics_frozen_at`` set, and this job must not call
@@ -246,9 +234,8 @@ async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
         .join(Organization, Organization.id == DropApplication.org_id)
         .join(User, User.id == Organization.user_id)
         .where(
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            Drop.brand_tracker_stage.in_(_LIVE_STAGES),
-            Drop.hidden_at.is_(None),
+            seat_is_live(),
+            metrics_sync_open(),
             User.status != OrgUserStatus.ERASED.value,
         )
         .distinct()
@@ -256,7 +243,9 @@ async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
     return list(await db.scalars(select(Organization).where(Organization.id.in_(org_ids))))
 
 
-def _resolve_token(user: User | None, now: datetime) -> tuple[str | None, str]:
+async def _resolve_token(
+    db: AsyncSession, user: User | None, now: datetime, batch: _MetricBatch
+) -> tuple[str | None, str]:
     """Return ``(plaintext, "ok")`` or ``(None, reason)``.
 
     Reasons: ``missing_user``, ``missing_token``, ``expired``,
@@ -277,15 +266,10 @@ def _resolve_token(user: User | None, now: datetime) -> tuple[str | None, str]:
     try:
         return decrypt_token(user.instagram_access_token), "ok"
     except TokenDecryptionError:
-        clear_unusable_instagram_token(user)
+        batch.account(user).clear_token = True
         return None, "undecryptable"
     except Exception:  # noqa: BLE001
         return None, "decrypt_error"
-
-
-def _token_for(user: User | None, now: datetime) -> str | None:
-    token, _reason = _resolve_token(user, now)
-    return token
 
 
 def _log_follower_skip(
@@ -303,14 +287,155 @@ def _log_follower_skip(
     )
 
 
-async def _store_follower_count(
-    org: Organization, user: User, token: str, ig: InstagramClient
-) -> str:
-    """Write a present Graph count. Return ``refreshed``, ``omitted``, or ``failed``.
+@dataclass
+class _PostResult:
+    post: SocialPost
+    fields: MediaFields | None = None
+    insights: dict[str, int | float] | None = None
+    new: bool = False
 
-    Omit and fetch errors keep the stored count (never overwrite with null).
+
+@dataclass
+class _AccountResult:
+    identity: tuple[str | None, str | None]
+    ciphertext: str | None
+    org_id: UUID | None = None
+    posts: list[_PostResult] = field(default_factory=list)
+    followers: int | None = None
+    clear_token: bool = False
+
+
+class _MetricBatch:
+    """Collect Graph results without writes; apply atomically under account locks.
+
+    Lock every account in UUID order before any dependent writes. Erasure and
+    account switches take the same user-first order. No commit is introduced:
+    the job runner (or admin request) still owns the entire transaction.
     """
 
+    def __init__(self) -> None:
+        self.accounts: dict[UUID, _AccountResult] = {}
+        self.media = dict.fromkeys(
+            (
+                "orgs",
+                "posts_discovered",
+                "posts_refreshed",
+                "failures",
+                "skipped_token",
+                "skipped_story",
+                "likes_omitted",
+                "comments_omitted",
+                "caption_omitted",
+                "media_url_omitted",
+                "thumbnail_url_omitted",
+            ),
+            0,
+        )
+        self.followers = dict.fromkeys(
+            ("followers_refreshed", "followers_omitted", "followers_failed", "followers_skipped"), 0
+        )
+
+    def account(self, user: User) -> _AccountResult:
+        if user.id not in self.accounts:
+            self.accounts[user.id] = _AccountResult(
+                (user.instagram_user_id, user.instagram_token_user_id),
+                user.instagram_access_token,
+            )
+        return self.accounts[user.id]
+
+    async def apply(self, db: AsyncSession, now: datetime) -> None:
+        current = {}
+        for uid in sorted(self.accounts):
+            current[uid] = await lock_user(db, uid)
+        for uid, result in self.accounts.items():
+            user = current[uid]
+            if (
+                user is None
+                or user.status == OrgUserStatus.ERASED.value
+                or (user.instagram_user_id, user.instagram_token_user_id) != result.identity
+                or user.instagram_access_token != result.ciphertext
+            ):
+                if result.followers is not None:
+                    self.followers["followers_skipped"] += 1
+                logger.info("Discarding stale metric refresh for user %s", uid)
+                continue
+            if result.clear_token:
+                await clear_stale_instagram_token(db, user)
+                continue
+            org = await db.scalar(
+                select(Organization)
+                .where(Organization.id == result.org_id)
+                .execution_options(populate_existing=True)
+                .with_for_update()
+            )
+            if org is None or org.user_id != uid:
+                if result.followers is not None:
+                    self.followers["followers_skipped"] += 1
+                continue
+            for update in result.posts:
+                post = update.post
+                if update.new:
+                    try:
+                        async with db.begin_nested():
+                            db.add(post)
+                            await db.flush()
+                    except IntegrityError:
+                        continue
+                    except SQLAlchemyError:
+                        logger.warning(
+                            "metric sync skipped post insert org_id=%s external_id=%s",
+                            org.id,
+                            post.external_id,
+                            exc_info=False,
+                        )
+                        self.media["failures"] += 1
+                        continue
+                    self.media["posts_discovered"] += 1
+                else:
+                    external_id = post.external_id
+                    current_post = await db.scalar(
+                        select(SocialPost)
+                        .where(SocialPost.id == post.id)
+                        .execution_options(populate_existing=True)
+                        .with_for_update()
+                    )
+                    if (
+                        current_post is None
+                        or post_metrics_are_frozen(current_post)
+                        or current_post.external_id != external_id
+                        or current_post.org_id != org.id
+                    ):
+                        continue
+                    post = current_post
+                if update.fields is None:
+                    continue
+                omissions = _apply_basics(post, update.fields)
+                for key, omitted in zip(
+                    (
+                        "likes_omitted",
+                        "comments_omitted",
+                        "caption_omitted",
+                        "media_url_omitted",
+                        "thumbnail_url_omitted",
+                    ),
+                    omissions,
+                ):
+                    self.media[key] += int(omitted)
+                if update.insights is not None:
+                    _apply_insights(post, update.insights)
+                post.metrics_updated_at = now
+                self.media["posts_refreshed"] += 1
+            if result.followers is not None:
+                org.follower_count = merge_follower_count(org.follower_count, result.followers)
+                self.followers["followers_refreshed"] += 1
+        await db.flush()
+
+
+async def _fetch_follower_count(
+    batch: _MetricBatch, org: Organization, user: User, token: str, ig: InstagramClient
+) -> str:
+    result = batch.account(user)
+    result.org_id = org.id
     try:
         profile = await ig.fetch_profile(token)
     except Exception:  # noqa: BLE001
@@ -330,8 +455,19 @@ async def _store_follower_count(
             "invalid" if profile.followers_count_invalid else "omitted",
         )
         return "omitted"
-    org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)
-    return "refreshed"
+    result.followers = profile.followers_count
+    return "pending"
+
+
+async def _store_follower_count(
+    db: AsyncSession, org: Organization, user: User, token: str, ig: InstagramClient
+) -> str:
+    batch = _MetricBatch()
+    outcome = await _fetch_follower_count(batch, org, user, token, ig)
+    if outcome != "pending":
+        return outcome
+    await batch.apply(db, datetime.now(timezone.utc))
+    return "refreshed" if batch.followers["followers_refreshed"] else "skipped"
 
 
 async def _refresh_follower_counts(
@@ -339,6 +475,8 @@ async def _refresh_follower_counts(
     ig: InstagramClient,
     now: datetime,
     media_orgs: list[Organization] | None = None,
+    *,
+    batch: _MetricBatch | None = None,
 ) -> dict[str, int]:
     """Refresh ``organizations.follower_count`` from Graph for tokened orgs.
 
@@ -350,22 +488,13 @@ async def _refresh_follower_counts(
     Erased accounts are not sent to Graph.
     """
 
-    refreshed = 0
-    omitted = 0
-    failed = 0
-    skipped = 0
+    own_batch = batch is None
+    batch = batch if batch is not None else _MetricBatch()
     attempted: set[object] = set()
 
     def _tally(outcome: str) -> None:
-        nonlocal refreshed, omitted, failed, skipped
-        if outcome == "refreshed":
-            refreshed += 1
-        elif outcome == "omitted":
-            omitted += 1
-        elif outcome == "failed":
-            failed += 1
-        else:
-            skipped += 1
+        if outcome != "pending":
+            batch.followers[f"followers_{outcome}"] += 1
 
     users = list(
         await db.scalars(
@@ -379,7 +508,7 @@ async def _refresh_follower_counts(
     for user in users:
         attempted.add(user.id)
         org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-        token, reason = _resolve_token(user, now)
+        token, reason = await _resolve_token(db, user, now, batch)
         if token is None or org is None:
             _log_follower_skip(
                 org=org,
@@ -388,7 +517,7 @@ async def _refresh_follower_counts(
             )
             _tally("skipped")
             continue
-        _tally(await _store_follower_count(org, user, token, ig))
+        _tally(await _fetch_follower_count(batch, org, user, token, ig))
 
     for org in media_orgs or []:
         owner = await db.get(User, org.user_id)
@@ -398,7 +527,7 @@ async def _refresh_follower_counts(
             continue
         if owner.id in attempted or owner.status == OrgUserStatus.ERASED.value:
             continue
-        token, reason = _resolve_token(owner, now)
+        token, reason = await _resolve_token(db, owner, now, batch)
         if token is None:
             # No ciphertext at all: media sync also skips quietly (no posts moved).
             if reason == "missing_token":
@@ -416,42 +545,33 @@ async def _refresh_follower_counts(
             owner.portal_role,
             owner.status,
         )
-        _tally(await _store_follower_count(org, owner, token, ig))
+        _tally(await _fetch_follower_count(batch, org, owner, token, ig))
 
-    await db.flush()
-    return {
-        "followers_refreshed": refreshed,
-        "followers_omitted": omitted,
-        "followers_failed": failed,
-        "followers_skipped": skipped,
-    }
+    if own_batch:
+        await batch.apply(db, now)
+    return batch.followers
 
 
 async def sync_metrics_for_orgs(
     db: AsyncSession,
     ig: InstagramClient,
     orgs: list[Organization],
+    *,
+    batch: _MetricBatch | None = None,
 ) -> dict[str, Any]:
     """Discover + refresh media for these orgs. Does **not** walk followers."""
 
     now = datetime.now(timezone.utc)
     window_start = now - _WINDOW
-    discovered = 0
-    refreshed = 0
-    failed = 0
-    skipped_token = 0
-    skipped_story = 0
-    likes_omitted = 0
-    comments_omitted = 0
-    caption_omitted = 0
-    media_url_omitted = 0
-    thumbnail_url_omitted = 0
+    own_batch = batch is None
+    batch = batch if batch is not None else _MetricBatch()
+    batch.media["orgs"] = len(orgs)
 
     for org in orgs:
         user = await db.get(User, org.user_id)
         if user is not None and user.status == OrgUserStatus.ERASED.value:
             continue
-        token = _token_for(user, now)
+        token, _reason = await _resolve_token(db, user, now, batch)
         if token is None:
             # Present-but-unusable token → non-clean run (expired / undecryptable).
             if user is not None and user.instagram_access_token:
@@ -459,9 +579,13 @@ async def sync_metrics_for_orgs(
                     "metric sync skipped org %s: Instagram token missing/expired (needs re-auth)",
                     org.id,
                 )
-                skipped_token += 1
-                failed += 1
+                batch.media["skipped_token"] += 1
+                batch.media["failures"] += 1
             continue
+
+        assert user is not None
+        result = batch.account(user)
+        result.org_id = org.id
 
         # --- Discovery: insert newly-posted media in the window ---
         try:
@@ -472,7 +596,7 @@ async def sync_metrics_for_orgs(
                 org.id,
                 exc_info=False,
             )
-            failed += 1
+            batch.media["failures"] += 1
             media = []
 
         for ref in media:
@@ -493,50 +617,31 @@ async def sync_metrics_for_orgs(
             try:
                 fields = await ig.fetch_media(token, ref.id)
             except Exception:  # noqa: BLE001
-                failed += 1
+                batch.media["failures"] += 1
                 continue
             # Stories are out of scope for v1 (24h metrics; no durable refresh).
             # Meta /me/media should not list them; skip if Graph returns STORY anyway.
             if fields.media_product_type == SocialMediaProductType.STORY.value:
-                skipped_story += 1
+                batch.media["skipped_story"] += 1
                 continue
-            # Insert in a savepoint so one bad row (unique race, or a value
-            # Postgres rejects) skips that post instead of aborting the sync.
-            try:
-                async with db.begin_nested():
-                    db.add(
-                        SocialPost(
-                            org_id=org.id,
-                            platform=Platform.INSTAGRAM.value,
-                            external_id=ref.id,
-                            url=fields.permalink,
-                            media_url=fields.media_url,
-                            thumbnail_url=fields.thumbnail_url,
-                            # New rows have no prior caption; omitted Graph key → "".
-                            caption=fields.caption if fields.caption is not None else "",
-                            media_type=fields.media_type,
-                            media_product_type=fields.media_product_type,
-                            posted_at=posted,
-                            # New rows have no prior KPI; omitted Graph keys → 0.
-                            likes=fields.like_count if fields.like_count is not None else 0,
-                            comments=(
-                                fields.comments_count if fields.comments_count is not None else 0
-                            ),
-                        )
-                    )
-            except IntegrityError:
-                continue
-            except SQLAlchemyError:
-                logger.warning(
-                    "metric sync skipped post insert org_id=%s external_id=%s",
-                    org.id,
-                    ref.id,
-                    exc_info=False,
-                )
-                failed += 1
-                continue
-            discovered += 1
-        await db.flush()
+            # Keep discoveries transient until identity is revalidated under lock.
+            post = SocialPost(
+                org_id=org.id,
+                platform=Platform.INSTAGRAM.value,
+                external_id=ref.id,
+                url=fields.permalink,
+                media_url=fields.media_url,
+                thumbnail_url=fields.thumbnail_url,
+                # New rows have no prior caption; omitted Graph key → "".
+                caption=fields.caption if fields.caption is not None else "",
+                media_type=fields.media_type,
+                media_product_type=fields.media_product_type,
+                posted_at=posted,
+                # New rows have no prior KPI; omitted Graph keys → 0.
+                likes=fields.like_count if fields.like_count is not None else 0,
+                comments=(fields.comments_count if fields.comments_count is not None else 0),
+            )
+            result.posts.append(_PostResult(post=post, new=True))
 
         # --- Refresh: pull metrics for eligible posts (not STORY, in window) ---
         posts = list(
@@ -552,7 +657,10 @@ async def sync_metrics_for_orgs(
                 )
             )
         )
-        for post in posts:
+        updates = [_PostResult(post=post) for post in posts] + result.posts
+        result.posts = updates
+        for update in updates:
+            post = update.post
             is_reel = post.media_product_type == SocialMediaProductType.REELS.value
             try:
                 fields = await ig.fetch_media(token, post.external_id)
@@ -563,21 +671,9 @@ async def sync_metrics_for_orgs(
                     post.id,
                     post.external_id,
                 )
-                failed += 1
+                batch.media["failures"] += 1
                 continue
-            omit_likes, omit_comments, omit_caption, omit_media_url, omit_thumb = _apply_basics(
-                post, fields
-            )
-            if omit_likes:
-                likes_omitted += 1
-            if omit_comments:
-                comments_omitted += 1
-            if omit_caption:
-                caption_omitted += 1
-            if omit_media_url:
-                media_url_omitted += 1
-            if omit_thumb:
-                thumbnail_url_omitted += 1
+            update.fields = fields
 
             try:
                 insights = await ig.fetch_media_insights(token, post.external_id, is_reel=is_reel)
@@ -590,34 +686,21 @@ async def sync_metrics_for_orgs(
                     post.id,
                     post.external_id,
                 )
-                failed += 1
-                post.metrics_updated_at = now
-                refreshed += 1
+                batch.media["failures"] += 1
                 continue
 
-            _apply_insights(post, insights)
-            post.metrics_updated_at = now
-            refreshed += 1
-        await db.flush()
+            update.insights = insights
 
-    return {
-        "orgs": len(orgs),
-        "posts_discovered": discovered,
-        "posts_refreshed": refreshed,
-        "failures": failed,
-        "skipped_token": skipped_token,
-        "skipped_story": skipped_story,
-        "likes_omitted": likes_omitted,
-        "comments_omitted": comments_omitted,
-        "caption_omitted": caption_omitted,
-        "media_url_omitted": media_url_omitted,
-        "thumbnail_url_omitted": thumbnail_url_omitted,
-    }
+    if own_batch:
+        await batch.apply(db, now)
+    return batch.media
 
 
 async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     orgs = await _eligible_orgs(db, now)
-    media = await sync_metrics_for_orgs(db, ig, orgs)
-    follower_stats = await _refresh_follower_counts(db, ig, now, orgs)
+    batch = _MetricBatch()
+    media = await sync_metrics_for_orgs(db, ig, orgs, batch=batch)
+    follower_stats = await _refresh_follower_counts(db, ig, now, orgs, batch=batch)
+    await batch.apply(db, now)
     return {**media, **follower_stats}

@@ -1,79 +1,63 @@
 /**
- * Infinite horizontal scroll of college logos for the “Our College Network” section.
- * Duplicates `items` in the DOM for CSS marquee; optional `reverse` animation direction.
- * Logos are committed assets. A failed file falls back to initials via RemoteImage.
+ * College logo strip. Grayscale marks at the pen's 48px height, 56px gap,
+ * and 100s drift, on the paper band. Reduced motion wraps the row into a
+ * centered grid and does not duplicate it.
  */
+import { useEffect, useRef } from "react";
+import { useReducedMotion } from "../marketing/useReducedMotion";
 import type { CollegeMarqueeItem } from "../../types/campaign";
 import { RemoteImage } from "../ui/RemoteImage";
-import { SECTION_Y, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 type MarqueeProps = {
-  /** Schools to render (array is doubled internally for seamless scroll). */
   items: CollegeMarqueeItem[];
-  /** When true, uses the reverse CSS marquee animation. */
   reverse?: boolean;
-  /** Section heading above the ticker. */
-  title: string;
-  /** Optional supporting line under the title. */
-  subtitle?: string;
-  /** Omit bottom border when the next section should visually blend (e.g. public home). */
-  hideBottomBorder?: boolean;
 };
 
-export default function Marquee({
-  items,
-  reverse = false,
-  title,
-  subtitle,
-  hideBottomBorder = false,
-}: MarqueeProps) {
+export default function Marquee({ items, reverse = false }: MarqueeProps) {
+  const reduce = useReducedMotion();
+  const trackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || reduce) return;
+    const measure = () => { track.style.animationDuration = `${track.scrollWidth / 2 / 32}s`; };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(track);
+    return () => observer?.disconnect();
+  }, [reduce, items]);
+  const shown = reduce ? items : [...items, ...items];
+
   return (
     <div
       className={cn(
-        "w-full overflow-hidden bg-buzz-cream",
-        SECTION_Y,
-        !hideBottomBorder && "border-b border-buzz-line",
+        "relative w-full",
+        reduce ? "flex flex-wrap items-center justify-center gap-8 px-4" : "overflow-hidden",
       )}
     >
-      <div className="mb-8 text-center">
-        <h2 className={cn(TEXT.h2, "text-buzz-ink")}>{title}</h2>
-        {subtitle ? (
-          <p className={cn(TEXT.body, "mt-1 text-buzz-inkMuted")}>{subtitle}</p>
-        ) : null}
-      </div>
-      <div className="relative flex w-full flex-nowrap items-center">
-        <div
-          className={cn(
-            "flex w-max shrink-0 items-center justify-center space-x-8 px-4 sm:space-x-16 sm:px-8",
-            reverse ? "animate-marquee-reverse" : "animate-marquee",
-          )}
-        >
-          {[...items, ...items].map((item, i) => (
-            <div
-              key={`${item.domain}-${i}`}
-              className="group flex h-20 w-20 flex-col items-center justify-center opacity-80 transition duration-300 hover:opacity-100 sm:h-32 sm:w-32"
-            >
-              <div className="relative mb-2 flex h-12 w-12 items-center justify-center sm:mb-3 sm:h-20 sm:w-20">
-                <RemoteImage
-                  src={item.logoSrc}
-                  label={item.name}
-                  alt={item.name}
-                  className={cn(
-                    "object-contain drop-shadow-buzz grayscale transition duration-300 group-hover:grayscale-0",
-                    item.logoClassName
-                      ? "absolute left-1/2 top-1/2 h-auto w-auto max-h-full -translate-x-1/2 -translate-y-1/2"
-                      : "h-full w-full",
-                    item.logoClassName,
-                  )}
-                />
-              </div>
-              <span className="block whitespace-nowrap text-center text-buzzMicro font-medium text-buzz-inkMuted">
-                {item.name}
-              </span>
-            </div>
-          ))}
-        </div>
+      <div
+        ref={trackRef}
+        className={cn(
+          "flex items-center",
+          reduce
+            ? "flex-wrap justify-center gap-8"
+            : cn(
+                "w-max shrink-0 gap-14 px-7 motion-reduce:animate-none",
+                reverse ? "animate-marquee-reverse" : "animate-marquee",
+              ),
+        )}
+        style={reduce ? undefined : { animationDuration: "100s" }}
+      >
+        {shown.map((item, i) => (
+          <div key={`${item.domain}-${i}`} className="group flex h-12 shrink-0 items-center justify-center">
+            <RemoteImage
+              src={item.logoSrc}
+              label={item.name}
+              alt={item.name}
+              className="h-12 w-auto max-h-12 max-w-[120px] object-contain grayscale opacity-[0.78] transition-[filter,opacity] duration-300 group-hover:grayscale-0 group-hover:opacity-100 motion-reduce:transition-none"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

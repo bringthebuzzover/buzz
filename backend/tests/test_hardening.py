@@ -145,6 +145,9 @@ async def test_rate_limit_blocks_after_threshold(app_client: AsyncClient) -> Non
             await app_client.post(
                 "/api/brands/apply",
                 json={
+                    "contactName": "Test Applicant",
+                    "marketingBudget": "5_20k",
+                    "intentMessage": "Campus campaign.",
                     "brandName": f"RL Brand {i}",
                     "companyEmail": f"rl-{i}@example.com",
                 },
@@ -163,11 +166,24 @@ async def test_rate_limit_disabled_does_not_block(app_client: AsyncClient) -> No
         resp = await app_client.post(
             "/api/brands/apply",
             json={
+                "contactName": "Test Applicant",
+                "marketingBudget": "5_20k",
+                "intentMessage": "Campus campaign.",
                 "brandName": f"RL Off Brand {i}",
                 "companyEmail": f"rl-off-{i}@example.com",
             },
         )
         assert resp.status_code == 200
+
+
+async def test_refresh_is_rate_limited(app_client: AsyncClient) -> None:
+    # No cookie -> 401 each call, but the per-IP limiter still counts; the 61st
+    # (limit=60/60s) is throttled before the handler runs.
+    settings.RATE_LIMIT_ENABLED = True
+    rate_limit.reset()
+    statuses = [(await app_client.post("/api/auth/refresh")).status_code for _ in range(61)]
+    assert statuses[:60] == [401] * 60
+    assert statuses[60] == 429
 
 
 def test_enforce_account_limit_raises_over_cap() -> None:
@@ -186,7 +202,7 @@ def test_enforce_account_limit_raises_over_cap() -> None:
 async def test_inactive_admin_forbidden(app_client: AsyncClient, db_session) -> None:
     admin = await persist(db_session, make_user(role=PortalRole.ADMIN, status=OrgUserStatus.DENIED))
     resp = await app_client.get(
-        "/api/admin/orgs/pending",
+        "/api/admin/orgs",
         headers={"Authorization": f"Bearer {mint_access_token(admin)}"},
     )
     assert resp.status_code == 403
@@ -480,7 +496,7 @@ async def test_reset_password_commits_the_bump(db_session, monkeypatch) -> None:
     )
     await db_session.flush()
     commits = _spy_commits(db_session, monkeypatch)
-    result = await reset_password(db_session, portal="brand", token=raw, password="new-password-9")
+    result = await reset_password(db_session, token=raw, password="new-password-9")
     assert result["ok"] is True
     assert commits, "reset_password must commit the token_version bump itself"
 

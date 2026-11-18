@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Any, Mapping, Protocol, runtime_checkable
 
 import httpx
 
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
+from app.models.organization import Organization
 
 US_STATE_CODES = frozenset(
     {
@@ -76,6 +77,32 @@ _ZIP_RE = re.compile(r"^\d{5}(?:-\d{4})?$")
 _INVALID_MSG = (
     "Enter a US mailing address brands can ship to (street or PO Box, city," " state, and ZIP)."
 )
+_STRUCTURED_ADDRESS_KEYS = (
+    "shippingLine1",
+    "shippingLine2",
+    "shippingCity",
+    "shippingState",
+    "shippingPostalCode",
+)
+
+
+def addresses_match(
+    current: Mapping[str, Any] | None,
+    requested: Mapping[str, Any],
+) -> bool:
+    """Compare canonical address snapshots, including legacy formatted-only rows."""
+    if current is None:
+        return False
+    if current.get("formatted") and not current.get("shippingLine1"):
+        return (
+            str(current["formatted"]).strip().casefold()
+            == str(requested.get("formatted") or "").strip().casefold()
+        )
+    return all(
+        str(current.get(key) or "").strip().casefold()
+        == str(requested.get(key) or "").strip().casefold()
+        for key in _STRUCTURED_ADDRESS_KEYS
+    )
 
 
 @dataclass(frozen=True)
@@ -431,10 +458,39 @@ async def close_address_client() -> None:
 
 def apply_to_org(org: object, addr: StructuredAddress) -> None:
     """Write structured columns + formatted ``delivery_address`` blob."""
-
+    changed = any(
+        getattr(org, key, None) != value
+        for key, value in (
+            ("shipping_line1", addr.line1),
+            ("shipping_line2", addr.line2),
+            ("shipping_city", addr.city),
+            ("shipping_state", addr.state),
+            ("shipping_postal_code", addr.postal_code),
+            ("delivery_address", addr.formatted),
+        )
+    )
     org.shipping_line1 = addr.line1  # type: ignore[attr-defined]
     org.shipping_line2 = addr.line2  # type: ignore[attr-defined]
     org.shipping_city = addr.city  # type: ignore[attr-defined]
     org.shipping_state = addr.state  # type: ignore[attr-defined]
     org.shipping_postal_code = addr.postal_code  # type: ignore[attr-defined]
     org.delivery_address = addr.formatted  # type: ignore[attr-defined]
+    if changed:
+        version = getattr(org, "shipping_address_version", None) or 0
+        org.shipping_address_version = version + 1  # type: ignore[attr-defined]
+
+
+def address_snapshot(org: Organization) -> dict[str, str | None] | None:
+    if org.shipping_line1 and org.shipping_city and org.shipping_state and org.shipping_postal_code:
+        return {
+            "shippingLine1": org.shipping_line1,
+            "shippingLine2": org.shipping_line2,
+            "shippingCity": org.shipping_city,
+            "shippingState": org.shipping_state,
+            "shippingPostalCode": org.shipping_postal_code,
+            "formatted": org.delivery_address,
+        }
+    if org.delivery_address and org.delivery_address.strip():
+        # Keep legacy formatted-only destinations as a review baseline.
+        return {"formatted": org.delivery_address}
+    return None

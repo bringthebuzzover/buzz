@@ -96,8 +96,7 @@ describe("View-as latch", () => {
   it("viewAsPortalRoleFromPath and isAdminPath", () => {
     expect(viewAsPortalRoleFromPath("/org/browse")).toBe("org");
     expect(viewAsPortalRoleFromPath("/org/campaigns/abc")).toBe("org");
-    expect(viewAsPortalRoleFromPath("/campaigns")).toBe("org");
-    expect(viewAsPortalRoleFromPath("/campaigns/abc")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/campaigns")).toBeNull();
     expect(viewAsPortalRoleFromPath("/org/apply")).toBeNull();
     expect(viewAsPortalRoleFromPath("/brand/dashboard")).toBe("brand");
     expect(viewAsPortalRoleFromPath("/brand/setup")).toBe("brand");

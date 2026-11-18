@@ -6,11 +6,11 @@ import {
   type AdminApplicant,
   type AdminOrgRow,
 } from "../../api/hooks/useAdminHooks";
-import { Button, Checkbox, TextField } from "../forms/controls";
-import { Modal } from "../ui/Modal";
-import { STACK, TEXT } from "../../theme/tokens";
+import { Plus } from "lucide-react";
+import { Button, Checkbox, ErrorBanner, TextField } from "../forms/controls";
+import { Modal, ModalActions } from "../ui/Modal";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
-import { ActionButton, ErrorNote } from "./AdminPrimitives";
 import { STATUS_LABELS } from "./labels";
 
 type Props = {
@@ -22,7 +22,9 @@ type Props = {
 };
 
 function orgMatches(org: AdminOrgRow, query: string): boolean {
-  const q = query.trim().toLowerCase();
+  // Handles are stored without "@", so a query typed as "@acme" would never
+  // match. Strip leading "@" tokens so the advertised shape actually works.
+  const q = query.trim().toLowerCase().replace(/(^|\s)@+/g, "$1");
   if (!q) return true;
   return [org.orgName, org.university, org.eduEmail, org.instagramHandle]
     .filter(Boolean)
@@ -102,29 +104,28 @@ export default function AddOrgToDropModal({
       onClose={onClose}
       title="Add organization"
       description={`Accept a seat on ${dropTitle} without reopening apply. Overbooking is allowed.`}
-      size="wide"
     >
-      <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
-        {error && <ErrorNote>{error}</ErrorNote>}
-        {picked == null ? (
-          <>
+      {picked == null ? (
+        <>
+          <div className="flex flex-col gap-4">
+            {error && <ErrorBanner>{error}</ErrorBanner>}
             <TextField
               id="add-org-search"
               data-testid="add-org-search"
               label="Search organizations"
-              size="compact"
+              placeholder="Name or @handle"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
             />
-            <ul className="max-h-64 overflow-y-auto divide-y divide-buzz-lineMid rounded-buzzControl border border-buzz-lineMid">
+            <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
               {orgs.isPending && (
-                <li className="px-3 py-2 text-sm text-buzz-inkMuted">
+                <li className="px-4 py-3 text-sm text-muted">
                   Loading organizations…
                 </li>
               )}
               {!orgs.isPending && matches.length === 0 && (
-                <li className="px-3 py-2 text-sm text-buzz-inkMuted">
+                <li className="px-4 py-3 text-sm text-muted">
                   No matching organizations.
                 </li>
               )}
@@ -133,32 +134,44 @@ export default function AddOrgToDropModal({
                   <button
                     type="button"
                     data-testid={`add-org-result-${org.id}`}
-                    className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-buzz-paper"
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-buzzField px-4 py-3 text-left transition hover:bg-accent-wash",
+                      focusRingClass,
+                    )}
                     onClick={() => setPicked(org)}
                   >
-                    <span className="text-sm font-semibold text-buzz-ink">
-                      {org.orgName ?? "Unnamed organization"}
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="text-sm font-medium text-primary">
+                        {org.orgName ?? "Unnamed organization"}
+                      </span>
+                      <span className="text-xs text-muted">
+                        {org.university ?? "No campus"}
+                        {org.status
+                          ? ` · ${STATUS_LABELS[org.status] ?? org.status}`
+                          : ""}
+                      </span>
                     </span>
-                    <span className={TEXT.meta}>
-                      {org.university ?? "No campus"}
-                      {org.status
-                        ? ` · ${STATUS_LABELS[org.status] ?? org.status}`
-                        : ""}
-                    </span>
+                    <Plus size={16} className="shrink-0 text-muted" aria-hidden />
                   </button>
                 </li>
               ))}
             </ul>
-          </>
-        ) : (
-          <>
-            <p className="text-sm font-semibold text-buzz-ink">
-              {picked.orgName ?? "Unnamed organization"}
-            </p>
-            <p className={TEXT.meta}>
-              {picked.university ?? "No campus"}
-              {picked.eduEmail ? ` · ${picked.eduEmail}` : ""}
-            </p>
+          </div>
+          <ModalActions onCancel={onClose} />
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-4">
+            {error && <ErrorBanner>{error}</ErrorBanner>}
+            <div className="flex flex-col gap-1 rounded-buzzField bg-accent-wash px-4 py-3">
+              <p className="text-sm font-medium text-primary">
+                {picked.orgName ?? "Unnamed organization"}
+              </p>
+              <p className="text-xs text-muted">
+                {picked.university ?? "No campus"}
+                {picked.eduEmail ? ` · ${picked.eduEmail}` : ""}
+              </p>
+            </div>
             {neverApplied && (
               <p
                 data-testid="add-org-never-applied-warn"
@@ -181,7 +194,6 @@ export default function AddOrgToDropModal({
                 id="add-org-units"
                 data-testid="add-org-units"
                 label="Allocated units"
-                size="compact"
                 type="number"
                 min={0}
                 value={units}
@@ -200,30 +212,26 @@ export default function AddOrgToDropModal({
               onChange={(e) => setEmailBrand(e.target.checked)}
               label="Email the brand"
             />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="compact"
-                onClick={() => {
-                  setPicked(null);
-                  setError(null);
-                }}
-              >
-                Back
-              </Button>
-              <ActionButton
-                variant="primary"
-                testId="add-org-submit"
-                disabled={add.isPending}
-                onClick={() => void submit()}
-              >
-                {add.isPending ? "Adding…" : "Add organization"}
-              </ActionButton>
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+          <ModalActions
+            cancelLabel="Back"
+            onCancel={() => {
+              setPicked(null);
+              setError(null);
+            }}
+          >
+            <Button
+              type="button"
+              data-testid="add-org-submit"
+              loading={add.isPending}
+              loadingLabel="Adding…"
+              onClick={() => void submit()}
+            >
+              Add organization
+            </Button>
+          </ModalActions>
+        </>
+      )}
     </Modal>
   );
 }

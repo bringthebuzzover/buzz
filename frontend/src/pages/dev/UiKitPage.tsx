@@ -9,29 +9,43 @@
  * public link; guests are sent to admin login.
  */
 import { useState } from "react";
-import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
-import { Chip } from "../../components/ui/Chip";
+import { Badge, Chip } from "../../components/ui/Chip";
 import { StatePanel } from "../../components/ui/StatePanel";
-import { Modal } from "../../components/ui/Modal";
+import { EmptyState, Loader } from "../../components/ui/EmptyState";
+import { Modal, ModalActions } from "../../components/ui/Modal";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Tabs } from "../../components/ui/Tabs";
+import { Table, TBody, Td, Th, THead, Tr } from "../../components/ui/Table";
+import { Toast } from "../../components/ui/Toast";
+import { Toggle } from "../../components/ui/Toggle";
+import { BeeMark, Logo } from "../../components/ui/BrandMark";
 import {
   Banner,
   Button,
+  Calendar,
   Checkbox,
+  DatePicker,
+  DateRangePicker,
   DateTimeField,
+  DateTimePicker,
   ErrorBanner,
   LinkButton,
+  Radio,
   Select,
   SuccessBanner,
   TextArea,
   TextField,
+  TimePicker,
   WarningBanner,
 } from "../../components/forms/controls";
+import { MOTION } from "../../theme/motion";
 import { GAP, PAD, STACK, SURFACE, TEXT, TONE } from "../../theme/tokens";
 import { cx } from "../../theme/shells";
 
 const TONES = ["neutral", "success", "warn", "danger"] as const;
-const SURFACES = ["card", "cardFlat", "cardWarm", "panel", "inset", "modal"] as const;
+const SURFACES = ["card", "cardFlat", "cardWarm", "panel", "tile", "stat", "inset", "modal"] as const;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -44,10 +58,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function UiKitPage() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [checked, setChecked] = useState(true);
+  const [toggled, setToggled] = useState(true);
+  const [tab, setTab] = useState<"config" | "applicants">("config");
+  const [toast, setToast] = useState(false);
 
   return (
-    <PageShell width="reading" className={STACK.section}>
+    <div className={STACK.section}>
       <header>
         <h1 className={TEXT.h1}>UI kit</h1>
         <p className={cx(TEXT.meta, "mt-1")}>
@@ -84,14 +102,15 @@ export default function UiKitPage() {
         <Card className={STACK.default}>
           <div className={cx("flex flex-wrap items-center", GAP.tight)}>
             <Button>Primary</Button>
+            <Button variant="secondary">Secondary</Button>
             <Button variant="outline">Outline</Button>
             <Button variant="ghost">Ghost</Button>
             <Button variant="danger">Danger</Button>
           </div>
           <div className={cx("flex flex-wrap items-center", GAP.tight)}>
-            <Button size="hero">Hero</Button>
             <Button>Default</Button>
             <Button size="compact">Compact</Button>
+            <Button size="field">Field</Button>
           </div>
           <div className={cx("flex flex-wrap items-center", GAP.tight)}>
             <Button disabled>Primary disabled</Button>
@@ -114,7 +133,8 @@ export default function UiKitPage() {
 
       <Section title="Controls — default size">
         <Card className={STACK.default}>
-          <TextField id="k-text" label="Text field" placeholder="Placeholder" />
+          <TextField id="k-text" label="Text field" placeholder="Placeholder" hint="We'll send a verification link here." />
+          <TextField id="k-err" label="With error" defaultValue="not-an-email" error="Enter a valid email." />
           <TextField id="k-text-d" label="Disabled" placeholder="Disabled" disabled />
           <Select id="k-select" label="Select" defaultValue="a">
             <option value="a">Option A</option>
@@ -128,6 +148,15 @@ export default function UiKitPage() {
             onChange={(e) => setChecked(e.target.checked)}
           />
           <Checkbox label="Checkbox disabled" disabled />
+          <Radio name="k-radio" value="a" label="Radio option" defaultChecked />
+          <div className={cx("flex items-end", GAP.tight)}>
+            <TextField id="k-field" label="Inline with a field button" />
+            <Button size="field">Continue</Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Toggle checked={toggled} onChange={setToggled} label="Notify me" />
+            <span className={TEXT.body}>{toggled ? "On" : "Off"}</span>
+          </div>
         </Card>
       </Section>
 
@@ -143,6 +172,72 @@ export default function UiKitPage() {
           <div className={cx("flex items-end", GAP.tight)}>
             <TextField id="k-inline" label="Inline with button" size="compact" />
             <Button size="compact">Save</Button>
+          </div>
+        </Card>
+      </Section>
+
+      <Section title="Calendar & Time Pickers (Glass Aesthetic)">
+        <Card kind="panel" className={STACK.group}>
+          <p className="text-sm text-muted">
+            One stack, three layers. <code>CalendarGrid</code> and{" "}
+            <code>TimeList</code> are the primitives; <code>Calendar</code> /{" "}
+            <code>TimePicker</code> add footers; <code>DatePicker</code>,{" "}
+            <code>DateTimePicker</code> and <code>DateRangePicker</code> add the
+            glass field and popover.
+          </p>
+
+          {/* Layer 1 — primitives, inline. */}
+          <div>
+            <div className="mb-3 text-buzzLabel font-medium uppercase tracking-wider text-muted">
+              Layer 1 — Primitives (inline)
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="w-fit rounded-buzzModal border border-line p-4 buzz-glass-surface">
+                <Calendar />
+              </div>
+              <div className="w-fit rounded-buzzModal border border-line p-4 buzz-glass-surface">
+                <TimePicker value="14:30" />
+              </div>
+            </div>
+          </div>
+
+          {/* Layer 2 — date and date+time fields. */}
+          <div className="border-t border-line pt-6">
+            <div className="mb-3 text-buzzLabel font-medium uppercase tracking-wider text-muted">
+              Layer 2 — Date, and Date + Time
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <DatePicker
+                id="k-dp-showcase"
+                label="Date only"
+                defaultValue="2026-11-24"
+                hint="Click to open the glass calendar"
+              />
+              <DateTimePicker
+                id="k-dtp-showcase"
+                label="Date and time"
+                defaultValue="2026-11-24T14:30"
+                hint="Calendar and clock in one panel"
+              />
+            </div>
+          </div>
+
+          {/* Layer 3 — the range extension. */}
+          <div className="border-t border-line pt-6">
+            <div className="mb-3 text-buzzLabel font-medium uppercase tracking-wider text-muted">
+              Layer 3 — Date and time range
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <DateRangePicker
+                id="k-drp-showcase"
+                label="Application window"
+                defaultValue={{
+                  start: "2026-11-19T09:00",
+                  end: "2026-11-30T23:45",
+                }}
+                hint="Single month, two endpoints, Apply · N days"
+              />
+            </div>
           </div>
         </Card>
       </Section>
@@ -165,7 +260,14 @@ export default function UiKitPage() {
               </Chip>
             ))}
             <Chip accent>Brand accent</Chip>
+            <Badge>Open</Badge>
+            <Badge tone="success">Done</Badge>
             <Chip tone="neutral">A Very Long Brand Name That Must Not Wrap</Chip>
+            <span className="relative inline-flex h-16 w-40 items-start overflow-hidden rounded-buzzMedia bg-buzz-greyMedia">
+              <Chip onMedia className="absolute left-2 top-2">
+                Closed
+              </Chip>
+            </span>
           </div>
           <div className={cx("grid sm:grid-cols-4", GAP.tight)}>
             {TONES.map((tone) => (
@@ -213,6 +315,75 @@ export default function UiKitPage() {
         </Card>
       </Section>
 
+      <Section title="Page header, tabs, table">
+        <PageHeader
+          kicker="Organization Portal"
+          title="Browse campaigns"
+          description="Browse open and upcoming drops from the brands in our network."
+        />
+        <Tabs
+          label="Drop"
+          tabs={[
+            { id: "config", label: "Config" },
+            { id: "applicants", label: "Applicants" },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
+        <Table>
+          <THead>
+            <Tr>
+              <Th>Organization</Th>
+              <Th>Handle</Th>
+            </Tr>
+          </THead>
+          <TBody>
+            <Tr>
+              <Td>Sample Org</Td>
+              <Td muted>@sampleorg</Td>
+            </Tr>
+          </TBody>
+        </Table>
+      </Section>
+
+      <Section title="Empty, loader, marks">
+        <EmptyState title="Nothing here yet" action={<Button size="compact">Refresh</Button>}>
+          Support
+        </EmptyState>
+        <Loader />
+        <div className={cx("flex items-center", GAP.default)}>
+          <Logo />
+          <BeeMark className={MOTION.float} />
+        </div>
+      </Section>
+
+      <Section title="Toast and confirm">
+        <div className={cx("flex flex-wrap", GAP.tight)}>
+          <Button type="button" variant="secondary" onClick={() => setToast(true)}>
+            Show toast
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setConfirmOpen(true)}>
+            Type to confirm
+          </Button>
+        </div>
+        {toast ? (
+          <Toast tone="warn" onDismiss={() => setToast(false)}>
+            Saved. This toast is local to the kit.
+          </Toast>
+        ) : null}
+        {confirmOpen ? (
+          <ConfirmDialog
+            title="Erase this brand"
+            description="This cannot be undone."
+            expected="erase"
+            confirmLabel="Erase"
+            destructive
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={() => setConfirmOpen(false)}
+          />
+        ) : null}
+      </Section>
+
       <Section title="Modal">
         <Button onClick={() => setModalOpen(true)}>Open modal</Button>
         {modalOpen && (
@@ -221,29 +392,15 @@ export default function UiKitPage() {
             title="Modal title"
             description="Escape closes, focus is trapped, the page behind cannot scroll."
           >
-            <div className="px-6 pb-4 pt-4">
-              <p className={TEXT.body}>Modal body content.</p>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="compact"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="compact"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Done
-                </Button>
-              </div>
-            </div>
+            <p className={TEXT.body}>Modal body content.</p>
+            <ModalActions onCancel={() => setModalOpen(false)}>
+              <Button type="button" onClick={() => setModalOpen(false)}>
+                Done
+              </Button>
+            </ModalActions>
           </Modal>
         )}
       </Section>
-    </PageShell>
+    </div>
   );
 }

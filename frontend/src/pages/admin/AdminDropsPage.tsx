@@ -1,25 +1,27 @@
 /**
- * /admin/drops — every drop, filterable by tracker stage or by attention state.
+ * /admin/drops — every drop, filterable by stage or by attention state.
  *
  * Two filter dimensions because they answer different questions. Stage is "where
  * is this in the pipeline"; attention is "who is blocked and why", and those cut
- * across stages — a drop awaiting selection and a drop the auto-close cron never
- * touched are both sitting still for unrelated reasons. Selections combine via
- * repeated URL keys (OR within a dimension, AND across).
+ * across stages. Selections combine via repeated URL keys (OR within a dimension,
+ * AND across).
  */
+import { Info } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Notice } from "../../components/forms/controls";
 import { useAdminDrops } from "../../api/hooks/useAdminHooks";
 import {
   AdminTable,
   Cell,
   FilterMultiSelect,
   PageHeading,
-  Panel,
   Pill,
+  StagePill,
   QueryState,
   Row,
-  filterChipClass,
+  entityLinkClass,
 } from "../../components/admin/AdminPrimitives";
+import { filterChipClass } from "../../components/ui/navItem";
 import {
   STAGE_LABELS,
   STAGE_ORDER,
@@ -27,16 +29,14 @@ import {
   formatElapsed,
 } from "../../components/admin/labels";
 
-const STAGE_OPTIONS = STAGE_ORDER.map((value) => ({
+// Canceled is off the linear path but still a filter.
+const STAGE_OPTIONS = [...STAGE_ORDER, "canceled" as const].map((value) => ({
   value,
   label: STAGE_LABELS[value] ?? value,
 }));
 
 const ATTENTION_OPTIONS = [
-  { value: "awaiting_finalization", label: "Awaiting selection" },
-  { value: "ready_to_advance", label: "Ready to advance" },
-  { value: "autoclose_overdue", label: "Auto-close overdue" },
-  { value: "reopened_stuck", label: "Reopened and stuck" },
+  { value: "awaiting_decisions", label: "Awaiting decisions" },
   { value: "no_tracking", label: "Missing tracking" },
 ] as const;
 
@@ -150,47 +150,56 @@ export default function AdminDropsPage() {
         />
       </div>
 
-      <p className="mb-4 text-xs font-medium text-buzz-inkMuted">
-        Intake tickets live under{" "}
-        <Link to="/admin/requests" className="font-bold text-buzz-coral hover:underline">
-          Drop requests
-        </Link>
-        .
-      </p>
+      <div className="mb-6">
+        <Notice
+          tone="accent"
+          icon={<Info size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />}
+        >
+          Intake tickets live under{" "}
+          <Link to="/admin/requests" className="underline">
+            Drop requests
+          </Link>
+          .
+        </Notice>
+      </div>
 
-      <Panel>
-        <QueryState
-          isPending={drops.isPending}
-          isError={drops.isError}
-          label="drops"
-        />
-        {drops.data && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={drops.data.length === 0}
-            empty="No drops match this filter."
-          >
-            {drops.data.map((drop) => {
-              const closed = drop.applyCloseAt <= Date.now();
-              return (
-                <Row key={drop.id}>
-                  <Cell>
-                    <Link
-                      to={`/admin/drops/${drop.id}`}
-                      className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-                    >
-                      {drop.title}
-                    </Link>
-                  </Cell>
-                  <Cell muted>
-                    <Link
-                      to={`/admin/brands/${drop.brandId}`}
-                      className="hover:text-buzz-coral hover:underline"
-                    >
-                      {drop.brandName}
-                    </Link>
-                  </Cell>
-                  <Cell muted>{STAGE_LABELS[drop.stage] ?? drop.stage}</Cell>
+      <QueryState
+        isPending={drops.isPending}
+        isError={drops.isError}
+        label="drops"
+      />
+      {drops.data && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={drops.data.length === 0}
+          empty="No drops match this filter."
+        >
+          {drops.data.map((drop) => {
+            const closed = drop.applyCloseAt <= Date.now();
+            return (
+              <Row
+                key={drop.id}
+                attention={drop.stage === "selecting"}
+              >
+                <Cell>
+                  <Link
+                    to={`/admin/drops/${drop.id}`}
+                    className={entityLinkClass}
+                  >
+                    {drop.title}
+                  </Link>
+                </Cell>
+                <Cell>
+                  <Link
+                    to={`/admin/brands/${drop.brandId}`}
+                    className={entityLinkClass}
+                  >
+                    {drop.brandName}
+                  </Link>
+                </Cell>
+                <Cell>
+                  <StagePill stage={drop.stage} />
+                </Cell>
                   <Cell muted>{drop.appliedCount}</Cell>
                   <Cell
                     muted={drop.acceptedCount <= drop.capacityTotal}
@@ -205,8 +214,6 @@ export default function AdminDropsPage() {
                   <Cell>
                     <div className="flex flex-wrap gap-1">
                       {drop.hiddenAt != null && <Pill tone="bad">Hidden</Pill>}
-                      {!drop.publishedAt && <Pill tone="warn">Draft</Pill>}
-                      {drop.manualReopen && <Pill tone="warn">Reopened</Pill>}
                       {drop.acceptedCount > drop.capacityTotal && (
                         <Pill tone="bad">Over capacity</Pill>
                       )}
@@ -222,8 +229,7 @@ export default function AdminDropsPage() {
               );
             })}
           </AdminTable>
-        )}
-      </Panel>
+      )}
     </div>
   );
 }

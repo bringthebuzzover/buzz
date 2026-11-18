@@ -26,7 +26,7 @@ export function StatePanel({
   return (
     <div
       className={cn(
-        "rounded-buzzCard border p-8 text-center",
+        "rounded-buzzBoard border p-8 text-center",
         TONE[tone],
         className,
       )}

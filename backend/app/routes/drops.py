@@ -1,4 +1,4 @@
-"""Drops routes — ``/api/drops`` (architecture.md §5.1, §7.1).
+"""Drops routes — ``/api/drops`` (buzz-ops engineering/architecture.md §5.1, §7.1).
 
 Stage 4 shipped the org browse feed (read). Stage 5A adds the org write/journey
 paths: drop detail, apply, and notify-me set/delete.
@@ -7,12 +7,13 @@ paths: drop detail, apply, and notify-me set/delete.
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
-from app.deps.auth import CurrentOrg, get_current_user, get_current_user_optional
+from app.deps.auth import CurrentOrg, get_current_user, get_current_user_optional, impersonated_by
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
@@ -26,6 +27,7 @@ from app.schemas.drops import (
     DropFeedItem,
     DropIntentPitchRequest,
     NotifyRequest,
+    PublicDropCatalogItem,
 )
 from app.services.drop_apply_intents import (
     assert_intent_drop_public,
@@ -38,6 +40,7 @@ from app.services.drops import (
     build_drop_detail,
     clear_notify,
     list_org_drop_feed,
+    list_public_drop_catalog,
     set_notify,
 )
 from app.services.orgs import get_org_for_user
@@ -51,12 +54,30 @@ async def list_drops(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=100),
+    status: Literal["all", "upcoming", "open"] = Query("all"),
 ) -> APIResponse:
     """Org drop browse feed (JWT + ``org`` role + ``active``)."""
 
-    items, total = await list_org_drop_feed(db, user, page=page, per_page=per_page)
+    items, total = await list_org_drop_feed(
+        db, user, page=page, per_page=per_page, feed_filter=status
+    )
     return api_response(
         data=items,
+        meta={"page": page, "per_page": per_page, "total": total},
+    )
+
+
+@router.get("/public", response_model=DataResponse[list[PublicDropCatalogItem]])
+async def list_public_drops(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(12, ge=1, le=100),
+) -> APIResponse:
+    """Anonymous allowlisted catalog of Upcoming and Applying drops."""
+
+    items, total = await list_public_drop_catalog(db, page=page, per_page=per_page)
+    return api_response(
+        data=[PublicDropCatalogItem.model_validate(item) for item in items],
         meta={"page": page, "per_page": per_page, "total": total},
     )
 
@@ -74,6 +95,10 @@ async def get_drop(
         user is not None
         and user.portal_role == PortalRole.ORG.value
         and user.status == OrgUserStatus.ACTIVE.value
+        and (
+            (user.instagram_user_id and user.instagram_access_token)
+            or impersonated_by(user) is not None
+        )
     ):
         return api_response(data=await build_drop_detail(db, user, drop))
 

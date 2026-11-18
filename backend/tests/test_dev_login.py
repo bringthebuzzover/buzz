@@ -28,7 +28,10 @@ async def test_dev_login_prefers_org_with_instagram_token(
     """Tokenless active orgs (upsert_test_accounts View-as target) must not win."""
     from app.security.token_crypto import encrypt_token
 
-    tokenless = await persist(db_session, make_user(status=OrgUserStatus.ACTIVE))
+    tokenless = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id=None),
+    )
     seeded = await persist(
         db_session,
         make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_seeded"),

@@ -1,4 +1,4 @@
-"""Phase A: public org apply, verify session, connect bind."""
+"""Retired anonymous signup and legacy verification/connect compatibility."""
 
 from __future__ import annotations
 
@@ -16,117 +16,42 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security import rate_limit
 from app.security.one_shot_tokens import hash_token
-from tests.conftest import FakeInstagramClient, make_user, persist
+from tests.conftest import FakeInstagramClient, make_awaiting_connect, make_user, persist
 
 _APPLY = {
-    "orgName": "Campus Greeks",
-    "university": "Cornell University",
-    "eduEmail": "greeks@cornell.edu",
-    "instagramHandle": "@campusgreeks",
+    "orgName": "Test Org",
+    "university": "Test University",
+    "eduEmail": "org1@example.edu",
+    "instagramHandle": "testorg",
     "memberCount": 40,
-    "category": "sorority",
-    "contactName": "Alex",
-    "shippingLine1": "123 College Ave",
-    "shippingCity": "Ithaca",
+    "category": "social",
+    "contactName": "Test Officer",
+    "shippingLine1": "123 Test St",
+    "shippingCity": "Test City",
     "shippingState": "NY",
-    "shippingPostalCode": "14850",
+    "shippingPostalCode": "10001",
 }
 
 
-async def test_org_apply_creates_without_ig_token(app_client: AsyncClient, db_session) -> None:
-    resp = await app_client.post("/api/orgs/apply", json=_APPLY)
-    assert resp.status_code == 200
-    data = resp.json()["data"]
-    assert data["status"] == "pending_email_verification"
-    assert data["emailSentTo"] == "greeks@cornell.edu"
-
-    user = await db_session.scalar(select(User).where(User.edu_email == "greeks@cornell.edu"))
-    assert user is not None
-    assert user.instagram_username == "campusgreeks"
-    assert user.instagram_user_id is None
-    assert user.instagram_access_token is None
-
-    org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
-    assert org is not None
-    assert org.instagram_handle_confirmed is False
-    assert org.claimed_instagram_username == "campusgreeks"
-    assert org.shipping_line1 == "123 College Ave"
-    assert org.shipping_city == "Ithaca"
-    assert org.shipping_state == "NY"
-    assert org.shipping_postal_code == "14850"
-    assert org.delivery_address == "123 College Ave, Ithaca, NY 14850"
-    assert org.city is None
-    assert org.state is None
-
-
-async def test_org_apply_duplicate_handle(app_client: AsyncClient, db_session) -> None:
-    await app_client.post("/api/orgs/apply", json=_APPLY)
-    resp = await app_client.post(
-        "/api/orgs/apply",
-        json={**_APPLY, "eduEmail": "other@cornell.edu", "instagramHandle": "CampusGreeks"},
-    )
-    assert resp.status_code == 409
-    assert resp.json()["error"]["code"] == errors.INSTAGRAM_HANDLE_TAKEN
-
-
-async def test_org_apply_rejects_invalid_instagram_handle(app_client: AsyncClient) -> None:
-    resp = await app_client.post(
-        "/api/orgs/apply",
-        json={
-            **_APPLY,
-            "eduEmail": "badhandle@cornell.edu",
-            "instagramHandle": "not a handle",
-        },
-    )
-    assert resp.status_code == 400
-    body = resp.json()
-    assert body["error"]["code"] == errors.VALIDATION_ERROR
-    assert "Instagram username" in body["error"]["message"]
-
-
-async def test_org_apply_rejects_client_handle_confirmation(
-    app_client: AsyncClient,
+@pytest.mark.parametrize(
+    "extra", [{}, {"dropId": "00000000-0000-0000-0000-000000000063", "pitch": "Test pitch"}]
+)
+async def test_org_apply_cannot_create_anonymous_profile(
+    app_client: AsyncClient, db_session, extra
 ) -> None:
-    """A caller cannot mark the claimed handle confirmed. Connect does that."""
-    resp = await app_client.post(
-        "/api/orgs/apply",
-        json={
-            **_APPLY,
-            "eduEmail": "confirmed@cornell.edu",
-            "instagramHandle": "clientconfirmed",
-            "handleConfirmed": True,
-        },
+    resp = await app_client.post("/api/orgs/apply", json={**_APPLY, **extra})
+    assert resp.status_code == 410
+    assert resp.json()["error"]["code"] == errors.INVALID_ONBOARDING_STATE
+    assert (
+        await db_session.scalar(select(User.id).where(User.edu_email == _APPLY["eduEmail"])) is None
     )
-    assert resp.status_code == 422
-    assert resp.json()["error"]["code"] == errors.VALIDATION_ERROR
-
-
-async def test_org_apply_stores_typed_handle_unconfirmed(
-    app_client: AsyncClient, db_session
-) -> None:
-    """Apply stores the typed handle unconfirmed until Connect."""
-    resp = await app_client.post(
-        "/api/orgs/apply",
-        json={
-            **_APPLY,
-            "eduEmail": "unconfirmed@cornell.edu",
-            "instagramHandle": "@Unconfirmed.Org",
-        },
-    )
-    assert resp.status_code == 200
-    user = await db_session.scalar(select(User).where(User.edu_email == "unconfirmed@cornell.edu"))
-    assert user is not None
-    assert user.instagram_username == "Unconfirmed.Org"
-    org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
-    assert org is not None
-    assert org.instagram_handle_confirmed is False
-    assert org.claimed_instagram_username == "Unconfirmed.Org"
+    assert list(await db_session.scalars(select(Organization))) == []
 
 
 async def test_verify_email_mints_session(app_client: AsyncClient, db_session) -> None:
-    await app_client.post("/api/orgs/apply", json=_APPLY)
-    user = await db_session.scalar(select(User).where(User.edu_email == "greeks@cornell.edu"))
-    assert user is not None
+    user = await persist(db_session, make_user(status=OrgUserStatus.PENDING_EMAIL_VERIFICATION))
+    user.edu_email = "org1@example.edu"
+    await db_session.flush()
     # Dev mode console-sends; recover raw token by minting a known token
     import secrets
     from datetime import datetime, timedelta, timezone
@@ -158,7 +83,7 @@ async def test_verify_email_mints_session(app_client: AsyncClient, db_session) -
     assert "buzz_refresh" in resp.headers.get("set-cookie", "").lower() or True  # cookie name
 
 
-async def test_bind_pending_instagram(
+async def test_bind_awaiting_connect(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
 ) -> None:
     from tests.conftest import make_org, mint_access_token
@@ -169,12 +94,13 @@ async def test_bind_pending_instagram(
         db_session,
         make_user(
             role=PortalRole.ORG,
-            status=OrgUserStatus.PENDING_INSTAGRAM,
+            status=OrgUserStatus.ACTIVE,
             instagram_user_id=None,
         ),
     )
     user.instagram_username = "campusgreeks"
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     org.instagram_handle_confirmed = False
     await db_session.flush()
 
@@ -201,15 +127,6 @@ async def test_bind_pending_instagram(
     assert bound.instagram_handle_confirmed is True
     assert bound.claimed_instagram_username == "campusgreeks"
     assert bound.ig_bind_mismatched_at is None
-
-
-async def test_org_apply_rejects_garbage_shipping(app_client: AsyncClient) -> None:
-    resp = await app_client.post(
-        "/api/orgs/apply",
-        json={**_APPLY, "eduEmail": "garbage@cornell.edu", "shippingLine1": "asdf"},
-    )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == errors.INVALID_SHIPPING_ADDRESS
 
 
 async def test_address_suggest_empty_without_google(app_client: AsyncClient) -> None:

@@ -1,4 +1,7 @@
-"""Integration tests for /me, /refresh, /logout (architecture.md §5.1, §5.3)."""
+"""Integration tests for /me, /refresh, /logout.
+
+See buzz-ops engineering/architecture.md §5.1, §5.3.
+"""
 
 from __future__ import annotations
 
@@ -126,7 +129,7 @@ async def test_refresh_valid_cookie_rotates(app_client: AsyncClient, db_session)
     assert body["access_token"]
     # /refresh now returns the same UserResponse as /me, built from the same
     # transaction as the mint — closes the mint-then-read token_version race
-    # (gaps/auth.ci-session-restore-flake.md).
+    # (buzz-ops engineering/gaps/archive/auth.ci-session-restore-flake.md).
     assert body["user"]["id"] == str(user.id)
     assert body["user"]["portal_role"] == user.portal_role
     assert body["user"]["status"] == user.status

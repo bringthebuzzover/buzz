@@ -1,19 +1,28 @@
-import type { ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { Button } from "../forms/controls";
+import { focusRingClass } from "../../theme/controls";
+import { MOTION } from "../../theme/motion";
 import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 /**
- * Dialog primitive.
+ * Dialog primitive: the pen Modal (560 wide, ink-pop, padding 32, radius-board,
+ * paper-09 hairline) on the scrim.
  *
- * Buzz's modals were plain fixed divs: no Escape handler, no focus trap, no
- * body scroll lock, and no backdrop close, so the page behind stayed scrollable
- * and keyboard users could tab out of the dialog. Radix supplies all four,
- * which is the whole reason it is a dependency here.
+ * Radix supplies Escape to close, the focus trap, body scroll lock and
+ * backdrop close. Mounted means open, matching how the modals are rendered
+ * conditionally by their parents. There is no `Dialog.Trigger`, so focus
+ * return is ours: whatever had focus when the modal mounted gets it back.
  *
- * Mounted means open, matching how the existing modals are rendered
- * conditionally by their parents.
+ * Tall content (a long email body on a phone) scrolls inside the dialog.
  */
 export function Modal({
   onClose,
@@ -21,51 +30,181 @@ export function Modal({
   description,
   /** Visually hide the title while keeping it for screen readers. */
   hideTitle = false,
-  size = "default",
+  /**
+   * Wide two-column layout (896px, glass, no inner padding) for the marketing
+   * dialogs. Off by default: most dialogs are the 560px form card, and changing
+   * that default would move every existing one.
+   */
+  wide = false,
   className,
   children,
 }: {
   onClose: () => void;
   title: string;
-  description?: string;
+  description?: ReactNode;
   hideTitle?: boolean;
-  size?: "default" | "wide";
+  wide?: boolean;
   className?: string;
   children: ReactNode;
 }) {
+  const [open, setOpen] = useState(true);
+  const closingRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const [returnFocus] = useState(() =>
+    typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null),
+  );
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const requestClose = useCallback(
+    (customAction?: () => void) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      setOpen(false);
+
+      const execute = () => {
+        if (customAction) {
+          customAction();
+          if (customAction !== onCloseRef.current) {
+            onCloseRef.current();
+          }
+        } else {
+          onCloseRef.current();
+        }
+      };
+
+      const isTest =
+        typeof process !== "undefined" && process.env?.NODE_ENV === "test";
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (isTest || prefersReducedMotion) {
+        execute();
+      } else {
+        timerRef.current = window.setTimeout(execute, 150);
+      }
+    },
+    [],
+  );
+
   return (
-    <Dialog.Root open onOpenChange={(next) => !next && onClose()}>
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) requestClose(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-buzzModal bg-buzz-overlay/60 backdrop-blur-sm" />
+        <Dialog.Overlay
+          className={cn("fixed inset-0 z-buzzModal buzz-scrim-atmosphere", MOTION.scrim)}
+        />
         <Dialog.Content
+          // Without a description Radix warns unless this is explicitly unset.
+          {...(description ? {} : { "aria-describedby": undefined })}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            returnFocus?.focus();
+          }}
           className={cn(
-            "fixed left-1/2 top-1/2 z-buzzModal w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden focus:outline-none",
-            size === "wide" ? "max-w-lg" : "max-w-sm",
-            SURFACE.modal,
+            wide
+              ? "fixed left-1/2 top-1/2 z-buzzModal max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[896px] -translate-x-1/2 -translate-y-1/2 overflow-y-auto focus:outline-none"
+              : "fixed left-1/2 top-1/2 z-buzzModal flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-[560px] -translate-x-1/2 -translate-y-1/2 flex-col gap-6 overflow-y-auto focus:outline-none",
+            MOTION.modal,
+            wide ? SURFACE.glassModal : SURFACE.modal,
             className,
           )}
         >
-          <Dialog.Title
-            className={hideTitle ? "sr-only" : cn(TEXT.h2, "px-6 pr-14 pt-6")}
-          >
-            {title}
-          </Dialog.Title>
-          {description && (
-            <Dialog.Description
-              className={cn(TEXT.meta, "px-6 pr-6 pt-3 leading-relaxed")}
-            >
-              {description}
-            </Dialog.Description>
+          {wide ? (
+            // The wide dialogs lay out their own header inside the grid, so the
+            // shared title row would double up. The title stays for screen
+            // readers, and the close control is absolute — without it the wide
+            // dialog had NO visible dismiss affordance, leaving Escape, a
+            // backdrop click, or a submitted form as the only ways out.
+            <>
+              <Dialog.Title className="sr-only">{title}</Dialog.Title>
+              <Dialog.Close
+                className={cn(
+                  "absolute right-4 top-4 z-[2] grid h-[33px] w-[33px] place-items-center rounded-buzzControl border border-line bg-surface-pop text-primary transition-colors hover:bg-buzz-paper08",
+                  focusRingClass,
+                )}
+                aria-label="Close"
+              >
+                <X size={18} aria-hidden />
+              </Dialog.Close>
+            </>
+          ) : (
+            <div className="flex items-start gap-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <Dialog.Title className={hideTitle ? "sr-only" : cn(TEXT.h3, "text-primary")}>
+                  {title}
+                </Dialog.Title>
+                {description ? (
+                  <Dialog.Description className="text-sm leading-relaxed text-quiet">
+                    {description}
+                  </Dialog.Description>
+                ) : null}
+              </div>
+              <Dialog.Close
+                className={cn(
+                  "-m-1 shrink-0 rounded-full p-1 text-quiet transition hover:bg-buzz-paper08 hover:text-primary",
+                  focusRingClass,
+                )}
+                aria-label="Close"
+              >
+                <X size={18} aria-hidden />
+              </Dialog.Close>
+            </div>
           )}
-          <Dialog.Close
-            className="absolute right-6 top-6 z-10 rounded-full p-1 text-buzz-inkMuted transition hover:bg-buzz-neutral hover:text-buzz-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-coral/40"
-            aria-label="Close"
-          >
-            <X size={20} />
-          </Dialog.Close>
+          {wide && description ? (
+            <Dialog.Description className="sr-only">{description}</Dialog.Description>
+          ) : null}
           {children}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/**
+ * Pen modal footer: right-aligned, 12px gap, the ghost Cancel pill first and
+ * the confirm pill(s) passed as children. Every modal uses this so the footer
+ * reads the same everywhere. Omit `onCancel` for a single-action footer.
+ */
+export function ModalActions({
+  onCancel,
+  cancelLabel = "Cancel",
+  cancelDisabled = false,
+  cancelTestId,
+  children,
+}: {
+  onCancel?: () => void;
+  cancelLabel?: string;
+  cancelDisabled?: boolean;
+  cancelTestId?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-3">
+      {onCancel ? (
+        <Button
+          type="button"
+          variant="ghost"
+          // Pen Pill / Ghost in a modal footer is 40px with 20px padding.
+          className="h-10 px-5"
+          data-testid={cancelTestId}
+          disabled={cancelDisabled}
+          onClick={onCancel}
+        >
+          {cancelLabel}
+        </Button>
+      ) : null}
+      {children}
+    </div>
   );
 }

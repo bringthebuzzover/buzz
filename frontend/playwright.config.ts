@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Thin E2E suite (a few critical cross-stack journeys). Kept deliberately small
- * and on `data-testid` selectors to bound maintenance — see TESTING.md.
+ * and on `data-testid` selectors to bound maintenance — see README Test.
  *
  * `globalSetup` applies migrations + resets the DB to a deterministic fixture
  * (the dev seed + one guaranteed-open drop) before the run. `webServer` starts

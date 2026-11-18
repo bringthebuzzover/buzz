@@ -10,10 +10,20 @@ from httpx import AsyncClient
 
 from app.config import settings
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.security import jwt
 from app.security.password import hash_password
 from app.security.session import bump_token_version
-from tests.conftest import make_brand, make_org, make_user, mint_access_token, persist
+from tests.conftest import (
+    admin_headers,
+    make_application,
+    make_brand,
+    make_drop,
+    make_org,
+    make_user,
+    mint_access_token,
+    persist,
+)
 
 
 async def _admin(db_session, *, email: str | None = None, password: str | None = None):
@@ -25,41 +35,28 @@ async def _admin(db_session, *, email: str | None = None, password: str | None =
     return await persist(db_session, admin)
 
 
-async def _admin_headers(db_session) -> dict:
-    admin = await _admin(db_session)
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
 class TestAdminLogin:
-    async def test_login_succeeds(self, app_client: AsyncClient, db_session):
+    @pytest.mark.parametrize(
+        ("email", "password", "status"),
+        [
+            ("boss@buzz.test", "supersecret1", 200),
+            ("BOSS@Buzz.Test", "supersecret1", 200),  # email is case-insensitive
+            ("boss@buzz.test", "nope", 401),
+        ],
+    )
+    async def test_login(
+        self, app_client: AsyncClient, db_session, email: str, password: str, status: int
+    ):
         await _admin(db_session, email="boss@buzz.test", password="supersecret1")
 
         res = await app_client.post(
-            "/api/auth/admin/login",
-            json={"email": "boss@buzz.test", "password": "supersecret1"},
+            "/api/auth/admin/login", json={"email": email, "password": password}
         )
-        assert res.status_code == 200
-        data = res.json()["data"]
-        assert data["access_token"]
-        assert data["user"]["portal_role"] == "admin"
-
-    async def test_login_is_case_insensitive(self, app_client: AsyncClient, db_session):
-        await _admin(db_session, email="boss2@buzz.test", password="supersecret1")
-
-        res = await app_client.post(
-            "/api/auth/admin/login",
-            json={"email": "BOSS2@Buzz.Test", "password": "supersecret1"},
-        )
-        assert res.status_code == 200
-
-    async def test_wrong_password_rejected(self, app_client: AsyncClient, db_session):
-        await _admin(db_session, email="boss3@buzz.test", password="supersecret1")
-
-        res = await app_client.post(
-            "/api/auth/admin/login",
-            json={"email": "boss3@buzz.test", "password": "nope"},
-        )
-        assert res.status_code == 401
+        assert res.status_code == status
+        if status == 200:
+            data = res.json()["data"]
+            assert data["access_token"]
+            assert data["user"]["portal_role"] == "admin"
 
     async def test_unknown_email_rejected(self, app_client: AsyncClient):
         res = await app_client.post(
@@ -94,38 +91,81 @@ class TestAdminLogin:
         assert res.status_code == 401
 
 
-class TestAdminUserList:
-    async def test_lists_org_and_brand_but_not_admins(self, app_client: AsyncClient, db_session):
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
-        await make_org(db_session, org_user, org_name="Listed Org")
-        await make_brand(db_session, brand_name="Listed Brand")
-
-        res = await app_client.get("/api/admin/users", headers=await _admin_headers(db_session))
-        assert res.status_code == 200
-        rows = res.json()["data"]
-
-        roles = {r["portalRole"] for r in rows}
-        assert "admin" not in roles
-        names = {r["displayName"] for r in rows}
-        assert {"Listed Org", "Listed Brand"} <= names
-
-    async def test_requires_admin(self, app_client: AsyncClient, db_session):
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
-        res = await app_client.get(
-            "/api/admin/users",
-            headers={"Authorization": f"Bearer {mint_access_token(org_user)}"},
-        )
-        assert res.status_code == 403
-
-
 class TestImpersonate:
+    async def test_view_as_sees_applications_during_account_reconnect(
+        self, app_client: AsyncClient, db_session
+    ):
+        target = make_user(role=PortalRole.ORG, instagram_user_id=None)
+        target.instagram_access_token = None
+        target.instagram_username = None
+        await persist(db_session, target)
+        org = await make_org(db_session, target)
+        db_session.add(
+            OrgIgChangeRequest(
+                org_id=org.id,
+                user_id=target.id,
+                kind="account_switch",
+                current_handle="old_handle",
+                requested_handle="new_handle",
+                reason="Account access changed",
+                status="awaiting_connect",
+                decided_kind="account_switch",
+            )
+        )
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        await make_application(db_session, drop, org)
+
+        minted = await app_client.post(
+            f"/api/admin/impersonate/{target.id}", headers=await admin_headers(db_session)
+        )
+        assert minted.status_code == 200
+        headers = {"Authorization": f"Bearer {minted.json()['data']['accessToken']}"}
+        detail = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["data"]["alreadyApplied"] is True
+
+    async def test_tokenless_org_portal_requires_admin_impersonation(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        monkeypatch.setattr(settings, "IMPERSONATION_READONLY", True)
+        target = make_user(role=PortalRole.ORG, instagram_user_id=None)
+        target.instagram_access_token = None
+        await persist(db_session, target)
+        await make_org(db_session, target)
+
+        ordinary_headers = {"Authorization": f"Bearer {mint_access_token(target)}"}
+        ordinary = await app_client.get("/api/orgs/me", headers=ordinary_headers)
+        assert ordinary.status_code == 403
+
+        admin = await _admin(db_session)
+        res = await app_client.post(
+            f"/api/admin/impersonate/{target.id}",
+            headers={"Authorization": f"Bearer {mint_access_token(admin)}"},
+        )
+        assert res.status_code == 200, res.text
+        view_as_headers = {"Authorization": f"Bearer {res.json()['data']['accessToken']}"}
+        portal = await app_client.get("/api/orgs/me", headers=view_as_headers)
+        assert portal.status_code == 200, portal.text
+        mutation = await app_client.patch("/api/orgs/me", json={}, headers=view_as_headers)
+        assert mutation.status_code == 403
+        assert mutation.json()["error"]["code"] == "IMPERSONATION_READONLY"
+        # A following ordinary request must not inherit transient impersonation state.
+        ordinary = await app_client.get("/api/orgs/me", headers=ordinary_headers)
+        assert ordinary.status_code == 403
+        # The impersonation claim only works while its actor remains an active admin.
+        admin.portal_role = PortalRole.BRAND.value
+        await db_session.flush()
+        demoted = await app_client.get("/api/orgs/me", headers=view_as_headers)
+        assert demoted.status_code == 401
+
     async def test_mints_token_acting_as_target(self, app_client: AsyncClient, db_session):
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         await make_org(db_session, target)
 
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -149,7 +189,7 @@ class TestImpersonate:
 
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         assert settings.REFRESH_COOKIE_NAME not in res.cookies
@@ -159,7 +199,7 @@ class TestImpersonate:
 
         res = await app_client.post(
             f"/api/admin/impersonate/{other_admin.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 403
 
@@ -171,14 +211,14 @@ class TestImpersonate:
 
         res = await app_client.post(
             f"/api/admin/impersonate/{pending.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 403
 
     async def test_unknown_target_404s(self, app_client: AsyncClient, db_session):
         res = await app_client.post(
             f"/api/admin/impersonate/{uuid.uuid4()}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
@@ -205,7 +245,7 @@ class TestImpersonationReadonly:
         await make_org(db_session, target)
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         return res.json()["data"]["accessToken"]
@@ -326,7 +366,7 @@ class TestViewAsIntentCookie:
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         set_cookie = res.headers.get("set-cookie", "")
@@ -362,7 +402,7 @@ class TestViewAsIntentCookie:
     async def test_resume_without_cookie_is_404(self, app_client: AsyncClient, db_session):
         res = await app_client.post(
             "/api/admin/impersonate/resume",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
             json={"role": "org"},
         )
         assert res.status_code == 404
@@ -392,7 +432,7 @@ class TestViewAsIntentCookie:
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         minted = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert minted.status_code == 200
         intent = app_client.cookies.get(settings.VIEW_AS_COOKIE_NAME)
@@ -404,7 +444,7 @@ class TestViewAsIntentCookie:
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         minted = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert minted.status_code == 200
         ended = await app_client.post("/api/auth/view-as/end")
@@ -412,7 +452,7 @@ class TestViewAsIntentCookie:
         assert "Max-Age=0" in ended.headers.get("set-cookie", "")
         resume = await app_client.post(
             "/api/admin/impersonate/resume",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
             json={"role": "org"},
         )
         assert resume.status_code == 404

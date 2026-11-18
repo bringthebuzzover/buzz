@@ -1,4 +1,4 @@
-"""Org profile routes — ``/api/orgs`` (architecture.md §5.1).
+"""Org profile routes — ``/api/orgs`` (buzz-ops engineering/architecture.md §5.1).
 
 ``POST /api/orgs/onboarding`` (Stage 7) creates the org profile and advances the
 account to email verification; the rest is the active-org profile read/update +
@@ -7,16 +7,13 @@ posts surface.
 
 from __future__ import annotations
 
-import uuid
-
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.deps.auth import CurrentOrg, get_current_user
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation
 from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
@@ -37,15 +34,16 @@ from app.schemas.orgs import (
     OrgIgChangeRequestState,
     OrgProfileResponse,
     OrgProfileUpdate,
+    OrgShippingChangeRequestCreate,
+    OrgShippingChangeRequestResponse,
+    OrgShippingChangeRequestState,
 )
 from app.schemas.posts import PostResponse
 from app.security.rate_limit import rate_limited
 from app.services.address import AddressClient, get_address_client
-from app.services.drop_apply_intents import assert_intent_drop_public, record_drop_apply_intent
 from app.services.ig_change_requests import get_request_state, submit_request
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import submit_org_onboarding
-from app.services.org_apply import apply_org
 from app.services.org_apply_prefill import get_live_prefill, prefill_to_public
 from app.services.orgs import (
     build_org_profile,
@@ -54,6 +52,8 @@ from app.services.orgs import (
     update_org_profile,
 )
 from app.services.posts import list_org_posts
+from app.services.shipping_change_requests import get_my_state as get_shipping_request_state
+from app.services.shipping_change_requests import submit_request as submit_shipping_request
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
 
@@ -65,21 +65,13 @@ router = APIRouter(prefix="/orgs", tags=["orgs"])
 )
 async def org_apply(
     payload: OrgApplyRequest,
-    db: AsyncSession = Depends(get_db),
-    addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
-    """Public apply-first signup (no Instagram OAuth)."""
-    if payload.drop_id is not None:
-        await assert_intent_drop_public(db, payload.drop_id)
-    result = await apply_org(db, payload, addresses)
-    if payload.drop_id is not None:
-        await record_drop_apply_intent(
-            db,
-            org_id=uuid.UUID(result["org_id"]),
-            drop_id=payload.drop_id,
-            pitch=payload.pitch,
-        )
-    return api_response(data=OrgOnboardingResponse.model_validate(result))
+    """Retired anonymous signup; organization identity requires Instagram OAuth."""
+    raise BuzzAPIException(
+        errors.INVALID_ONBOARDING_STATE,
+        "Continue with Instagram before completing your organization profile.",
+        status_code=410,
+    )
 
 
 @router.get(
@@ -147,6 +139,7 @@ async def org_address_preview(
 @router.post("/onboarding", response_model=DataResponse[OrgOnboardingResponse])
 async def org_onboarding(
     payload: OrgOnboardingRequest,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     ig: InstagramClient = Depends(get_instagram_client),
@@ -157,7 +150,9 @@ async def org_onboarding(
     Uses the bare authenticated user (not ``CurrentOrg``) because the caller is
     ``pending_org_profile``, not yet active — the active-status gate would 403.
     """
-    result = await submit_org_onboarding(db, user, payload, ig=ig, addresses=addresses)
+    result = await submit_org_onboarding(
+        db, user, payload, ig=ig, addresses=addresses, background_tasks=background_tasks
+    )
     return api_response(data=OrgOnboardingResponse.model_validate(result))
 
 
@@ -188,11 +183,51 @@ async def update_my_org(
 ) -> APIResponse:
     """Patch the editable subset of the caller org's profile."""
 
-    # META-REVIEWER-PATH: keep the seeded reviewer org name stable.
-    reject_reviewer_mutation(user)
     org = await _require_org_profile(db, user)
     org = await update_org_profile(db, org, payload, addresses)
     return api_response(data=await enrich_org_profile(db, org, build_org_profile(org, user)))
+
+
+@router.get(
+    "/me/shipping-change-request",
+    response_model=DataResponse[OrgShippingChangeRequestState],
+)
+async def get_my_shipping_change_request(
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(
+        data=OrgShippingChangeRequestState.model_validate(
+            await get_shipping_request_state(db, user)
+        )
+    )
+
+
+@router.post(
+    "/me/shipping-change-requests",
+    status_code=201,
+    response_model=DataResponse[OrgShippingChangeRequestResponse],
+    dependencies=[Depends(rate_limited("org_shipping_change", limit=5, window=60))],
+)
+async def create_my_shipping_change_request(
+    payload: OrgShippingChangeRequestCreate,
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+    addresses: AddressClient = Depends(get_address_client),
+) -> APIResponse:
+    result = await submit_shipping_request(
+        db,
+        user,
+        shipping_line1=payload.shipping_line1,
+        shipping_line2=payload.shipping_line2,
+        shipping_city=payload.shipping_city,
+        shipping_state=payload.shipping_state,
+        shipping_postal_code=payload.shipping_postal_code,
+        shipping_place_id=payload.shipping_place_id,
+        reason=payload.reason,
+        addresses=addresses,
+    )
+    return api_response(data=OrgShippingChangeRequestResponse.model_validate(result))
 
 
 @router.get("/me/ig-change-request", response_model=DataResponse[OrgIgChangeRequestState])

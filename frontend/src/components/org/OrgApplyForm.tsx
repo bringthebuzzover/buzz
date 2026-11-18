@@ -1,15 +1,15 @@
 /**
- * Shared org apply-first fields (PRODUCT §6.1 / §6.1.1). Used by `/org/apply`
- * and the public drop page. Do not nest `OrgApplyPage`.
+ * Legacy profile form and verification helpers. Public signup uses Instagram
+ * OAuth followed by OrgProfilePage; the anonymous submit endpoint is retired.
  */
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   useOrgApply,
   type OrgApplyInput,
 } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
-import FieldError from "../forms/FieldError";
+import { AuthArrowLink, AuthLinkRow } from "../auth/AuthFrame";
 import {
   Button,
   ErrorBanner,
@@ -27,6 +27,7 @@ import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
 } from "../../types/orgCategory";
+import { cn } from "../../theme/cn";
 import {
   isFieldError,
   parseEduEmail,
@@ -65,6 +66,8 @@ export default function OrgApplyForm({
   prefill,
   submitLabel,
   loginHref = "/login",
+  paired = false,
+  className,
   onSuccess,
 }: {
   dropId?: string;
@@ -72,7 +75,10 @@ export default function OrgApplyForm({
   prefill?: OrgApplyPrefillValues | null;
   submitLabel: string;
   loginHref?: string;
-  onSuccess: (result: { emailSent?: boolean }, eduEmail: string) => void;
+  /** Public drop card pairs the pen's three rows at every width. */
+  paired?: boolean;
+  className?: string;
+  onSuccess: (result: { emailQueued?: boolean }, eduEmail: string) => void;
 }) {
   const apply = useOrgApply();
   const hydrated = useRef(false);
@@ -186,154 +192,121 @@ export default function OrgApplyForm({
     }
   };
 
+  const pairClass = paired
+    ? "grid grid-cols-2 gap-4 [&>*]:min-w-0"
+    : "grid grid-cols-1 gap-4 sm:grid-cols-2";
+
   return (
-    <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+    <form onSubmit={(e) => void onSubmit(e)} className={cn("space-y-6", className)}>
       {error && <ErrorBanner>{error}</ErrorBanner>}
-      <div>
+      <TextField
+        id="org-apply-contact-name"
+        data-testid="org-apply-contact-name"
+        label="Contact name"
+        placeholder="First Last"
+        value={contactName}
+        onChange={(e) => setContactName(e.target.value)}
+        required
+        error={fieldErrors.contactName}
+      />
+
+      <TextField
+        id="org-apply-edu-email"
+        data-testid="org-apply-edu-email"
+        type="email"
+        label="School (.edu) email"
+        value={eduEmail}
+        onChange={(e) => setEduEmail(e.target.value)}
+        placeholder="you@university.edu"
+        hint="We'll send a verification link here."
+        required
+        error={fieldErrors.eduEmail}
+      />
+
+      <div className={pairClass}>
         <TextField
+          id="org-apply-org-name"
           data-testid="org-apply-org-name"
           label="Organization name"
+          placeholder="Your Organization"
           value={orgName}
           onChange={(e) => setOrgName(e.target.value)}
           required
-          aria-invalid={Boolean(fieldErrors.orgName)}
-          aria-describedby={fieldErrors.orgName ? "org-apply-org-name-error" : undefined}
+          error={fieldErrors.orgName}
         />
-        <FieldError id="org-apply-org-name-error" message={fieldErrors.orgName} />
-      </div>
 
-      <div>
         <TextField
+          id="org-apply-university"
           data-testid="org-apply-university"
           label="University"
+          placeholder="Your University"
           value={university}
           onChange={(e) => setUniversity(e.target.value)}
           required
-          aria-invalid={Boolean(fieldErrors.university)}
-          aria-describedby={
-            fieldErrors.university ? "org-apply-university-error" : undefined
-          }
-        />
-        <FieldError
-          id="org-apply-university-error"
-          message={fieldErrors.university}
+          error={fieldErrors.university}
         />
       </div>
 
-      <div>
-        <TextField
-          data-testid="org-apply-edu-email"
-          type="email"
-          label="School (.edu) email"
-          value={eduEmail}
-          onChange={(e) => setEduEmail(e.target.value)}
-          placeholder="you@university.edu"
+      <div className={pairClass}>
+        <Select
+          data-testid="org-apply-category"
+          label="Organization type"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
           required
-          aria-invalid={Boolean(fieldErrors.eduEmail)}
-          aria-describedby={
-            fieldErrors.eduEmail ? "org-apply-edu-email-error" : undefined
-          }
-        />
-        <FieldError
-          id="org-apply-edu-email-error"
-          message={fieldErrors.eduEmail}
-        />
-        <p className="mt-1 text-xs text-buzz-inkMuted">
-          We&apos;ll send a verification link here.
-        </p>
-      </div>
+        >
+          <option value="">Select a type</option>
+          {ORG_CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
 
-      <div>
         <TextField
-          data-testid="org-apply-instagram"
-          label="Instagram handle"
-          value={instagramHandle}
-          onChange={(e) => setInstagramHandle(e.target.value)}
-          placeholder="yourorg"
-          required
-          autoComplete="off"
-          aria-invalid={Boolean(fieldErrors.instagramHandle)}
-          aria-describedby={
-            fieldErrors.instagramHandle
-              ? "org-apply-instagram-error"
-              : undefined
-          }
-        />
-        <FieldError
-          id="org-apply-instagram-error"
-          message={fieldErrors.instagramHandle}
-        />
-        <p className="mt-1 text-xs text-buzz-inkMuted">
-          Exact username of the organization Business/Creator account (with or without
-          @). Buzz checks the username shape here; the account is confirmed when you
-          Connect Instagram after approval.
-        </p>
-      </div>
-
-      <TextField
-        label={
-          <>
-            TikTok handle{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
-          </>
-        }
-        value={tiktokHandle}
-        onChange={(e) => setTiktokHandle(e.target.value)}
-        placeholder="yourorg"
-      />
-
-      <div>
-        <TextField
+          id="org-apply-member-count"
           data-testid="org-apply-member-count"
           type="number"
           min="0"
           label="Number of members"
+          placeholder="24"
           value={memberCount}
           onChange={(e) => setMemberCount(e.target.value)}
           required
-          aria-invalid={Boolean(fieldErrors.memberCount)}
-          aria-describedby={
-            fieldErrors.memberCount ? "org-apply-member-count-error" : undefined
-          }
-        />
-        <FieldError
-          id="org-apply-member-count-error"
-          message={fieldErrors.memberCount}
+          error={fieldErrors.memberCount}
         />
       </div>
 
-      <Select
-        data-testid="org-apply-category"
-        label="Organization type"
-        value={category}
-        onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-        required
-      >
-        <option value="">Select a type…</option>
-        {ORG_CATEGORY_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </Select>
-
-      <div>
+      <div className={pairClass}>
         <TextField
-          data-testid="org-apply-contact-name"
-          label="Contact name"
-          value={contactName}
-          onChange={(e) => setContactName(e.target.value)}
+          id="org-apply-instagram"
+          data-testid="org-apply-instagram"
+          label="Instagram handle"
+          value={instagramHandle}
+          onChange={(e) => setInstagramHandle(e.target.value)}
+          placeholder="@yourorg"
           required
-          aria-invalid={Boolean(fieldErrors.contactName)}
-          aria-describedby={
-            fieldErrors.contactName ? "org-apply-contact-name-error" : undefined
-          }
+          autoComplete="off"
+          error={fieldErrors.instagramHandle}
         />
-        <FieldError
-          id="org-apply-contact-name-error"
-          message={fieldErrors.contactName}
+
+        <TextField
+          label={
+            <>
+              TikTok handle{" "}
+              <span className="font-normal text-quiet">(optional)</span>
+            </>
+          }
+          value={tiktokHandle}
+          onChange={(e) => setTiktokHandle(e.target.value)}
+          placeholder="@yourorg"
         />
       </div>
+      <p className="text-xs text-quiet">
+        Exact username of the organization Business/Creator account (with or
+        without @). BUZZ checks the username shape here; the account is
+        confirmed when you Connect Instagram after approval.
+      </p>
 
       <ShippingAddressFields
         value={shipping}
@@ -341,11 +314,12 @@ export default function OrgApplyForm({
         inputClass={fieldClass.default}
         testIdPrefix="org-apply"
         error={fieldErrors.shipping}
+        layout="split"
       />
       {shippingRawHint && (
         <p
           data-testid="org-apply-shipping-raw"
-          className="text-xs font-medium text-buzz-inkMuted"
+          className="text-xs font-medium text-quiet"
         >
           You wrote: {shippingRawHint}
         </p>
@@ -357,43 +331,49 @@ export default function OrgApplyForm({
           label={
             <>
               Pitch{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+              <span className="font-normal text-quiet">(optional)</span>
             </>
           }
           value={pitch}
           onChange={(e) => setPitch(e.target.value)}
           rows={4}
-          placeholder="Optional pitch message..."
+          placeholder="e.g. We host weekly mixers and can staff a table at the student center"
         />
       ) : null}
 
       <Button
         data-testid="org-apply-submit"
         type="submit"
-        disabled={!canSubmit}
+        size="field"
+        disabled={!handleNorm}
+        loading={apply.isPending}
+        loadingLabel="Submitting…"
         fullWidth
+        className="disabled:border-transparent disabled:bg-buzz-paper08 disabled:text-muted"
       >
-        {apply.isPending ? "Submitting…" : submitLabel}
+        {submitLabel}
       </Button>
+      {!handleNorm ? (
+        <p className="text-center text-xs text-quiet">
+          Enter an Instagram handle to submit.
+        </p>
+      ) : null}
 
-      <p className="text-center text-xs text-buzz-inkMuted">
-        Already connected Instagram?{" "}
-        <Link to={loginHref} className="font-semibold text-buzz-coral hover:underline">
-          Organization login
-        </Link>
-      </p>
+      <AuthLinkRow quiet="Already connected Instagram?">
+        <AuthArrowLink to={loginHref}>Organization login</AuthArrowLink>
+      </AuthLinkRow>
     </form>
   );
 }
 
 export function persistVerifyEmailHandoff(
-  result: { emailSent?: boolean },
+  result: { emailQueued?: boolean },
   eduEmail: string,
   extraState?: Record<string, unknown>,
 ) {
   sessionStorage.setItem(
     VERIFY_EMAIL_SENT_KEY,
-    result.emailSent === false ? "0" : "1",
+    result.emailQueued === false ? "0" : "1",
   );
   sessionStorage.setItem(VERIFY_EDU_EMAIL_KEY, eduEmail);
   if (extraState?.dropIntent) {
@@ -403,7 +383,7 @@ export function persistVerifyEmailHandoff(
 
 export function goToVerifyEmailWait(
   navigate: ReturnType<typeof useNavigate>,
-  result: { emailSent?: boolean },
+  result: { emailQueued?: boolean },
   eduEmail: string,
   extraState?: Record<string, unknown>,
 ) {
@@ -411,7 +391,7 @@ export function goToVerifyEmailWait(
   navigate("/onboarding/verify-email", {
     replace: true,
     state: {
-      emailSent: result.emailSent !== false,
+      emailQueued: result.emailQueued !== false,
       eduEmail,
       ...extraState,
     },

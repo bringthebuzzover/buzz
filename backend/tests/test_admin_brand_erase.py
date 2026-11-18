@@ -10,10 +10,11 @@ from sqlalchemy import select
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage, PortalRole
+from app.models.enums import ApplicationDecision, BrandStatus, PortalRole
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -24,15 +25,15 @@ from tests.conftest import (
 )
 
 
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
 async def _live_brand(db_session):
-    brand = await make_brand(db_session, company_email="acme@brand.test")
+    brand = await make_brand(
+        db_session,
+        company_email="acme@brand.test",
+        contact_name="Test Applicant",
+        marketing_budget="50k_100k",
+    )
     brand.instagram_handle = "acme"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(role=PortalRole.ORG))
     org = await make_org(db_session, org_user, org_name="Campus Club")
     app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
@@ -59,7 +60,7 @@ class TestAdminBrandErase:
         brand_user.token_version = 1
         await db_session.flush()
         hidden_before = drop.hidden_at
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/brands/{brand.id}/erase",
             json={"confirm": "acme@brand.test"},
@@ -68,12 +69,14 @@ class TestAdminBrandErase:
         assert res.status_code == 200, res.text
         data = res.json()["data"]
         assert data["status"] == "erased"
-        assert data["emailSent"] is True
+        assert data["emailQueued"] is True
 
         await db_session.refresh(brand)
         user = await db_session.get(User, brand.user_id)
         assert brand.status == BrandStatus.ERASED.value
         assert brand.brand_name == "Deleted brand"
+        assert brand.contact_name is None
+        assert brand.marketing_budget is None
         assert brand.instagram_handle is None
         assert brand.company_email.startswith("erased+")
         assert user is not None and user.status == "erased"
@@ -105,7 +108,7 @@ class TestAdminBrandErase:
 
     async def test_tools_409_after_erase(self, app_client: AsyncClient, db_session):
         brand, drop, _org_user, _app = await _live_brand(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         wiped = await app_client.post(
             f"/api/admin/brands/{brand.id}/erase",
             json={"confirm": "acme@brand.test"},
@@ -134,7 +137,7 @@ class TestAdminBrandErase:
 
     async def test_wrong_confirm_and_idempotent(self, app_client: AsyncClient, db_session):
         brand, _drop, _org_user, _app = await _live_brand(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         bad = await app_client.post(
             f"/api/admin/brands/{brand.id}/erase",
             json={"confirm": "wrong@x.test"},
@@ -153,7 +156,7 @@ class TestAdminBrandErase:
             headers=headers,
         )
         assert again.status_code == 200
-        assert again.json()["data"]["emailSent"] is False
+        assert again.json()["data"]["emailQueued"] is False
         assert await db_session.get(Brand, brand.id)
         assert await db_session.get(Drop, _drop.id)
 
@@ -181,7 +184,7 @@ class TestAdminBrandErase:
         erased_brand = await make_brand(db_session, company_email="gone@brand.test")
         erased_brand.status = BrandStatus.ERASED.value
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         all_res = await app_client.get("/api/admin/brands", headers=headers)
         ids = {row["id"] for row in all_res.json()["data"]}

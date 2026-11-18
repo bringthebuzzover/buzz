@@ -28,6 +28,8 @@ from app.services.drops import (
     apply_to_drop,
     drop_apply_eligibility,
 )
+from app.services.lifecycle import drop_stage
+from app.timeutils import as_utc
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +38,8 @@ def _pitch_clean(pitch: str | None) -> str | None:
     return pitch.strip() if pitch and pitch.strip() else None
 
 
-def _as_utc(value: datetime) -> datetime:
-    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-
-
 def _is_upcoming(drop: Drop, *, now: datetime) -> bool:
-    return now < _as_utc(drop.apply_open_at)
+    return now < as_utc(drop.apply_open_at)
 
 
 async def _accepted_count(db: AsyncSession, drop_id: uuid.UUID) -> int:
@@ -228,8 +226,7 @@ async def build_public_drop_detail(
         capacity_total=drop.capacity_total,
         apply_open_at=drop.apply_open_at,
         apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        stage=await drop_stage(db, drop),
         total_product_units=None,
         created_at=drop.created_at,
         accepted_count=accepted,

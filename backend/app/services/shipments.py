@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 from uuid import UUID
 
-from sqlalchemy import exists, or_, select
+from fastapi import BackgroundTasks
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 
@@ -14,8 +15,15 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandTrackerStage
+from app.models.enums import ApplicationDecision, OrgUserStatus
+from app.models.organization import Organization
 from app.models.shipment import CARRIERS, DropApplicationShipment
+from app.models.user import User
+from app.services.address import address_snapshot
+from app.services.drop_notices import notify_shipped
+from app.services.lifecycle import drop_running, require_drop, seat_is_live
+from app.services.seats import lock_drop
+from app.timeutils import utcnow
 
 _UPS_TRACK = "https://www.ups.com/track?tracknum="
 _FEDEX_TRACK = "https://www.fedex.com/fedextrack/?trknbr="
@@ -40,21 +48,46 @@ def track_url(carrier: str, tracking_number: str) -> str | None:
     return None
 
 
-def serialize_shipment(row: DropApplicationShipment) -> dict[str, Any]:
+def serialize_shipment(
+    row: DropApplicationShipment, *, include_destination: bool = True
+) -> dict[str, Any]:
     return {
         "id": row.id,
         "tracking_number": row.tracking_number,
         "carrier": row.carrier,
         "track_url": track_url(row.carrier, row.tracking_number),
+        "shipping_address_snapshot": (
+            row.shipping_address_snapshot if include_destination else None
+        ),
+        "shipping_address_captured_at": (
+            row.shipping_address_captured_at if include_destination else None
+        ),
     }
 
 
 async def shipments_by_application_ids(
-    db: AsyncSession, application_ids: list[UUID]
+    db: AsyncSession,
+    application_ids: list[UUID],
+    *,
+    brand_view: bool = False,
 ) -> dict[UUID, list[dict[str, Any]]]:
     out: dict[UUID, list[dict[str, Any]]] = {i: [] for i in application_ids}
     if not application_ids:
         return out
+    address_allowed_ids = None
+    if brand_view:
+        address_allowed_ids = set(
+            await db.scalars(
+                select(DropApplication.id)
+                .join(Organization, Organization.id == DropApplication.org_id)
+                .join(User, User.id == Organization.user_id)
+                .where(
+                    DropApplication.id.in_(application_ids),
+                    DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                    User.status != OrgUserStatus.ERASED.value,
+                )
+            )
+        )
     rows = (
         await db.scalars(
             select(DropApplicationShipment)
@@ -66,19 +99,23 @@ async def shipments_by_application_ids(
         )
     ).all()
     for row in rows:
-        out[row.application_id].append(serialize_shipment(row))
+        include_destination = (
+            address_allowed_ids is None or row.application_id in address_allowed_ids
+        )
+        out[row.application_id].append(
+            serialize_shipment(row, include_destination=include_destination)
+        )
     return out
 
 
-def awaiting_products_no_tracking_clause() -> tuple[ColumnElement[bool], ...]:
-    """Attention / KPI: awaiting products, and a seat is unshipped (or none)."""
-    accepted = ApplicationDecision.ACCEPTED.value
+def unshipped_live_seat_clause() -> tuple[ColumnElement[bool], ...]:
+    """Attention / KPI: an unwrapped drop with a live seat that has no shipment yet."""
     has_unshipped = exists(
         select(1)
         .select_from(DropApplication)
         .where(
             DropApplication.drop_id == Drop.id,
-            DropApplication.decision == accepted,
+            seat_is_live(),
             ~exists(
                 select(1)
                 .select_from(DropApplicationShipment)
@@ -86,36 +123,67 @@ def awaiting_products_no_tracking_clause() -> tuple[ColumnElement[bool], ...]:
             ),
         )
     )
-    no_accepted = ~exists(
-        select(1)
-        .select_from(DropApplication)
-        .where(
-            DropApplication.drop_id == Drop.id,
-            DropApplication.decision == accepted,
+    return (drop_running(), has_unshipped)
+
+
+async def _live_seat(db: AsyncSession, application_id: UUID, action: str) -> DropApplication:
+    """Lock the drop and reload its seat before checking a sent acceptance."""
+
+    application = await db.get(DropApplication, application_id)
+    if application is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    drop = await lock_drop(db, application.drop_id)
+    application = await db.scalar(
+        select(DropApplication)
+        .where(DropApplication.id == application_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if application is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    if (
+        application.decision != ApplicationDecision.ACCEPTED.value
+        or application.decision_sent_at is None
+    ):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            f"{action} only once the acceptance is sent.",
+            status_code=400,
         )
-    )
-    return (
-        Drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value,
-        or_(no_accepted, has_unshipped),
-    )
+    require_drop(drop)
+    return cast(DropApplication, application)
 
 
-async def add_shipment(
+async def _lock_org_for_seat(db: AsyncSession, application: DropApplication) -> Organization:
+    org = await db.scalar(
+        select(Organization)
+        .where(Organization.id == application.org_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    return org
+
+
+async def set_delivered(db: AsyncSession, application_id: UUID, delivered: bool) -> None:
+    """The org has the product (org "I got it", or BUZZ). Never a gate."""
+
+    application = await _live_seat(db, application_id, "Delivery can be marked")
+    if not delivered:
+        application.delivered_at = None
+    elif application.delivered_at is None:
+        application.delivered_at = utcnow()
+    await db.flush()
+
+
+async def _shipment_fields(
     db: AsyncSession,
     application_id: UUID,
     tracking_number: str,
     carrier: str | None,
-) -> dict[str, Any]:
-    application = await db.get(DropApplication, application_id)
-    if application is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
-    if application.decision != ApplicationDecision.ACCEPTED.value:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Tracking can only be added on an accepted organization.",
-            status_code=400,
-        )
-
+    shipment_id: UUID | None = None,
+) -> tuple[str, str]:
     cleaned = tracking_number.strip()
     if not cleaned:
         raise BuzzAPIException(
@@ -147,6 +215,7 @@ async def add_shipment(
         select(DropApplicationShipment.id).where(
             DropApplicationShipment.application_id == application_id,
             DropApplicationShipment.tracking_number == cleaned,
+            DropApplicationShipment.id != shipment_id,
         )
     )
     if existing is not None:
@@ -156,12 +225,52 @@ async def add_shipment(
             status_code=409,
         )
 
+    return cleaned, resolved
+
+
+async def add_shipment(
+    db: AsyncSession,
+    application_id: UUID,
+    tracking_number: str,
+    carrier: str | None,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, Any]:
+    application = await _live_seat(db, application_id, "Tracking can be added")
+    org = await _lock_org_for_seat(db, application)
+
+    cleaned, resolved = await _shipment_fields(db, application_id, tracking_number, carrier)
+    snapshot = address_snapshot(org)
+
     row = DropApplicationShipment(
         application_id=application_id,
         tracking_number=cleaned,
         carrier=resolved,
+        shipping_address_snapshot=snapshot,
+        shipping_address_captured_at=utcnow() if snapshot is not None else None,
     )
     db.add(row)
+    await db.flush()
+    shipment = serialize_shipment(row)
+    await notify_shipped(db, application, shipment, background_tasks=background_tasks)
+    return shipment
+
+
+async def update_shipment(
+    db: AsyncSession,
+    application_id: UUID,
+    shipment_id: UUID,
+    tracking_number: str,
+    carrier: str | None,
+) -> dict[str, Any]:
+    application = await _live_seat(db, application_id, "Tracking can be edited")
+    await _lock_org_for_seat(db, application)
+    row = await db.get(DropApplicationShipment, shipment_id)
+    if row is None or row.application_id != application_id:
+        raise BuzzAPIException(errors.NOT_FOUND, "Shipment not found.", status_code=404)
+    row.tracking_number, row.carrier = await _shipment_fields(
+        db, application_id, tracking_number, carrier, shipment_id
+    )
     await db.flush()
     return serialize_shipment(row)
 
@@ -169,9 +278,8 @@ async def add_shipment(
 async def delete_shipment(
     db: AsyncSession, application_id: UUID, shipment_id: UUID
 ) -> dict[str, Any]:
-    application = await db.get(DropApplication, application_id)
-    if application is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    application = await _live_seat(db, application_id, "Tracking can be deleted")
+    await _lock_org_for_seat(db, application)
     row = await db.get(DropApplicationShipment, shipment_id)
     if row is None or row.application_id != application_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Shipment not found.", status_code=404)

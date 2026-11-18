@@ -3,22 +3,20 @@
  * (not /brand/drops/:id).
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
+import { Route, Routes, useLocation } from "react-router-dom";
+import { ApiError } from "../../api/errors";
 
 const mockMutate = jest.fn();
+const mockMutation = {
+  mutate: (...args: unknown[]) => mockMutate(...args),
+  isPending: false,
+  isError: false,
+  error: null as unknown,
+};
 
 jest.mock("../../api/hooks/useBrandHooks", () => ({
-  useCreateBrandDropRequest: () => ({
-    mutate: mockMutate,
-    isPending: false,
-    isError: false,
-    error: null,
-  }),
+  useCreateBrandDropRequest: () => mockMutation,
 }));
 
 import BrandRequestDropPage from "./BrandRequestDropPage";
@@ -35,56 +33,51 @@ function LocationProbe() {
 
 describe("BrandRequestDropPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockMutate.mockReset();
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
+    mockMutation.isPending = false;
+    mockMutation.isError = false;
+    mockMutation.error = null;
   });
 
   function renderPage() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/brand/requests/new"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route path="/brand/requests/new" element={<BrandRequestDropPage />} />
-              <Route
-                path="/brand/dashboard"
-                element={
-                  <div>
-                    Dashboard
-                    <LocationProbe />
-                  </div>
-                }
-              />
-              <Route
-                path="/brand/drops/:dropId"
-                element={
-                  <div>
-                    Drop detail
-                    <LocationProbe />
-                  </div>
-                }
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(
+      <Routes>
+        <Route path="/brand/requests/new" element={<BrandRequestDropPage />} />
+        <Route
+          path="/brand/dashboard"
+          element={
+            <div>
+              Dashboard
+              <LocationProbe />
+            </div>
+          }
+        />
+        <Route
+          path="/brand/drops/:dropId"
+          element={
+            <div>
+              Drop detail
+              <LocationProbe />
+            </div>
+          }
+        />
+      </Routes>,
+      { route: "/brand/requests/new" },
+    ).container;
   }
+
+  it("keeps the requested live date as a single-date picker", () => {
+    renderPage();
+
+    expect(container.querySelector("#targetDate-trigger")).toBeTruthy();
+    expect(container.querySelector("#targetDate-end-trigger")).toBeNull();
+    expect(container.querySelector('[name="targetDate"]')).toHaveProperty(
+      "type",
+      "date",
+    );
+  });
 
   it("submits message/notes to drop-requests and does not navigate to /brand/drops/", async () => {
     mockMutate.mockImplementation((_body, opts) => {
@@ -103,16 +96,21 @@ describe("BrandRequestDropPage", () => {
     renderPage();
 
     const message = container.querySelector("#message") as HTMLTextAreaElement;
+    const product = container.querySelector("#product") as HTMLTextAreaElement;
+    const title = container.querySelector("#title") as HTMLInputElement;
     const notes = container.querySelector("#notes") as HTMLTextAreaElement;
     const form = container.querySelector("form") as HTMLFormElement;
     expect(message).toBeTruthy();
+    expect(product).toBeTruthy();
     expect(notes).toBeTruthy();
+    expect(container.textContent).toContain("What happens next");
+    expect(container.textContent).not.toContain("Live preview");
 
     await act(async () => {
       message.value = "Spring campus push";
-      message.dispatchEvent(new Event("input", { bubbles: true }));
+      product.value = "Cans of cold brew";
+      title.value = "Spring push";
       notes.value = "Prefer southeast";
-      notes.dispatchEvent(new Event("input", { bubbles: true }));
       form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       await Promise.resolve();
     });
@@ -120,6 +118,8 @@ describe("BrandRequestDropPage", () => {
     expect(mockMutate).toHaveBeenCalledTimes(1);
     expect(mockMutate.mock.calls[0][0]).toEqual({
       message: "Spring campus push",
+      product: "Cans of cold brew",
+      title: "Spring push",
       notes: "Prefer southeast",
     });
 
@@ -130,5 +130,48 @@ describe("BrandRequestDropPage", () => {
     const locationEl = container.querySelector('[data-testid="location"]');
     expect(locationEl?.textContent).toContain("/brand/dashboard");
     expect(locationEl?.textContent).not.toContain("/brand/drops/");
+  });
+
+  it("rejects a hashtag that is not letters, numbers, or underscores", async () => {
+    renderPage();
+    const message = container.querySelector("#message") as HTMLTextAreaElement;
+    const product = container.querySelector("#product") as HTMLTextAreaElement;
+    const hashtag = container.querySelector("#campaignHashtag") as HTMLInputElement;
+    const form = container.querySelector("form") as HTMLFormElement;
+
+    await act(async () => {
+      message.value = "Spring campus push";
+      product.value = "Cans of cold brew";
+      hashtag.value = "fall brew!";
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(container.textContent).toContain(
+      "Use 1–100 letters, numbers, or underscores",
+    );
+    expect(container.textContent).toContain("Dates are UTC.");
+  });
+
+  it("shows a field error from server validation instead of the envelope message", () => {
+    mockMutation.isError = true;
+    mockMutation.error = new ApiError(
+      "VALIDATION_ERROR",
+      "Request validation failed.",
+      422,
+      {
+        errors: [
+          {
+            loc: ["body", "campaignHashtag"],
+            msg: "campaignHashtag must be 1-100 letters, numbers, or underscores",
+          },
+        ],
+      },
+    );
+    renderPage();
+    expect(container.textContent).toContain(
+      "campaignHashtag must be 1-100 letters, numbers, or underscores",
+    );
+    expect(container.textContent).not.toContain("Request validation failed.");
   });
 });

@@ -4,7 +4,7 @@
 drop; PATCH semantics overwrite the existing row rather than spawning a
 second.
 
-``reminder_minutes`` is a plain ``Integer``. PRODUCT.md restricts the value
+``reminder_minutes`` is a plain ``Integer``. buzz-ops product/PRODUCT.md restricts the value
 to ``{5, 15, 60}`` but that lives in the API layer; a PG enum is overkill
 for a numeric whitelist that may grow.
 """

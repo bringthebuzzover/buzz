@@ -1,10 +1,13 @@
 /**
  * Copyable `{origin}/d/{id}` for admin ops paste and brand portal (PRODUCT §6.3.4).
- * Brands get the path as text only — no intent list.
+ * Brands get the path as text only — no intent list. Pen: the URL in a
+ * field-style box with a ghost copy button beside it.
  */
 import { useState } from "react";
 import { Button } from "../forms/controls";
 import { publicDropAbsUrl } from "../../utils/oauthNext";
+import { SURFACE } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 export default function CopyPublicDropUrl({
   dropId,
@@ -27,17 +30,19 @@ export default function CopyPublicDropUrl({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-3">
       <code
         data-testid={`${testId}-value`}
-        className="max-w-full truncate rounded-buzzControl border border-buzz-lineMid bg-buzz-cream px-2 py-1 text-xs font-medium text-buzz-ink"
+        className={cn(
+          SURFACE.inset,
+          "flex h-12 min-w-0 flex-1 basis-64 items-center truncate px-4 font-sans text-sm text-muted",
+        )}
       >
         {url}
       </code>
       <Button
         type="button"
-        variant="outline"
-        size="compact"
+        variant="ghost"
         data-testid={testId}
         onClick={() => void onCopy()}
       >

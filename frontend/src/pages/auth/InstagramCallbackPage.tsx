@@ -7,7 +7,11 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { setAccessToken, clearInstagramReconnectLatch } from "../../api/auth";
+import {
+  authUserFromWire,
+  setAccessToken,
+  clearInstagramReconnectLatch,
+} from "../../api/auth";
 import { API_BASE_URL } from "../../api/config";
 import {
   INSTAGRAM_CALLBACK_MISSING,
@@ -19,7 +23,8 @@ import AuthShell from "../../components/site/AuthShell";
 import { LinkButton } from "../../components/forms/controls";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
-import { allowlistedOAuthNext } from "../../utils/oauthNext";
+import { pathForUser } from "../../utils/landing";
+import { allowlistedOAuthNext, allowlistedPrefill } from "../../utils/oauthNext";
 
 type CallbackState =
   | { kind: "exchanging" }
@@ -58,6 +63,10 @@ export default function InstagramCallbackPage() {
             window.location.href = "/onboarding/denied";
             return;
           }
+          if (errCode === "INSTAGRAM_PERSONAL_ACCOUNT") {
+            window.location.href = "/org/apply?error=personal_account";
+            return;
+          }
           setState({
             kind: "error",
             ...instagramCallbackFailureCopy(
@@ -73,14 +82,17 @@ export default function InstagramCallbackPage() {
         // Backend TokenResponse serializes snake_case (access_token); accept
         // camelCase too in case the contract is camelized later.
         const token = body.data?.access_token ?? body.data?.accessToken;
-        if (token) {
-          setAccessToken(token);
+        if (!token || !body.data?.user) {
+          setState({ kind: "error", ...INSTAGRAM_CALLBACK_MISSING });
+          return;
         }
+        setAccessToken(token);
         clearInstagramReconnectLatch();
         const next = allowlistedOAuthNext(
           typeof body.data?.next === "string" ? body.data.next : null,
         );
-        window.location.href = next ?? "/org/browse";
+        const user = authUserFromWire(body.data.user);
+        window.location.href = pathForUser(user, next, allowlistedPrefill(body.data?.prefill));
       } catch {
         setState({ kind: "error", ...INSTAGRAM_CALLBACK_OFFLINE });
       }

@@ -11,6 +11,7 @@ from app.models.admin_audit_event import AdminAuditEvent
 from app.models.application import DropApplication
 from app.models.base import Base
 from app.models.brand import Brand
+from app.models.brand_ig_change_request import BrandIgChangeRequest
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
 from app.models.drop_apply_intent import DropApplyIntent
@@ -20,6 +21,7 @@ from app.models.notify_me import NotifyMe
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.models.org_connect_token import OrgConnectToken
 from app.models.org_ig_change_request import OrgIgChangeRequest
+from app.models.org_shipping_change_request import OrgShippingChangeRequest
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.post_link import PostCampaignLink
@@ -34,6 +36,7 @@ __all__ = [
     "AdminAuditEvent",
     "Base",
     "Brand",
+    "BrandIgChangeRequest",
     "BrandInviteToken",
     "Drop",
     "DropApplication",
@@ -47,6 +50,7 @@ __all__ = [
     "OrgApplyPrefill",
     "OrgConnectToken",
     "OrgIgChangeRequest",
+    "OrgShippingChangeRequest",
     "Organization",
     "PasswordResetToken",
     "PostCampaignLink",

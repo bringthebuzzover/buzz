@@ -7,7 +7,7 @@ future model edit that silently drops one of these constraints fails
 loudly in CI.
 
 The most important assertion is ``test_one_post_one_campaign``: the
-PRODUCT.md §4.2 invariant "one post can belong to at most one campaign"
+buzz-ops product/PRODUCT.md §4.2 invariant "one post can belong to at most one campaign"
 is encoded as ``UNIQUE(post_id)`` on ``post_campaign_links`` and is the
 hard rule the entire attribution model depends on.
 
@@ -20,7 +20,7 @@ the test's own assertions and rolls back fully at teardown.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import text
@@ -33,6 +33,7 @@ from app.models import (
     DropApplication,
     NotifyMe,
     Organization,
+    OrgIgChangeRequest,
     PostCampaignLink,
     PostCampaignSuggestion,
     SocialPost,
@@ -41,7 +42,6 @@ from app.models import (
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -50,10 +50,7 @@ from app.models.enums import (
     SocialMediaType,
     SuggestionMatchReason,
 )
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.timeutils import utcnow
 
 
 async def _seed_org_brand_drop_post(
@@ -95,10 +92,8 @@ async def _seed_org_brand_drop_post(
         image="https://example.com/img.png",
         location="SF",
         capacity_total=5,
-        apply_open_at=_now() - timedelta(days=1),
-        apply_close_at=_now() + timedelta(days=1),
-        manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
+        apply_open_at=utcnow() - timedelta(days=1),
+        apply_close_at=utcnow() + timedelta(days=1),
     )
     session.add(drop)
     await session.flush()
@@ -116,7 +111,7 @@ async def _seed_org_brand_drop_post(
         caption="x",
         media_type=SocialMediaType.IMAGE.value,
         media_product_type=SocialMediaProductType.FEED.value,
-        posted_at=_now(),
+        posted_at=utcnow(),
     )
     session.add_all([app, post])
     await session.flush()
@@ -125,7 +120,7 @@ async def _seed_org_brand_drop_post(
 
 @pytest.mark.asyncio
 async def test_one_post_one_campaign(db_session: AsyncSession) -> None:
-    """PRODUCT.md §4.2: a single post can belong to at most one campaign.
+    """buzz-ops product/PRODUCT.md §4.2: a single post can belong to at most one campaign.
 
     Enforced by ``UNIQUE(post_id)`` on ``post_campaign_links``. This is the
     most important constraint in the schema and the reason every reattribution
@@ -326,6 +321,91 @@ async def test_users_unique_instagram_user_id(db_session: AsyncSession) -> None:
         await db_session.flush()
 
 
+async def _org_with_open_ticket(db_session: AsyncSession, suffix: str) -> tuple[Organization, User]:
+    """An org with one ``awaiting_connect`` account-switch ticket."""
+
+    user = User(
+        portal_role=PortalRole.ORG.value,
+        status=OrgUserStatus.ACTIVE.value,
+        instagram_username=f"oneopen{suffix}",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    org = Organization(user_id=user.id, org_name=f"One Open {suffix}", university="Test U")
+    db_session.add(org)
+    await db_session.flush()
+    db_session.add(
+        OrgIgChangeRequest(
+            id=uuid.uuid4(),
+            org_id=org.id,
+            user_id=user.id,
+            kind="account_switch",
+            current_handle=f"oneopen{suffix}",
+            requested_handle=f"newclub{suffix}",
+            reason="Switch to the new organization account.",
+            status="awaiting_connect",
+        )
+    )
+    await db_session.flush()
+    return org, user
+
+
+def _open_ticket(org: Organization, user: User, status: str, requested: str) -> OrgIgChangeRequest:
+    return OrgIgChangeRequest(
+        id=uuid.uuid4(),
+        org_id=org.id,
+        user_id=user.id,
+        kind="account_switch",
+        current_handle="oneopen",
+        requested_handle=requested,
+        reason="A second open ticket for the same organization.",
+        status=status,
+    )
+
+
+@pytest.mark.asyncio
+async def test_org_ig_change_requests_one_open_ticket_per_org(
+    db_session: AsyncSession,
+) -> None:
+    """At most one ``awaiting_connect`` ticket per org.
+
+    The original partial unique index only covered ``status = 'pending'``.
+    Because an approved switch now waits on ``awaiting_connect`` while the user
+    stays ``active``, that predicate left the second open state unguarded:
+    approving one switch freed the ``pending`` slot. This is the DB invariant
+    behind the code guard in ``approve_request``.
+    """
+
+    org, user = await _org_with_open_ticket(db_session, "a")
+    db_session.add(_open_ticket(org, user, "awaiting_connect", "stackedclub"))
+    with pytest.raises(IntegrityError):
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_org_ig_change_requests_pending_blocked_by_open_reconnect(
+    db_session: AsyncSession,
+) -> None:
+    """An open reconnect also blocks a new ``pending`` ticket for the org."""
+
+    org, user = await _org_with_open_ticket(db_session, "b")
+    db_session.add(_open_ticket(org, user, "pending", "secondclub"))
+    with pytest.raises(IntegrityError):
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_org_ig_change_requests_decided_tickets_coexist(
+    db_session: AsyncSession,
+) -> None:
+    """Decided tickets are outside the partial index and may repeat."""
+
+    org, user = await _org_with_open_ticket(db_session, "c")
+    db_session.add(_open_ticket(org, user, "denied", "deniedclub"))
+    db_session.add(_open_ticket(org, user, "approved", "approvedclub"))
+    await db_session.flush()
+
+
 @pytest.mark.asyncio
 async def test_users_unique_edu_email_allows_multiple_nulls(
     db_session: AsyncSession,
@@ -389,7 +469,7 @@ async def test_social_posts_unique_per_org_platform_external_id(
             caption="x",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     await db_session.flush()
@@ -403,7 +483,7 @@ async def test_social_posts_unique_per_org_platform_external_id(
             caption="x",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     with pytest.raises(IntegrityError):
@@ -428,7 +508,7 @@ async def test_social_posts_same_external_id_allowed_across_orgs(
             caption="a",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     db_session.add(
@@ -440,7 +520,7 @@ async def test_social_posts_same_external_id_allowed_across_orgs(
             caption="b",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     await db_session.flush()  # no IntegrityError

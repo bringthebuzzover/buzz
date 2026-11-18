@@ -7,7 +7,9 @@ from sqlalchemy import select
 
 from app.models.drop import Drop
 from app.models.enums import PortalRole
+from app.timeutils import utcnow
 from tests.conftest import (
+    admin_headers,
     make_brand,
     make_drop,
     make_user,
@@ -29,11 +31,6 @@ async def _brand_ctx(db_session):
     return brand_user, brand, headers
 
 
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
 def _brand_patch_url(drop_id) -> str:
     return f"/api/brands/me/drops/{drop_id}"
 
@@ -42,7 +39,7 @@ async def _set_brand_can_edit(app_client: AsyncClient, db_session, drop_id, valu
     return await app_client.patch(
         f"/api/admin/drops/{drop_id}",
         json={"brandCanEditCreative": value},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
 
 
@@ -77,7 +74,7 @@ class TestAdminBrandCanEditCreativeFlag:
     async def test_null_422_then_true_then_false(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         null = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
@@ -212,7 +209,7 @@ class TestBrandPatchCreative:
         )
         assert brand_ok.status_code == 200, brand_ok.text
 
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         admin_ok = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"title": "Admin After Brand", "image": HTTPS_IMAGE_2},
@@ -238,3 +235,15 @@ class TestBrandPatchCreative:
         assert CREATIVE_FORBIDDEN in res.json()["error"]["message"]
         await db_session.refresh(drop)
         assert drop.title == "Stay"
+
+
+async def test_brand_cannot_edit_after_wrap(app_client: AsyncClient, db_session):
+    """After wrap-up only BUZZ edits the copy (the matrix)."""
+
+    _, brand, headers = await _brand_ctx(db_session)
+    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
+    drop.brand_can_edit_creative = True
+    await db_session.flush()
+    res = await app_client.patch(_brand_patch_url(drop.id), json={"title": "Late"}, headers=headers)
+    assert res.status_code == 409
+    assert res.json()["error"]["code"] == "DROP_WRAPPED"

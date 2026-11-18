@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy import func, select
 
 from app.models.notify_me import NotifyMe
+from app.timeutils import utcnow
 from tests.conftest import (
     make_brand,
     make_drop,
@@ -90,12 +91,11 @@ async def test_set_notify_unknown_drop_404(app_client: AsyncClient, db_session) 
 
 
 async def test_set_notify_rejects_finished_drop(app_client: AsyncClient, db_session) -> None:
-    from app.models.enums import BrandTrackerStage
 
     user = await persist(db_session, make_user())
     await make_org(db_session, user)
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
     headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
     resp = await app_client.post(
         f"/api/drops/{drop.id}/notify", headers=headers, json={"reminderMinutes": 15}
@@ -122,12 +122,11 @@ async def test_set_notify_rejects_unapproved_brand(app_client: AsyncClient, db_s
 
 
 async def test_clear_notify_rejects_finished_drop(app_client: AsyncClient, db_session) -> None:
-    from app.models.enums import BrandTrackerStage
 
     user = await persist(db_session, make_user())
     await make_org(db_session, user)
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
     headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
     resp = await app_client.delete(f"/api/drops/{drop.id}/notify", headers=headers)
     assert resp.status_code == 400

@@ -10,8 +10,8 @@
  * Erase (PRODUCT §3.1.2) is confirm-by-IG-handle; confirmation email is
  * best-effort after wipe.
  *
- * Approve requires tester-invite confirmation (LAUNCH.md Phase A) and moves the
- * org to pending_instagram until they Connect.
+ * Instagram-first applications activate on approval. Legacy unbound
+ * applications still require tester confirmation and Connect.
  */
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -24,6 +24,7 @@ import {
   useDenyOrg,
   useEraseOrg,
   useResendOrgConnect,
+  useSendOrgConnectLink,
   useSendOrgEmail,
   useUndenyOrg,
   useViewAs,
@@ -32,6 +33,8 @@ import { ApiError } from "../../api/client";
 import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
 import {
   ActionButton,
+  AdminBackLink,
+  entityLinkClass,
   ErrorNote,
   Field,
   FieldGrid,
@@ -50,9 +53,8 @@ import {
   formatElapsed,
 } from "../../components/admin/labels";
 import { Checkbox } from "../../components/forms/Checkbox";
-import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
-import { STACK } from "../../theme/tokens";
+import { SuccessBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { cn } from "../../theme/cn";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
 
@@ -70,15 +72,14 @@ export default function AdminOrgDetailPage() {
   const deny = useDenyOrg();
   const undeny = useUndenyOrg();
   const resendConnect = useResendOrgConnect();
+  const sendConnectLink = useSendOrgConnectLink();
   const ackMismatch = useAckIgBindMismatch();
   const clearIg = useClearOrgInstagramToken();
   const erase = useEraseOrg();
   const sendEmail = useSendOrgEmail();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
-  const [eraseError, setEraseError] = useState<string | null>(null);
   const [eraseConfirmOpen, setEraseConfirmOpen] = useState(false);
-  const [eraseTyped, setEraseTyped] = useState("");
   const [testerInviteConfirmed, setTesterInviteConfirmed] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -93,6 +94,7 @@ export default function AdminOrgDetailPage() {
     clearIg.isPending ||
     erase.isPending ||
     resendConnect.isPending ||
+    sendConnectLink.isPending ||
     ackMismatch.isPending;
   const canWriteEmail = Boolean(data?.eduEmail) && !erased;
   const tokenExpired =
@@ -102,6 +104,7 @@ export default function AdminOrgDetailPage() {
   const hasIgToken =
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined;
+  const alreadyConnected = Boolean(data?.instagramHandleConfirmed && hasIgToken);
   const canErase = Boolean(data?.instagramHandle) && !erased;
   const liveHandle =
     data?.instagramUsername?.replace(/^@/, "") ||
@@ -123,6 +126,7 @@ export default function AdminOrgDetailPage() {
   const mismatchOpen = Boolean(
     data?.igBindMismatchedAt && !data.igBindMismatchAckedAt,
   );
+  const reconnectMismatch = Boolean(mismatchOpen && data?.instagramReconnectRequired);
   const liveRenamedSinceMismatch = Boolean(
     mismatchOpen &&
       graphAtMismatch &&
@@ -140,12 +144,16 @@ export default function AdminOrgDetailPage() {
         testerInviteConfirmed,
       });
       setTesterInviteConfirmed(false);
-      setActionNotice("Approved — organization moved to awaiting Instagram connect.");
+      setActionNotice(
+        alreadyConnected
+          ? "Approved — organization is active."
+          : "Approved — organization moved to awaiting Instagram connect.",
+      );
     } catch (err) {
       setActionError(
         err instanceof ApiError
           ? err.message
-          : "Approve failed. Confirm the tester invite checkbox and try again.",
+          : "Approve failed. Please try again.",
       );
     }
   }
@@ -156,12 +164,30 @@ export default function AdminOrgDetailPage() {
     setActionNotice(null);
     try {
       await resendConnect.mutateAsync(data.orgId);
-      setActionNotice("Connect Instagram email re-sent.");
+      setActionNotice("Connect Instagram email queued.");
     } catch (err) {
       setActionError(
         err instanceof ApiError
           ? err.message
           : "Could not resend the connect email.",
+      );
+    }
+  }
+
+  async function onSendConnectLink() {
+    if (!data?.orgId) return;
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      await sendConnectLink.mutateAsync(data.orgId);
+      setActionNotice(
+        "Connect Instagram email queued. They stay awaiting approval until they connect and you approve.",
+      );
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not send the Connect Instagram email.",
       );
     }
   }
@@ -183,57 +209,33 @@ export default function AdminOrgDetailPage() {
   }
 
   function openEraseConfirm() {
-    setEraseError(null);
     setEraseNotice(null);
-    setEraseTyped("");
     setEraseConfirmOpen(true);
   }
 
-  function cancelEraseConfirm() {
-    setEraseConfirmOpen(false);
-    setEraseTyped("");
-    setEraseError(null);
-  }
-
-  async function onErase() {
+  async function onErase(typed: string) {
     if (!data?.instagramHandle) return;
-    setEraseError(null);
     setEraseNotice(null);
-    try {
-      const result = await erase.mutateAsync({
-        userId: data.userId,
-        confirm: eraseTyped,
-      });
-      setEraseConfirmOpen(false);
-      setEraseTyped("");
-      if (result.emailSent) {
-        setEraseNotice(
-          result.emailToDomain
-            ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
-            : "Account erased. Confirmation email sent.",
-        );
-      } else {
-        setEraseNotice(
-          "Account erased. No confirmation email was sent — notify the requester manually if needed.",
-        );
-      }
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setEraseError(err.message);
-      } else {
-        setEraseError("Erase failed. Reload and try again.");
-      }
+    const result = await erase.mutateAsync({
+      userId: data.userId,
+      confirm: typed,
+    });
+    if (result.emailQueued) {
+      setEraseNotice(
+        result.emailToDomain
+          ? `Account erased. Confirmation email queued (…@${result.emailToDomain}).`
+          : "Account erased. Confirmation email queued.",
+      );
+    } else {
+      setEraseNotice(
+        "Account erased. No confirmation email was queued — notify the requester manually if needed.",
+      );
     }
   }
 
   return (
     <div>
-      <Link
-        to="/admin/orgs"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All organizations
-      </Link>
+      <AdminBackLink to="/admin/orgs">All organizations</AdminBackLink>
 
       <QueryState
         isPending={org.isPending}
@@ -265,13 +267,15 @@ export default function AdminOrgDetailPage() {
             subtitle={data.university ?? undefined}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <StatusPill status={data.status} />
+                <StatusPill
+                  status={data.instagramReconnectRequired ? "awaiting_connect" : data.status}
+                />
                 {!erased && data.status === "pending_approval" && data.orgId && (
                   <>
                     <ActionButton
                       variant="primary"
                       testId="approve-org"
-                      disabled={busy || !testerInviteConfirmed}
+                      disabled={busy || (!alreadyConnected && !testerInviteConfirmed)}
                       onClick={() => void onApprove()}
                     >
                       Approve
@@ -286,13 +290,22 @@ export default function AdminOrgDetailPage() {
                     </ActionButton>
                   </>
                 )}
-                {!erased && data.status === "pending_instagram" && data.orgId && (
+                {!erased && data.instagramReconnectRequired && data.orgId && (
                   <ActionButton
                     testId="resend-connect"
                     disabled={busy}
                     onClick={() => void onResendConnect()}
                   >
                     Resend connect email
+                  </ActionButton>
+                )}
+                {!erased && data.instagramConnectRequired && data.orgId && (
+                  <ActionButton
+                    testId="send-connect-link"
+                    disabled={busy}
+                    onClick={() => void onSendConnectLink()}
+                  >
+                    Send Connect link
                   </ActionButton>
                 )}
                 {!erased && data.status === "denied" && data.orgId && (
@@ -350,48 +363,25 @@ export default function AdminOrgDetailPage() {
           />
 
           {eraseConfirmOpen && canErase && connectedHandle && (
-            <Modal
-              onClose={cancelEraseConfirm}
+            <ConfirmDialog
               title="Erase this organization"
               description="Removes login, contact details, and Instagram post content. Campaign metrics stay frozen for the brand. Type the Instagram handle to confirm."
-            >
-              <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
-                {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
-                <TextField
-                  id="erase-org-confirm"
-                  data-testid="erase-org-confirm"
-                  label={`Type ${connectedHandle} exactly`}
-                  size="compact"
-                  value={eraseTyped}
-                  autoComplete="off"
-                  spellCheck={false}
-                  onChange={(e) => setEraseTyped(e.target.value)}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    data-testid="erase-org-cancel"
-                    disabled={erase.isPending}
-                    onClick={cancelEraseConfirm}
-                  >
-                    Cancel
-                  </Button>
-                  <ActionButton
-                    variant="danger"
-                    testId="erase-org-submit"
-                    disabled={
-                      busy ||
-                      !confirmHandleMatches(eraseTyped, data.instagramHandle ?? "")
-                    }
-                    onClick={() => void onErase()}
-                  >
-                    {erase.isPending ? "Erasing…" : "Erase account"}
-                  </ActionButton>
-                </div>
-              </div>
-            </Modal>
+              expected={connectedHandle}
+              inputLabel={`Type ${connectedHandle} exactly`}
+              matches={(typed) =>
+                confirmHandleMatches(typed, data.instagramHandle ?? "")
+              }
+              fallbackError="Erase failed. Reload and try again."
+              destructive
+              confirmLabel="Erase account"
+              pendingLabel="Erasing…"
+              pending={erase.isPending}
+              inputTestId="erase-org-confirm"
+              cancelTestId="erase-org-cancel"
+              submitTestId="erase-org-submit"
+              onConfirm={onErase}
+              onClose={() => setEraseConfirmOpen(false)}
+            />
           )}
 
           {composeOpen && canWriteEmail && data.eduEmail && (
@@ -406,7 +396,7 @@ export default function AdminOrgDetailPage() {
                   subject,
                   body,
                 });
-                setActionNotice("Email sent.");
+                setActionNotice("Email queued.");
               }}
             />
           )}
@@ -415,8 +405,8 @@ export default function AdminOrgDetailPage() {
             <ErrorNote>
               Pending Instagram identity request.{" "}
               <Link
-                to={`/admin/ig-changes/${data.pendingIgChangeRequestId}`}
-                className="font-bold text-buzz-coral hover:underline"
+                to={`/admin/changes/ig/${data.pendingIgChangeRequestId}`}
+                className="text-accent hover:underline"
               >
                 Review
               </Link>
@@ -443,35 +433,74 @@ export default function AdminOrgDetailPage() {
             </ErrorNote>
           )}
 
-          {!erased && data.status === "pending_approval" && claimedHandle && (
-            <Panel title="Before you approve">
-              <div className="px-4 py-4">
-                <Checkbox
-                  checked={testerInviteConfirmed}
-                  onChange={(e) => setTesterInviteConfirmed(e.target.checked)}
-                  data-testid="tester-invite-confirmed"
-                  label={
+          {!erased &&
+            data.status === "pending_approval" &&
+            !alreadyConnected &&
+            (data.instagramConnectRequired || claimedHandle) && (
+              <Panel title="Before you approve">
+                <div className="space-y-3 px-4 py-4">
+                  {data.instagramConnectRequired ? (
                     <>
-                      I added {claimedHandle} as an Instagram Tester in Meta App
-                      roles.
+                      <p className="text-sm font-medium text-muted">
+                        This organization has never connected Instagram, so
+                        approval is blocked — it has to connect first. Send it a
+                        Connect link; once it connects it stays awaiting approval
+                        until you approve it here.
+                      </p>
+                      <ActionButton
+                        testId="send-connect-link-panel"
+                        disabled={busy}
+                        onClick={() => void onSendConnectLink()}
+                      >
+                        Send Connect link
+                      </ActionButton>
                     </>
-                  }
-                />
-              </div>
-            </Panel>
-          )}
+                  ) : (
+                    <Checkbox
+                      checked={testerInviteConfirmed}
+                      onChange={(e) => setTesterInviteConfirmed(e.target.checked)}
+                      data-testid="tester-invite-confirmed"
+                      label={
+                        <>
+                          I added {claimedHandle} as an Instagram Tester in Meta
+                          App roles.
+                        </>
+                      }
+                    />
+                  )}
+                </div>
+              </Panel>
+            )}
 
           {!erased && mismatchOpen && (
             <Panel title="Instagram bind mismatch">
               <div className="space-y-3 px-4 py-4">
-                <p className="text-sm font-medium text-buzz-inkMuted">
-                  This organization connected{" "}
-                  {mismatchConnected ?? "a different @"} after applying as{" "}
-                  {claimedHandle ?? "another handle"}
-                  {liveRenamedSinceMismatch
-                    ? `. Live handle is now ${connectedHandle}.`
-                    : "."}{" "}
-                  Portal access is already open. Ack once you have looked.
+                <p className="text-sm font-medium text-muted">
+                  {reconnectMismatch ? (
+                    <>
+                      While finishing an approved account switch, this
+                      organization tried to connect{" "}
+                      {mismatchConnected ?? "a different @"} instead of{" "}
+                      {claimedHandle ?? "the approved handle"}
+                      {liveRenamedSinceMismatch
+                        ? `. Live handle is now ${connectedHandle}.`
+                        : "."}{" "}
+                      The bind was refused — no credentials were saved and
+                      portal access stays closed until they connect the approved
+                      handle. Resend the connect email if they need another
+                      link. Ack once you have looked.
+                    </>
+                  ) : (
+                    <>
+                      This organization connected{" "}
+                      {mismatchConnected ?? "a different @"} after applying as{" "}
+                      {claimedHandle ?? "another handle"}
+                      {liveRenamedSinceMismatch
+                        ? `. Live handle is now ${connectedHandle}.`
+                        : "."}{" "}
+                      Portal access is already open. Ack once you have looked.
+                    </>
+                  )}
                 </p>
                 <ActionButton
                   testId="ack-ig-bind-mismatch"
@@ -488,12 +517,12 @@ export default function AdminOrgDetailPage() {
             <FieldGrid>
               <Field label="Claimed handle">
                 {claimedBare && claimedProfileUrl ? (
-                  <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
+                  <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-primary">
                     <a
                       href={claimedProfileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-buzz-coral hover:underline"
+                      className={cn("hover:underline", entityLinkClass)}
                     >
                       @{claimedBare}
                     </a>
@@ -511,7 +540,7 @@ export default function AdminOrgDetailPage() {
                     href={igProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                    className={entityLinkClass}
                   >
                     {connectedHandle}
                   </a>
@@ -533,13 +562,13 @@ export default function AdminOrgDetailPage() {
               <Field label="Contact">{data.contactName ?? "—"}</Field>
               <Field label="Delivery address">
                 {erased ? (
-                  <span className="text-buzz-inkMuted">
+                  <span className="text-muted">
                     Shipping details removed
                   </span>
                 ) : (
                   data.deliveryAddress ?? (
                     <span className="text-buzz-warn">
-                      Not set — nowhere to ship product
+                      Address pending
                     </span>
                   )
                 )}
@@ -590,7 +619,7 @@ export default function AdminOrgDetailPage() {
           </Panel>
 
           <Panel title="Activity">
-            <FieldGrid>
+            <FieldGrid columns={5}>
               <Field label="Applied">{data.applications.applied}</Field>
               <Field label="Accepted">{data.applications.accepted}</Field>
               <Field label="Denied">{data.applications.denied}</Field>

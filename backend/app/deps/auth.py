@@ -1,4 +1,4 @@
-"""FastAPI auth dependencies (architecture.md §5.4).
+"""FastAPI auth dependencies (buzz-ops engineering/architecture.md §5.4).
 
 Three independent, composable gates:
 
@@ -241,6 +241,16 @@ def require_active_role(role: PortalRole) -> Callable[[User], Awaitable[User]]:
             raise BuzzAPIException(
                 code=errors.FORBIDDEN,
                 message="Your account is not active.",
+                status_code=403,
+            )
+        if (
+            role == PortalRole.ORG
+            and impersonated_by(user) is None
+            and not (user.instagram_user_id and user.instagram_access_token)
+        ):
+            raise BuzzAPIException(
+                code=errors.FORBIDDEN,
+                message="Reconnect Instagram to access the organization portal.",
                 status_code=403,
             )
         return user

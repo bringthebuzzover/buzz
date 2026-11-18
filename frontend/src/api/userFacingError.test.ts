@@ -18,6 +18,19 @@ describe("fieldFromValidationLoc", () => {
 });
 
 describe("userFacingApiError", () => {
+  it("maps WRONG_PASSWORD onto the current password field", () => {
+    const err = new ApiError(
+      "WRONG_PASSWORD",
+      "Current password is incorrect.",
+      400,
+      null,
+    );
+    expect(userFacingApiError(err, "fallback")).toEqual({
+      fields: { currentPassword: "Current password is incorrect." },
+      banner: null,
+    });
+  });
+
   it("surfaces FastAPI details instead of the envelope message", () => {
     const err = new ApiError(
       "VALIDATION_ERROR",

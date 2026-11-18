@@ -1,4 +1,4 @@
-"""Token cleanup job (architecture.md §10.3).
+"""Token cleanup job (buzz-ops engineering/architecture.md §10.3).
 
 Daily. Deletes spent (used or expired) email-verification, brand-invite,
 org-connect, org-apply-prefill, and password-reset tokens after a grace period.

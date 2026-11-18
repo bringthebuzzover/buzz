@@ -44,7 +44,7 @@ describe("API provider-tree smoke", () => {
       capacityTotal: 5,
       applyOpenAt: Date.now() - 1_000,
       applyCloseAt: Date.now() + 100_000,
-      manualReopen: false,
+      stage: "applying",
     };
     const render = () =>
       renderToString(
@@ -54,10 +54,11 @@ describe("API provider-tree smoke", () => {
             acceptedCount={0}
             feedStatus="open"
             alreadyApplied={false}
-            onApply={() => {}}
           />
         </MemoryRouter>,
       );
-    expect(render).not.toThrow();
+    const view = render();
+    expect(view).toContain('href="/d/d1"');
+    expect(view).toContain(">Apply</a>");
   });
 });

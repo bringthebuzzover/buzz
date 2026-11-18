@@ -18,5 +18,7 @@ declare namespace NodeJS {
   interface ProcessEnv {
     /** Base URL for the Buzz backend API. */
     readonly REACT_APP_API_URL?: string;
+    /** "staging" enables noindex protections and the admin UI kit link. Unset in production. */
+    REACT_APP_ENV?: string;
   }
 }

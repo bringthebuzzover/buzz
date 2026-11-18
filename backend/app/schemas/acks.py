@@ -11,6 +11,7 @@ import uuid
 
 from pydantic import Field
 
+from app.models.enums import DropStage
 from app.schemas.common import CamelModel
 
 
@@ -54,11 +55,6 @@ class ResendVerificationResponse(CamelModel):
     email_sent_to: str
 
 
-class ChangeEduEmailResponse(CamelModel):
-    email_sent_to: str
-    status: str
-
-
 class RotateEduEmailResponse(CamelModel):
     email_sent_to: str
     pending_edu_email: str
@@ -74,7 +70,7 @@ class OrgOnboardingResponse(CamelModel):
     org_id: uuid.UUID
     status: str
     email_sent_to: str
-    email_sent: bool
+    email_queued: bool
 
 
 class BrandApplyResponse(CamelModel):
@@ -82,8 +78,9 @@ class BrandApplyResponse(CamelModel):
     status: str
 
 
-class FinalizeApplicantsResponse(CamelModel):
-    finalized_count: int
+class SendDecisionsResponse(CamelModel):
+    """How many drafted decisions just went out."""
+
     accepted_count: int
     denied_count: int
 
@@ -100,13 +97,13 @@ class AdminDropHideRequest(CamelModel):
     notify_brand: bool = False
 
 
-class AdminRemoveParticipantRequest(CamelModel):
-    """Typed confirm. The word ``remove`` — erased orgs no longer have a handle."""
+class AdminDeleteSeatRequest(CamelModel):
+    """Typed confirm. The word ``delete`` — erased orgs no longer have a handle."""
 
     confirm: str
 
 
-class AdminRemoveParticipantResponse(CamelModel):
+class AdminDeleteSeatResponse(CamelModel):
     drop_id: uuid.UUID
     application_id: uuid.UUID
     org_id: uuid.UUID
@@ -123,7 +120,7 @@ class AdminOrgEraseRequest(CamelModel):
 class AdminOrgEraseResponse(CamelModel):
     user_id: uuid.UUID
     status: str
-    email_sent: bool
+    email_queued: bool
     email_to_domain: str | None = None
 
 
@@ -136,21 +133,21 @@ class AdminBrandEraseRequest(CamelModel):
 class AdminBrandEraseResponse(CamelModel):
     brand_id: uuid.UUID
     status: str
-    email_sent: bool
+    email_queued: bool
     email_to_domain: str | None = None
 
 
 class AdminOrgStatusResponse(CamelModel):
     org_id: uuid.UUID
     status: str
-    email_sent: bool | None = None
+    email_queued: bool | None = None
 
 
 class AdminResendConnectAllResponse(CamelModel):
-    """Bulk Connect email for ``pending_instagram`` orgs only."""
+    """Bulk Connect scheduling counts; delivery failures are logged after the response."""
 
     targeted: int
-    sent: int
+    queued: int
     failed: int
     skipped: int
 
@@ -161,21 +158,30 @@ class AdminBrandStatusResponse(CamelModel):
 
 
 class AdminBrandInviteResponse(CamelModel):
-    """Approve / create-with-approve / resend-invite (may include email_sent)."""
+    """Approve / create-with-approve / resend-invite (may include email_queued)."""
 
     brand_id: uuid.UUID
     status: str
-    email_sent: bool | None = None
+    email_queued: bool | None = None
 
 
-class TrackerAdvanceResponse(CamelModel):
+class DropStageResponse(CamelModel):
+    """A drop's computed stage after a lifecycle action (wrap / unwrap / cancel)."""
+
     drop_id: uuid.UUID
-    stage: str
+    stage: DropStage
 
 
-class DropReopenResponse(CamelModel):
-    drop_id: uuid.UUID
-    manual_reopen: bool
+class AdminCancelDropRequest(CamelModel):
+    """Typed confirm: the drop title (cancel is final, D-11)."""
+
+    confirm: str
+
+
+class DeliveredRequest(CamelModel):
+    """Set or clear the seat's delivered fact."""
+
+    delivered: bool
 
 
 class AdminComposeEmailRequest(CamelModel):
@@ -205,8 +211,8 @@ class AdminAddOrgResponse(CamelModel):
     org_id: uuid.UUID
     never_applied: bool
     portal_ready: bool
-    email_org_sent: bool | None = None
-    email_brand_sent: bool | None = None
+    email_org_queued: bool | None = None
+    email_brand_queued: bool | None = None
 
 
 class AdminSyncAutolinkResponse(CamelModel):

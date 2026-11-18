@@ -49,7 +49,7 @@ import {
   type MeResult,
 } from "../api/auth";
 import { API_BASE_URL } from "../api/config";
-import { allowlistedOAuthNext } from "../utils/oauthNext";
+import { onboardingQuery } from "../utils/oauthNext";
 import type { PortalRole } from "../types/auth";
 
 export type AuthStatus =
@@ -65,6 +65,13 @@ export type AuthUser = {
   portalRole: PortalRole;
   status: string;
   instagramUsername?: string;
+  instagramReconnectRequired?: boolean;
+  /**
+   * An unbound org still awaiting approval that has never connected Instagram.
+   * Distinct from a reconnect: nothing is closed, one onboarding step is left,
+   * and approval stays blocked until it is done.
+   */
+  instagramConnectRequired?: boolean;
   /** Live .edu (org) or company email (brand/admin) from `/me`. */
   email?: string;
   /** Pending-swap .edu while rotate verification is outstanding. */
@@ -78,7 +85,7 @@ export type AuthUser = {
 type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
-  login: (next?: string | null) => void;
+  login: (next?: string | null, prefill?: string | null) => void;
   logout: () => Promise<void>;
   /** Re-fetch the current user (e.g. after an onboarding status transition). */
   refreshUser: () => Promise<AuthUser | null>;
@@ -115,12 +122,9 @@ function onAuthRoute(): boolean {
     p.startsWith("/brand/forgot-password") ||
     p.startsWith("/brand/reset-password") ||
     p.startsWith("/org/apply") ||
-    p.startsWith("/onboarding/verify-email") ||
-    p.startsWith("/onboarding/connect-instagram") ||
+    p.startsWith("/onboarding/") ||
     p.startsWith("/admin") ||
-    p.startsWith("/auth/") ||
-    // META-REVIEWER-PATH: public entry. Do not attach the local seeded org.
-    p === "/meta-review"
+    p.startsWith("/auth/")
   );
 }
 
@@ -384,10 +388,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [applyMeResult, enterInstagramReconnect, failHard, failSoft]);
 
-  const login = useCallback((next?: string | null) => {
+  const login = useCallback((next?: string | null, prefill?: string | null) => {
     const apiBase = API_BASE_URL.replace(/\/$/, "");
-    const allowed = allowlistedOAuthNext(next);
-    const qs = allowed ? `?next=${encodeURIComponent(allowed)}` : "";
+    const qs = onboardingQuery(next, prefill);
     window.location.href = `${apiBase}/api/auth/instagram/login${qs}`;
   }, []);
 

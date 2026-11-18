@@ -6,32 +6,43 @@
  * disabled, the page shows an "admin-provisioned only" message instead of the
  * form. After a successful apply, the brand waits for admin approval + an
  * invite email to set their password.
+ *
+ * Batch 6: five required fields — full name and company name side by side, then
+ * company email, university marketing budget and a short message. The form runs
+ * at the `wide` (640px) auth width so the paired fields have room.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  useBrandApply,
-  usePublicConfig,
-} from "../../api/hooks/useOnboardingHooks";
+import { useBrandApply, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
-import AuthShell from "../../components/site/AuthShell";
+import {
+  AuthArrowLink,
+  AuthHeading,
+  AuthLinkRow,
+  AuthSplit,
+} from "../../components/auth/AuthFrame";
+import AuthPending from "../../components/auth/AuthPending";
 import {
   Button,
   ErrorBanner,
   LinkButton,
+  Select,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
-import { TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
+import {
+  MARKETING_BUDGET_CODES,
+  MARKETING_BUDGET_LABELS,
+  type MarketingBudget,
+} from "../../utils/marketingBudget";
 
 export default function BrandApplyPage() {
   const config = usePublicConfig();
   const apply = useBrandApply();
 
+  const [contactName, setContactName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
-  const [instagramHandle, setInstagramHandle] = useState("");
+  const [marketingBudget, setMarketingBudget] = useState("");
   const [intentMessage, setIntentMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -46,10 +57,11 @@ export default function BrandApplyPage() {
     setError(null);
     try {
       await apply.mutateAsync({
+        contactName: contactName.trim(),
         brandName: brandName.trim(),
         companyEmail: companyEmail.trim(),
-        instagramHandle: instagramHandle.trim().replace(/^@/, "") || undefined,
-        intentMessage: intentMessage.trim() || undefined,
+        marketingBudget: marketingBudget as MarketingBudget,
+        intentMessage: intentMessage.trim(),
       });
       setSubmitted(true);
     } catch (err) {
@@ -60,67 +72,69 @@ export default function BrandApplyPage() {
   };
 
   if (config.isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
-      </div>
-    );
+    return <AuthPending />;
   }
 
   if (submitted) {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          Application <span className="text-buzz-coral">Received</span>
-        </h1>
-        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-          Thanks! Our team will review your brand. Once approved, you'll get an
-          email with a link to set your password and sign in.
-        </p>
-        <LinkButton to="/">Back home</LinkButton>
-      </AuthShell>
+      <AuthSplit>
+        <AuthHeading kicker="Brand" title="Application Received">
+          Thanks! Our team will review your brand. Once approved, you&apos;ll get
+          an email with a link to set your password and sign in.
+        </AuthHeading>
+        <LinkButton to="/" size="field">
+          Back home
+        </LinkButton>
+      </AuthSplit>
     );
   }
 
   if (disabled) {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          Brand <span className="text-buzz-coral">Sign-Up</span>
-        </h1>
-        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
+      <AuthSplit>
+        <AuthHeading kicker="Brand" title="Sign-Up">
           Brand accounts are currently set up by invitation only. Reach out to
           the Buzz team to get started.
-        </p>
-        <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
-          Already have an account? Brand login
-        </Link>
-        <p className="mt-4 text-sm font-medium text-buzz-inkMuted">
-          <Link to="/for-brands" className="font-bold text-buzz-coral hover:underline">
-            See how it works
-          </Link>
-        </p>
-      </AuthShell>
+        </AuthHeading>
+        <div className="space-y-3">
+          <AuthLinkRow quiet="Already have an account?">
+            <AuthArrowLink to="/brand/login">Brand login</AuthArrowLink>
+          </AuthLinkRow>
+          <p>
+            <AuthArrowLink to="/for-brands">See how it works</AuthArrowLink>
+          </p>
+        </div>
+      </AuthSplit>
     );
   }
 
   return (
-    <AuthShell align="stack">
-      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
-        Apply as a <span className="text-buzz-coral">Brand</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
-        Tell us about your brand. We'll review and email you a setup link once
-        approved.
-      </p>
+    <AuthSplit wide>
+      <AuthHeading kicker="Apply as a" title="Brand">
+        Tell us about your brand. We&apos;ll email you back with further details,
+        or set up a call.
+      </AuthHeading>
 
-      <form onSubmit={onSubmit} className="space-y-4">
-        <TextField
-          label="Brand name"
-          value={brandName}
-          onChange={(e) => setBrandName(e.target.value)}
-          required
-        />
+      <form onSubmit={onSubmit} className="space-y-6">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <TextField
+            label="Your name"
+            placeholder="First Last"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            autoComplete="name"
+            maxLength={255}
+            required
+          />
+
+          <TextField
+            label="Company name"
+            placeholder="Your Brand"
+            value={brandName}
+            onChange={(e) => setBrandName(e.target.value)}
+            required
+          />
+        </div>
 
         <TextField
           type="email"
@@ -129,54 +143,56 @@ export default function BrandApplyPage() {
           onChange={(e) => setCompanyEmail(e.target.value)}
           placeholder="you@brand.com"
           required
+          autoComplete="email"
         />
 
-        <TextField
-          label={
-            <>
-              Instagram handle{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
-            </>
-          }
-          value={instagramHandle}
-          onChange={(e) => setInstagramHandle(e.target.value)}
-          placeholder="yourbrand"
-        />
+        <Select
+          label="University marketing budget"
+          value={marketingBudget}
+          onChange={(e) => setMarketingBudget(e.target.value)}
+          required
+        >
+          <option value="" disabled>
+            Select a range
+          </option>
+          {MARKETING_BUDGET_CODES.map((code) => (
+            <option key={code} value={code}>
+              {MARKETING_BUDGET_LABELS[code]}
+            </option>
+          ))}
+        </Select>
 
         <TextArea
-          label={
-            <>
-              What are you hoping to do on Buzz?{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
-            </>
-          }
-          rows={3}
+          label="What are you hoping to do on BUZZ?"
           value={intentMessage}
           onChange={(e) => setIntentMessage(e.target.value)}
+          placeholder="e.g. Sample our new cold brew at fall campus events"
+          rows={4}
+          maxLength={2000}
+          required
         />
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
         <Button
           type="submit"
-          disabled={apply.isPending}
+          size="field"
+          loading={apply.isPending}
+          loadingLabel="Submitting…"
           fullWidth
         >
-          {apply.isPending ? "Submitting…" : "Submit application"}
+          Submit application
         </Button>
 
-        <p className="text-center text-xs text-buzz-inkMuted">
-          <Link to="/for-brands" className="font-bold text-buzz-coral hover:underline">
-            See how it works
-          </Link>
-        </p>
-        <p className="text-center text-xs text-buzz-inkMuted">
-          Already have an account?{" "}
-          <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
-            Brand login
-          </Link>
-        </p>
+        <div className="space-y-3">
+          <p>
+            <AuthArrowLink to="/for-brands">See how it works</AuthArrowLink>
+          </p>
+          <AuthLinkRow quiet="Already have an account?">
+            <AuthArrowLink to="/brand/login">Brand login</AuthArrowLink>
+          </AuthLinkRow>
+        </div>
       </form>
-    </AuthShell>
+    </AuthSplit>
   );
 }

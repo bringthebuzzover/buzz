@@ -10,17 +10,17 @@ by ``UNIQUE(post_id)`` on ``post_campaign_links`` plus a pre-check that returns
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
+from app.deps.auth import impersonated_by
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import BrandTrackerStage, PostLinkSource, SocialMediaProductType
+from app.models.enums import PostLinkSource, SocialMediaProductType
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
@@ -33,10 +33,8 @@ from app.schemas.posts import (
 )
 from app.services.campaigns import resolve_owned_application
 from app.services.erased_org_participation import post_metrics_are_frozen
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.services.lifecycle import org_link_open, require_drop
+from app.timeutils import utcnow
 
 
 def _reject_if_metrics_frozen(post: SocialPost) -> None:
@@ -82,7 +80,7 @@ async def _dismiss_pending_for_post(
     )
     if except_application_id is not None:
         stmt = stmt.where(PostCampaignSuggestion.application_id != except_application_id)
-    await db.execute(stmt.values(dismissed_at=_now()))
+    await db.execute(stmt.values(dismissed_at=utcnow()))
 
 
 async def _confirm_own_and_dismiss_siblings(
@@ -104,7 +102,7 @@ async def _confirm_own_and_dismiss_siblings(
             PostCampaignSuggestion.confirmed_at.is_(None),
             PostCampaignSuggestion.dismissed_at.is_(None),
         )
-        .values(confirmed_at=_now())
+        .values(confirmed_at=utcnow())
     )
     await _dismiss_pending_for_post(db, post_id, except_application_id=application_id)
 
@@ -121,18 +119,24 @@ async def _dismiss_for_error(
     failure it describes. Callers do ``raise await _dismiss_for_error(...)``.
     """
 
-    suggestion.dismissed_at = _now()
+    suggestion.dismissed_at = utcnow()
     await db.commit()
     return exc
 
 
-async def _reject_if_drop_finished(db: AsyncSession, drop_id: uuid.UUID) -> None:
-    """Finished campaigns are FE read-only; enforce the same on the API."""
+async def _require_links_open(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> None:
+    """Orgs link/unlink until ``ORG_LINK_GRACE`` after wrap-up; BUZZ (View as)
+    always, unless the drop is canceled."""
     drop = await db.get(Drop, drop_id)
-    if drop is not None and drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
+    if drop is not None:
+        require_drop(drop)
+    if impersonated_by(org_user) is not None:
+        return
+    if drop is not None and not org_link_open(drop, utcnow()):
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
-            "This campaign is finished; posts can no longer be linked or unlinked.",
+            "This campaign is wrapped up; posts can no longer be linked or unlinked. "
+            "Contact BUZZ to add a post.",
             status_code=400,
         )
 
@@ -256,7 +260,7 @@ async def link_post(
     application = await resolve_owned_application(
         db, org_user, application_id, require_accepted=True
     )
-    await _reject_if_drop_finished(db, application.drop_id)
+    await _require_links_open(db, org_user, application.drop_id)
     post = await db.get(SocialPost, post_id)
     if post is None or post.org_id != application.org_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Post not found.", status_code=404)
@@ -319,7 +323,7 @@ async def unlink_post(
     """
 
     application = await resolve_owned_application(db, org_user, application_id)
-    await _reject_if_drop_finished(db, application.drop_id)
+    await _require_links_open(db, org_user, application.drop_id)
     post = await db.get(SocialPost, post_id)
     if post is not None:
         _reject_if_metrics_frozen(post)
@@ -422,7 +426,7 @@ async def accept_suggestion(
     application = await resolve_owned_application(
         db, org_user, application_id, require_accepted=True
     )
-    await _reject_if_drop_finished(db, application.drop_id)
+    await _require_links_open(db, org_user, application.drop_id)
     suggestion = await db.scalar(
         select(PostCampaignSuggestion).where(
             PostCampaignSuggestion.application_id == application.id,
@@ -473,7 +477,7 @@ async def accept_suggestion(
             # Already linked to *this* campaign (e.g. manually linked while the
             # suggestion stayed pending). Reconcile the dangling suggestion and
             # succeed idempotently rather than 409 (mirrors link_post).
-            suggestion.confirmed_at = _now()
+            suggestion.confirmed_at = utcnow()
             await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
             await db.flush()
             return build_post_response(
@@ -510,7 +514,7 @@ async def accept_suggestion(
             select(PostCampaignLink).where(PostCampaignLink.post_id == post_id)
         )
         if winner is not None and winner.application_id == application.id:
-            suggestion.confirmed_at = _now()
+            suggestion.confirmed_at = utcnow()
             await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
             await db.flush()
             return build_post_response(
@@ -528,7 +532,7 @@ async def accept_suggestion(
             ),
         ) from None
 
-    suggestion.confirmed_at = _now()
+    suggestion.confirmed_at = utcnow()
     await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
     await db.flush()
 
@@ -562,5 +566,5 @@ async def dismiss_suggestion(
             "No pending suggestion for this post.",
             status_code=404,
         )
-    suggestion.dismissed_at = _now()
+    suggestion.dismissed_at = utcnow()
     await db.flush()

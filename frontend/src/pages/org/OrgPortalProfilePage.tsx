@@ -1,5 +1,5 @@
 /**
- * `/org/profile` — view/edit org profile after onboarding (PRODUCT.md §3.1).
+ * `/org/profile` — view/edit org profile after onboarding (buzz-ops product/PRODUCT.md §3.1).
  *
  * Distinct from `/onboarding/profile`, which creates the org row. Instagram
  * handle is login identity (request-change modal, not PATCH). .edu rotates via
@@ -9,7 +9,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { userFacingApiError } from "../../api/userFacingError";
-import FieldError from "../../components/forms/FieldError";
 import {
   Button,
   ErrorBanner,
@@ -17,8 +16,13 @@ import {
   SuccessBanner,
   TextField,
 } from "../../components/forms/controls";
-import AuthShell from "../../components/site/AuthShell";
-import { fieldLabelClass } from "../../theme/controls";
+import PageShell from "../../components/site/PageShell";
+import { Card, CardHeader } from "../../components/ui/Card";
+import { Loader } from "../../components/ui/EmptyState";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { StatePanel } from "../../components/ui/StatePanel";
+import { fieldClass, fieldLabelClass } from "../../theme/controls";
+import { cn } from "../../theme/cn";
 import {
   useOrgProfile,
   useUpdateOrgProfile,
@@ -27,15 +31,13 @@ import {
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
 import IgChangeRequestPanel from "../../components/org/IgChangeRequestPanel";
 import IgPreviousAccountBanner from "../../components/org/IgPreviousAccountBanner";
-import ShippingAddressFields, {
+import OrgShippingAddressPanel from "../../components/org/OrgShippingAddressPanel";
+import {
   EMPTY_SHIPPING,
   shippingToApi,
   type ShippingAddressValue,
 } from "../../components/org/ShippingAddressFields";
-import {
-  ORG_CATEGORY_OPTIONS,
-  type OrgCategory,
-} from "../../types/orgCategory";
+import { ORG_CATEGORY_OPTIONS, type OrgCategory } from "../../types/orgCategory";
 import {
   isFieldError,
   parseMemberCount,
@@ -47,6 +49,9 @@ export default function OrgPortalProfilePage() {
   const { data, isLoading, error: loadError } = useOrgProfile();
   const update = useUpdateOrgProfile();
   const queryClient = useQueryClient();
+  const hasExistingAddress = Boolean(
+    data?.shippingLine1 || data?.deliveryAddress?.trim(),
+  );
 
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
@@ -98,16 +103,13 @@ export default function OrgPortalProfilePage() {
     const contact = requireNonBlank(contactName);
     if (isFieldError(contact)) next.contactName = contact.error;
     const ship = shippingToApi(shipping);
-    const hasStructured = Boolean(data.shippingLine1);
     const shippingMissing =
       !ship.shippingLine1 ||
       !ship.shippingCity ||
       !ship.shippingState ||
       !ship.shippingPostalCode;
-    if (!hasStructured && shippingMissing) {
+    if (!hasExistingAddress && shippingMissing) {
       next.shipping = "Enter a US mailing address (street, city, state, and ZIP).";
-    } else if (hasStructured && shippingMissing) {
-      next.shipping = "Shipping street, city, state, and ZIP are required.";
     }
     if (Object.keys(next).length > 0) {
       setFieldErrors(next);
@@ -139,14 +141,7 @@ export default function OrgPortalProfilePage() {
     if (parsedContact !== (data.contactName ?? null)) {
       payload.contactName = parsedContact;
     }
-    const shippingDirty =
-      !hasStructured ||
-      ship.shippingLine1 !== (data.shippingLine1 ?? "") ||
-      (ship.shippingLine2 ?? "") !== (data.shippingLine2 ?? "") ||
-      ship.shippingCity !== (data.shippingCity ?? "") ||
-      ship.shippingState !== (data.shippingState ?? "") ||
-      ship.shippingPostalCode !== (data.shippingPostalCode ?? "");
-    if (shippingDirty) {
+    if (!hasExistingAddress) {
       payload.shippingLine1 = ship.shippingLine1;
       payload.shippingLine2 = ship.shippingLine2 ?? null;
       payload.shippingCity = ship.shippingCity;
@@ -175,183 +170,174 @@ export default function OrgPortalProfilePage() {
     }
   };
 
+  const header = (
+    <PageHeader
+      className="mb-10"
+      kicker="Organization Portal"
+      title="Profile"
+      description="Keep your club details and shipping address up to date for brands."
+    />
+  );
+
   if (isLoading) {
     return (
-      <AuthShell align="stack" className="text-center text-sm font-medium text-buzz-inkMuted">
-        Loading profile…
-      </AuthShell>
+      <PageShell width="wide">
+        {header}
+        <Loader label="Loading profile…" className="py-16" />
+      </PageShell>
     );
   }
 
   if (loadError || !data) {
     return (
-      <AuthShell align="stack" className="text-center text-sm font-medium text-buzz-coral">
-        Couldn’t load your profile. Please try again.
-      </AuthShell>
+      <PageShell width="wide">
+        {header}
+        <StatePanel tone="danger">
+          Couldn’t load your profile. Please try again.
+        </StatePanel>
+      </PageShell>
     );
   }
 
   const igHandle = data.instagramHandle
     ? `@${data.instagramHandle.replace(/^@/, "")}`
     : "—";
-  const followersDisplay =
-    data.followerCount != null ? String(data.followerCount) : "—";
+  const followersDisplay = data.followerCount != null ? String(data.followerCount) : "—";
 
   return (
-    <AuthShell align="stack">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        Organization <span className="text-buzz-coral">Profile</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
-        Keep your club details and shipping address up to date for brands.
-      </p>
+    <PageShell width="wide">
+      {header}
 
-      <div className="space-y-4">
-        <IgChangeRequestPanel
-          currentHandle={igHandle.replace(/^@/, "")}
-          connectEmail={data.eduEmail}
-        />
+      <div className="flex flex-col gap-6">
+        <div className="grid items-start gap-6 md:grid-cols-2">
+          <IgChangeRequestPanel
+            currentHandle={igHandle.replace(/^@/, "")}
+            connectEmail={data.eduEmail}
+          />
+          <EduEmailRotatePanel
+            liveEmail={data.eduEmail}
+            pendingEmail={data.pendingEduEmail}
+            onChanged={() => queryClient.invalidateQueries({ queryKey: ["org-profile"] })}
+          />
+        </div>
         <IgPreviousAccountBanner />
 
-        <EduEmailRotatePanel
-          liveEmail={data.eduEmail}
-          pendingEmail={data.pendingEduEmail}
-          onChanged={() =>
-            queryClient.invalidateQueries({ queryKey: ["org-profile"] })
-          }
-        />
-
-        <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-6">
           {error ? <ErrorBanner>{error}</ErrorBanner> : null}
 
-          <div>
-            <TextField
-              id="org-profile-org-name"
-              label="Organization name"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              required
-              aria-invalid={Boolean(fieldErrors.orgName)}
-              aria-describedby={
-                fieldErrors.orgName ? "org-profile-org-name-error" : undefined
-              }
-            />
-            <FieldError id="org-profile-org-name-error" message={fieldErrors.orgName} />
-          </div>
+          <Card kind="panel" pad="card">
+            <CardHeader className="mb-5" title="Details" />
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                id="org-profile-org-name"
+                label="Organization name"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="Your Organization"
+                required
+                error={fieldErrors.orgName}
+              />
 
-          <div>
-            <TextField
-              id="org-profile-university"
-              label="University"
-              value={university}
-              onChange={(e) => setUniversity(e.target.value)}
-              required
-              aria-invalid={Boolean(fieldErrors.university)}
-              aria-describedby={
-                fieldErrors.university ? "org-profile-university-error" : undefined
-              }
-            />
-            <FieldError
-              id="org-profile-university-error"
-              message={fieldErrors.university}
-            />
-          </div>
+              <TextField
+                id="org-profile-university"
+                label="University"
+                value={university}
+                onChange={(e) => setUniversity(e.target.value)}
+                placeholder="Your University"
+                required
+                error={fieldErrors.university}
+              />
 
-          <TextField
-            id="org-profile-tiktok"
-            label={
-              <>
-                TikTok handle{" "}
-                <span className="font-normal text-buzz-inkMuted">(optional)</span>
-              </>
-            }
-            value={tiktokHandle}
-            onChange={(e) => setTiktokHandle(e.target.value)}
-            placeholder="@yourclub"
+              <TextField
+                id="org-profile-tiktok"
+                label={
+                  <>
+                    TikTok handle{" "}
+                    <span className="font-normal text-quiet">(optional)</span>
+                  </>
+                }
+                value={tiktokHandle}
+                onChange={(e) => setTiktokHandle(e.target.value)}
+                placeholder="@yourorg"
+              />
+
+              <div>
+                <p className={fieldLabelClass}>
+                  Instagram followers{" "}
+                  <span className="font-normal text-quiet">(from Instagram)</span>
+                </p>
+                <p className={cn(fieldClass.default, "flex items-center text-primary")}>
+                  {followersDisplay}
+                </p>
+              </div>
+
+              <TextField
+                id="org-profile-member-count"
+                type="number"
+                min="0"
+                label="Number of members"
+                value={memberCount}
+                onChange={(e) => setMemberCount(e.target.value)}
+                placeholder="24"
+                required
+                error={fieldErrors.memberCount}
+              />
+
+              <Select
+                id="org-profile-category"
+                label="Organization type"
+                value={category}
+                onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+                required
+              >
+                <option value="">Select a type…</option>
+                {ORG_CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+
+              <div className="md:col-span-2">
+                <TextField
+                  id="org-profile-contact-name"
+                  label="Contact name"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder="First Last"
+                  required
+                  error={fieldErrors.contactName}
+                />
+              </div>
+            </div>
+          </Card>
+
+          <OrgShippingAddressPanel
+            currentAddress={{
+              line1: data.shippingLine1,
+              line2: data.shippingLine2,
+              city: data.shippingCity,
+              state: data.shippingState,
+              postalCode: data.shippingPostalCode,
+              formatted: data.deliveryAddress,
+            }}
+            initialAddress={!hasExistingAddress}
+            initialValue={shipping}
+            onInitialAddressChange={setShipping}
+            initialError={fieldErrors.shipping}
           />
 
-          <div>
-            <p className={fieldLabelClass}>
-              Instagram followers{" "}
-              <span className="font-normal text-buzz-inkMuted">(from Instagram)</span>
-            </p>
-            <p className="rounded-buzzControl border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-sm font-medium text-buzz-ink">
-              {followersDisplay}
-            </p>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={update.isPending}>
+              {update.isPending ? "Saving…" : "Save profile"}
+            </Button>
           </div>
-
-          <div>
-            <TextField
-              id="org-profile-member-count"
-              type="number"
-              min="0"
-              label="Number of members"
-              value={memberCount}
-              onChange={(e) => setMemberCount(e.target.value)}
-              required
-              aria-invalid={Boolean(fieldErrors.memberCount)}
-              aria-describedby={
-                fieldErrors.memberCount ? "org-profile-member-count-error" : undefined
-              }
-            />
-            <FieldError
-              id="org-profile-member-count-error"
-              message={fieldErrors.memberCount}
-            />
-          </div>
-
-          <Select
-            id="org-profile-category"
-            label="Organization type"
-            value={category}
-            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-            required
-          >
-            <option value="">Select a type…</option>
-            {ORG_CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
-
-          <div>
-            <TextField
-              id="org-profile-contact-name"
-              label="Contact name"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              required
-              aria-invalid={Boolean(fieldErrors.contactName)}
-              aria-describedby={
-                fieldErrors.contactName ? "org-profile-contact-name-error" : undefined
-              }
-            />
-            <FieldError
-              id="org-profile-contact-name-error"
-              message={fieldErrors.contactName}
-            />
-          </div>
-
-          <ShippingAddressFields
-            value={shipping}
-            onChange={setShipping}
-            testIdPrefix="org-profile"
-            error={fieldErrors.shipping}
-            legacyHint={
-              data.shippingLine1 ? null : (data.deliveryAddress ?? null)
-            }
-          />
-
-          <Button type="submit" disabled={update.isPending} fullWidth>
-            {update.isPending ? "Saving…" : "Save profile"}
-          </Button>
 
           {saved && !error && Object.keys(fieldErrors).length === 0 ? (
             <SuccessBanner>Profile saved.</SuccessBanner>
           ) : null}
         </form>
       </div>
-    </AuthShell>
+    </PageShell>
   );
 }

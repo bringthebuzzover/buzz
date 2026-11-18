@@ -14,8 +14,6 @@ export type DropAggregateMetrics = {
   totalEngagement: number;
   /** Sum of Instagram insights reach across linked posts and reels. */
   totalReach: number;
-  /** Cost per engagement; `null` in v1 (no cost inputs). */
-  costPerEngagement: number | null;
 };
 
 /** Aggregated metrics across all of a brand's drops. */

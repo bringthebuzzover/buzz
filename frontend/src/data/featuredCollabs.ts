@@ -10,12 +10,14 @@ export const FEATURED_COLLABS: FeaturedCollab[] = [
   {
     id: 1,
     title: "Kappa Alpha Theta x Yerba Madre",
+    brand: "Yerba Madre",
     subtitle: "Collaboration at Cornell University",
     image: sorority,
   },
   {
     id: 2,
     title: "Epsilon Nu Tau x UPDATE",
+    brand: "UPDATE",
     subtitle: "Collaboration at Cornell University",
     image: entUpdate,
   },

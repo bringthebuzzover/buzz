@@ -34,7 +34,10 @@ _APP_B = "44444444-4444-4444-8444-444444444444"
 @pytest.fixture
 def _resend_key(monkeypatch):
     monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key")
-    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "")
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", False)
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
 
 
 def _stub(monkeypatch, handler) -> None:
@@ -156,7 +159,7 @@ def test_prefill_resend_generation_changes_the_key() -> None:
         (email.send_drop_hidden_email, {"to_email": "a@brand.test"}),
         (
             email.send_password_reset_email,
-            {"to_email": "a@brand.test", "token": "reset-secret", "portal": "brand"},
+            {"to_email": "a@brand.test", "token": "reset-secret"},
         ),
         (
             email.send_admin_compose_email,
@@ -188,7 +191,7 @@ async def test_header_absent_without_key(monkeypatch, _resend_key, sender, kwarg
             "a@brand.test", "invite-secret", idempotency_key=key
         ),
         lambda key: email.send_password_reset_email(
-            "a@brand.test", "reset-secret", portal="brand", idempotency_key=key
+            "a@brand.test", "reset-secret", idempotency_key=key
         ),
         lambda key: email.send_drop_opening_reminder_email("a@school.edu", idempotency_key=key),
         lambda key: email.send_application_denied_email("a@school.edu", idempotency_key=key),
@@ -288,13 +291,13 @@ async def test_password_reset_rerequest_uses_a_new_key(db_session, monkeypatch) 
     await db_session.flush()
     captured: list[tuple[str, str | None]] = []
 
-    async def _fake(to_email, token, *, portal, idempotency_key=None):
+    async def _fake(to_email, token, *, idempotency_key=None):
         captured.append((token, idempotency_key))
         return True
 
     monkeypatch.setattr("app.services.password_reset.send_password_reset_email", _fake)
-    await request_password_reset(db_session, portal="brand", email=brand.company_email)
-    await request_password_reset(db_session, portal="brand", email=brand.company_email)
+    await request_password_reset(db_session, email=brand.company_email)
+    await request_password_reset(db_session, email=brand.company_email)
     assert captured[0][0] != captured[1][0]
     assert captured[0][1] != captured[1][1]
     for raw, key in captured:
@@ -376,11 +379,9 @@ async def test_reminder_retry_reuses_row_key_and_recipients_differ(db_session, m
     assert user_b.edu_email not in (expected_b or "")
 
 
-async def test_org_approve_bound_and_connect_use_different_keys(db_session, monkeypatch) -> None:
-    """Already-bound approval is org id; Connect approval is the new token id."""
-    from sqlalchemy import select
-
-    from app.models.org_connect_token import OrgConnectToken
+async def test_org_approve_bound_uses_org_id_and_refuses_unbound(db_session, monkeypatch) -> None:
+    """Only a connected org can be approved; the unbound path no longer exists."""
+    from app.exceptions import BuzzAPIException
     from app.services.admin import approve_org
 
     captured: list[tuple[str | None, str | None]] = []
@@ -400,28 +401,28 @@ async def test_org_approve_bound_and_connect_use_different_keys(db_session, monk
     await db_session.flush()
     bound_org = await make_org(db_session, bound_user)
 
-    connect_user = await persist(
+    unbound_user = await persist(
         db_session,
-        make_user(status=OrgUserStatus.PENDING_APPROVAL, instagram_username="connectorg"),
+        make_user(
+            status=OrgUserStatus.PENDING_APPROVAL,
+            instagram_user_id=None,
+            instagram_username="connectorg",
+        ),
     )
-    connect_user.edu_email = "connect@school.edu"
+    unbound_user.edu_email = "connect@school.edu"
     await db_session.flush()
-    connect_org = await make_org(db_session, connect_user)
+    unbound_org = await make_org(db_session, unbound_user)
 
     await approve_org(db_session, bound_org.id, tester_invite_confirmed=True)
-    await approve_org(db_session, connect_org.id, tester_invite_confirmed=True)
 
+    # The old unbound -> Connect-link approval path is retired. Approving an org
+    # with no bound Instagram credentials is refused, so no Connect mail is sent.
+    with pytest.raises(BuzzAPIException) as exc:
+        await approve_org(db_session, unbound_org.id, tester_invite_confirmed=True)
+    assert exc.value.status_code == 400
+
+    assert len(captured) == 1
     bound_token, bound_key = captured[0]
-    raw_token, connect_key = captured[1]
-    token_row = await db_session.scalar(
-        select(OrgConnectToken).where(OrgConnectToken.org_id == connect_org.id)
-    )
-    assert token_row is not None
     assert bound_token is None
     assert bound_key == email.build_idempotency_key(email.KIND_ORG_APPROVED_BOUND, bound_org.id)
-    assert connect_key == email.build_idempotency_key(email.KIND_ORG_APPROVED, token_row.id)
-    assert bound_key != connect_key
-    assert raw_token is not None
-    assert raw_token not in (connect_key or "")
     assert "bound@school.edu" not in (bound_key or "")
-    assert "connect@school.edu" not in (connect_key or "")

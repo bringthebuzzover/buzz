@@ -23,6 +23,7 @@ import {
   ActionButton,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   FilterChips,
   PageHeading,
@@ -34,6 +35,7 @@ import {
 } from "../../components/admin/AdminPrimitives";
 import { formatElapsed } from "../../components/admin/labels";
 import { Select, TextField } from "../../components/forms/controls";
+import { marketingBudgetLabel } from "../../utils/marketingBudget";
 
 const FILTERS = [
   { value: null, label: "All" },
@@ -43,7 +45,15 @@ const FILTERS = [
   { value: "erased", label: "Erased" },
 ] as const;
 
-const HEADERS = ["Brand", "Status", "Access", "Contact", "Waiting", ""] as const;
+const HEADERS = [
+  "Brand",
+  "Status",
+  "Access",
+  "Contact",
+  "Budget",
+  "Waiting",
+  "",
+] as const;
 
 /** Can this brand actually sign in, and if not, why not? */
 function AccessPill({ row }: { row: AdminBrandRow }) {
@@ -80,7 +90,7 @@ function InviteBrandForm() {
       setBrandName("");
       setCompanyEmail("");
       setInstagramHandle("");
-      if (approveNow && data.emailSent === false) {
+      if (approveNow && data.emailQueued === false) {
         setError(INVITE_EMAIL_FAILED_COPY);
       }
     } catch (err) {
@@ -91,14 +101,15 @@ function InviteBrandForm() {
   return (
     <Panel
       title="Invite brand"
-      description="Works even when public self-registration is off. Choose whether to approve and email the setup invite immediately, or leave the brand pending for later."
+      description="Choose whether to approve and email the setup invite immediately, or leave pending to send later."
     >
       <div className="space-y-3 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <TextField
             id="invite-brand-name"
             label="Brand name"
+            placeholder="Your Brand"
             size="compact"
             data-testid="invite-brand-name"
             value={brandName}
@@ -107,6 +118,7 @@ function InviteBrandForm() {
           <TextField
             id="invite-brand-email"
             label="Company email"
+            placeholder="you@brand.com"
             size="compact"
             type="email"
             data-testid="invite-brand-email"
@@ -116,6 +128,7 @@ function InviteBrandForm() {
           <TextField
             id="invite-brand-instagram"
             label="Instagram (optional)"
+            placeholder="@yourbrand"
             size="compact"
             data-testid="invite-brand-instagram"
             value={instagramHandle}
@@ -133,16 +146,18 @@ function InviteBrandForm() {
             <option value="pending">Create pending — invite later</option>
           </Select>
         </div>
-        <ActionButton
-          variant="primary"
-          testId="invite-brand-submit"
-          disabled={
-            create.isPending || !brandName.trim() || !companyEmail.trim()
-          }
-          onClick={() => void submit()}
-        >
-          {create.isPending ? "Creating…" : "Create brand"}
-        </ActionButton>
+        <div className="flex justify-end">
+          <ActionButton
+            variant="primary"
+            testId="invite-brand-submit"
+            disabled={
+              create.isPending || !brandName.trim() || !companyEmail.trim()
+            }
+            onClick={() => void submit()}
+          >
+            {create.isPending ? "Creating…" : "Create brand"}
+          </ActionButton>
+        </div>
       </div>
     </Panel>
   );
@@ -166,7 +181,7 @@ export default function AdminBrandsPage() {
       const data = (await approve.mutateAsync(
         brandId,
       )) as BrandInviteActionResult;
-      if (data.emailSent === false) {
+      if (data.emailQueued === false) {
         setInviteNotice(INVITE_EMAIL_FAILED_COPY);
       }
     } catch {
@@ -198,46 +213,63 @@ export default function AdminBrandsPage() {
         param="status"
       />
 
-      <Panel>
-        <QueryState
-          isPending={brands.isPending}
-          isError={brands.isError}
-          label="brands"
-        />
-        {brands.data && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={brands.data.length === 0}
-            empty="No brands match this filter."
-          >
-            {brands.data.map((row) => (
-              <Row key={row.id}>
+      <QueryState
+        isPending={brands.isPending}
+        isError={brands.isError}
+        label="brands"
+      />
+      {brands.data && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={brands.data.length === 0}
+          empty="No brands match this filter."
+        >
+          {brands.data.map((row) => (
+            <Row key={row.id} attention={row.status === "pending_review"}>
+              <Cell>
+                <Link
+                  to={`/admin/brands/${row.id}`}
+                  className={`block ${entityLinkClass}`}
+                >
+                  {row.brandName}
+                </Link>
+                {row.instagramHandle && (
+                  <span className="mt-0.5 block text-xs text-quiet">
+                    @{row.instagramHandle.replace(/^@/, "")}
+                  </span>
+                )}
+              </Cell>
                 <Cell>
-                  <Link
-                    to={`/admin/brands/${row.id}`}
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-                  >
-                    {row.brandName}
-                  </Link>
-                  {row.instagramHandle && (
-                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-                      @{row.instagramHandle.replace(/^@/, "")}
-                    </span>
-                  )}
-                </Cell>
-                <Cell>
-                  <StatusPill status={row.status} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill status={row.status} />
+                    {row.igChangePending ? <Pill tone="warn">IG change</Pill> : null}
+                  </div>
                 </Cell>
                 <Cell>
                   <AccessPill row={row} />
                 </Cell>
-                <Cell muted>{row.companyEmail}</Cell>
+                <Cell>
+                  {row.contactName ? (
+                    <>
+                      <span className="block font-medium text-primary">
+                        {row.contactName}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-quiet">
+                        {row.companyEmail}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-quiet">{row.companyEmail}</span>
+                  )}
+                </Cell>
+                <Cell muted>{marketingBudgetLabel(row.marketingBudget)}</Cell>
                 <Cell muted>{formatElapsed(row.createdAt)}</Cell>
                 <Cell align="right">
                   <div className="flex flex-wrap justify-end gap-2">
                     {row.status === "pending_review" && (
                       <>
                         <ActionButton
+                          quiet
                           variant="primary"
                           testId={`approve-brand-${row.id}`}
                           disabled={busy}
@@ -246,6 +278,7 @@ export default function AdminBrandsPage() {
                           Approve
                         </ActionButton>
                         <ActionButton
+                          quiet
                           variant="danger"
                           testId={`deny-brand-${row.id}`}
                           disabled={busy}
@@ -256,6 +289,7 @@ export default function AdminBrandsPage() {
                       </>
                     )}
                     <ActionButton
+                      quiet
                       testId={`view-as-${row.userId}`}
                       disabled={!row.impersonatable || viewAsPending}
                       onClick={() => void viewAs(row.userId)}
@@ -267,8 +301,7 @@ export default function AdminBrandsPage() {
               </Row>
             ))}
           </AdminTable>
-        )}
-      </Panel>
+      )}
     </div>
   );
 }

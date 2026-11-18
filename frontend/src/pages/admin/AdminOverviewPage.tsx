@@ -8,20 +8,18 @@
  * single reassuring line instead of a wall of zeros.
  */
 import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
-// META-REVIEWER-PATH: delete this import and <MetaReviewerAdminCard /> below.
-import MetaReviewerAdminCard from "../../meta-reviewer/MetaReviewerAdminCard";
 import {
   AdminTable,
   Cell,
   CountMark,
   PageHeading,
   Panel,
-  Pill,
   QueryState,
   Row,
+  rowActionClass,
 } from "../../components/admin/AdminPrimitives";
-import { LinkButton } from "../../components/forms/controls";
 import {
   QUEUE_META,
   SIGNAL_META,
@@ -29,7 +27,9 @@ import {
   formatDateTime,
   humanizeKey,
 } from "../../components/admin/labels";
-import { PAD, SURFACE, TEXT } from "../../theme/tokens";
+import { TEXT } from "../../theme/tokens";
+import { dropStageLabel, type DropStage } from "../../utils/dropStage";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 function QueueCard({
@@ -50,34 +50,60 @@ function QueueCard({
       to={meta?.to ?? "/admin"}
       data-testid={`queue-${queueKey}`}
       className={cn(
-        SURFACE.cardFlat,
-        PAD.default,
-        "block transition hover:border-buzz-coral",
+        "flex flex-col gap-2 rounded-buzzBoard border p-5 transition hover:border-accent",
+        focusRingClass,
+        clear
+          ? "border-line buzz-glass-tile"
+          : "border-buzz-yellowLine bg-accent-wash",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-2">
         <span
           className={cn(
-            TEXT.metric,
-            clear ? "text-buzz-inkFaint" : "text-buzz-coral",
+            TEXT.h1,
+            "tabular-nums",
+            clear ? "text-primary" : "text-accent",
           )}
         >
           {count}
         </span>
-        {meta?.owner === "brand" && <Pill>on the brand</Pill>}
+        <span className="flex-1" />
+        <ArrowUpRight size={16} className="text-quiet" aria-hidden />
       </div>
-      <p className="mt-1 text-sm font-bold text-buzz-ink">{label}</p>
-      {meta && (
-        <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
-          {meta.note}
-        </p>
-      )}
+      <p className="text-sm font-medium text-primary">{label}</p>
+      {meta && <p className="text-xs text-quiet">{meta.note}</p>}
       {!clear && oldestAt !== null && (
-        <p className="mt-2 text-xs font-bold text-buzz-inkMuted">
-          Oldest waiting {formatElapsed(oldestAt)}
-        </p>
+        <p className="text-xs text-accent">Oldest waiting {formatElapsed(oldestAt)}</p>
+      )}
+      {meta?.owner === "brand" && (
+        <p className="text-xs text-accent">On the brand</p>
       )}
     </Link>
+  );
+}
+
+/** Drops per computed stage (hidden excluded); each tile opens the filtered list. */
+function StageTiles({ stages }: { stages: { stage: DropStage; count: number }[] }) {
+  return (
+    <div className="mb-8" data-testid="stage-tiles">
+      <p className={cn(TEXT.micro, "mb-3 text-quiet")}>Drops by stage</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+        {stages.map(({ stage, count }) => (
+          <Link
+            key={stage}
+            to={`/admin/drops?stage=${stage}`}
+            data-testid={`stage-tile-${stage}`}
+            className={cn(
+              "flex flex-col gap-1 rounded-buzzBoard border border-line buzz-glass-tile p-4 transition hover:border-accent",
+              focusRingClass,
+            )}
+          >
+            <span className={cn(TEXT.h3, "tabular-nums text-primary")}>{count}</span>
+            <span className="text-xs text-muted">{dropStageLabel(stage)}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -91,9 +117,6 @@ export default function AdminOverviewPage() {
         subtitle="Everything waiting on a decision, plus anything in a state the product cannot fix on its own."
       />
 
-      {/* META-REVIEWER-PATH: nothing here unless the reviewer path is enabled. */}
-      <MetaReviewerAdminCard />
-
       <QueryState
         isPending={overview.isPending}
         isError={overview.isError}
@@ -102,7 +125,7 @@ export default function AdminOverviewPage() {
 
       {overview.data && (
         <>
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {overview.data.queues.map((queue) => (
               <QueueCard
                 key={queue.key}
@@ -113,39 +136,44 @@ export default function AdminOverviewPage() {
             ))}
           </div>
 
+          <StageTiles stages={overview.data.stages} />
+
           <Panel
             title="Needs a look"
-            description="Instagram identity tickets and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the organization."
+            description="Instagram identity tickets, brand handle requests, organization shipping address requests, and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the organization."
           >
             <div data-testid="needs-a-look">
               <AdminTable
                 headers={["Organization", "Why", "Waiting", ""]}
                 isEmpty={(overview.data.items ?? []).length === 0}
-                empty="No Instagram identity items."
+                empty="No items need attention."
               >
                 {(overview.data.items ?? []).map((item) => (
-                  <Row key={`${item.kind}-${item.id}`}>
+                  <Row key={`${item.kind}-${item.id}`} attention>
                     <Cell>
-                      <span className="font-semibold text-buzz-ink">
+                      <span className="font-medium text-primary">
                         {item.orgName ?? "Organization"}
                       </span>
-                      <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
+                      <span className="ml-2 text-xs font-medium text-muted">
                         {item.kind === "ig_change_pending"
                           ? "Identity request"
-                          : "Bind mismatch"}
+                          : item.kind === "brand_ig_change_pending"
+                            ? "Brand handle"
+                            : item.kind === "shipping_change_pending"
+                              ? "Address change"
+                              : "Bind mismatch"}
                       </span>
                     </Cell>
                     <Cell muted>{item.subtitle}</Cell>
                     <Cell muted>{formatElapsed(item.createdAt ?? null)}</Cell>
                     <Cell align="right">
-                      <LinkButton
+                      <Link
                         to={item.href}
-                        size="compact"
-                        variant="outline"
+                        className={rowActionClass}
                         data-testid={`attention-${item.kind}-${item.id}`}
                       >
                         Open
-                      </LinkButton>
+                      </Link>
                     </Cell>
                   </Row>
                 ))}
@@ -160,23 +188,23 @@ export default function AdminOverviewPage() {
             {overview.data.warnings.length === 0 ? (
               <p
                 data-testid="no-warnings"
-                className="px-4 py-6 text-sm font-medium text-buzz-inkMuted"
+                className="px-4 py-6 text-sm font-medium text-muted"
               >
                 Nothing flagged. Every signal on the Health page is at zero.
               </p>
             ) : (
-              <ul className="divide-y divide-buzz-lineMid">
+              <ul className="divide-y divide-line px-6">
                 {overview.data.warnings.map((warning) => {
                   const meta = SIGNAL_META[warning.key];
                   const body = (
                     <>
                       <CountMark tone="bad">{warning.count}</CountMark>
                       <span>
-                        <span className="block text-sm font-bold text-buzz-ink">
+                        <span className="block text-sm font-medium text-primary">
                           {meta?.label ?? humanizeKey(warning.key)}
                         </span>
                         {meta && (
-                          <span className="mt-0.5 block text-xs font-medium text-buzz-inkMuted">
+                          <span className="mt-0.5 block text-xs font-medium text-muted">
                             {meta.note}
                           </span>
                         )}
@@ -188,7 +216,7 @@ export default function AdminOverviewPage() {
                       {meta?.to ? (
                         <Link
                           to={meta.to}
-                          className="flex items-start gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
+                          className="flex items-start gap-3 px-4 py-3 transition hover:bg-surface-pop"
                         >
                           {body}
                         </Link>
@@ -202,7 +230,7 @@ export default function AdminOverviewPage() {
             )}
           </Panel>
 
-          <p className="text-xs font-medium text-buzz-inkFaint">
+          <p className="text-xs font-medium text-quiet">
             Counted {formatDateTime(overview.data.generatedAt)}.
           </p>
         </>

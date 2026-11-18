@@ -20,8 +20,12 @@ export default function RequireStatus({ children }: { children: ReactNode }) {
   // Any non-active org is redirected to where it belongs (onboarding step or the
   // denied page) via the shared mapping — one source of truth shared
   // with the login page and the onboarding pages. Active orgs, brands, and
-  // admins fall through to the portal.
-  if (user.portalRole === "org" && user.status !== "active") {
+  // admins fall through to the portal. An approved switch stays on Connect
+  // until its credentials are bound again.
+  if (
+    user.portalRole === "org" &&
+    (user.status !== "active" || user.instagramReconnectRequired)
+  ) {
     return <Navigate to={pathForUser(user)} replace />;
   }
 

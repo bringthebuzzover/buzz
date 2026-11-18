@@ -73,7 +73,10 @@ Prefer direct tools and narrow reads; never print credentials or whole variable
 sets. Do not use a generic infrastructure agent to make unreviewed changes.
 A set/overwrite operation does not prove a variable was deleted; verify removal.
 
-For staging access, consult `BUZZ-TEST-ACCOUNTS.md` for identities, routes, and
-fixtures, and follow `OPENBOT-FLEET-RULES.md` for credential and verification
+For staging access, consult the private `buzz-ops` repo (`engineering/testing.md`,
+`engineering/runbooks/staging.md`) for identities, routes, and
+fixtures, and follow the fleet rules (`OPENBOT-FLEET-RULES.md` in the OpenBot
+workspace root) for credential and verification
 code handling. Always check Vault before sign-in and do not assume it is empty.
-If access is unavailable, report the blocker.
+Never request passwords in chat, harvest another inbox, or publish verification
+codes. Do not send mail. If access is unavailable, report the blocker.

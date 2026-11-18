@@ -3,11 +3,9 @@
  * load error, render initials instead of broken alt text.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { RemoteImage, imageInitials } from "./RemoteImage";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+import { renderWithProviders } from "../../testUtils";
 
 describe("imageInitials", () => {
   it("uses the first letter of the first two words", () => {
@@ -53,6 +51,15 @@ describe("RemoteImage", () => {
     expect(html).not.toContain("referrerpolicy");
   });
 
+  it("leaves the parent fill when the empty fallback is blank", () => {
+    const html = renderToString(
+      <RemoteImage src={null} label="Sample Brand" fallback="blank" />,
+    );
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("SB");
+    expect(html).not.toContain("image-fallback");
+  });
+
   it("shows initials instead of an img when the URL is not displayable", () => {
     const html = renderToString(
       <RemoteImage src="javascript:alert(1)" label="Meta Review Test Drop" />,
@@ -85,19 +92,13 @@ describe("RemoteImage", () => {
   });
 
   it("swaps to initials when the image fails to load", () => {
-    const host = document.createElement("div");
-    document.body.appendChild(host);
-    let root: Root | undefined;
-    act(() => {
-      root = createRoot(host);
-      root.render(
-        <RemoteImage
-          src="https://www.bringthebuzzover.com/favicon.ico"
-          label="BUZZ Review Test Brand"
-          alt="Meta Review Test Drop"
-        />,
-      );
-    });
+    const { container: host } = renderWithProviders(
+      <RemoteImage
+        src="https://www.bringthebuzzover.com/favicon.ico"
+        label="BUZZ Review Test Brand"
+        alt="Meta Review Test Drop"
+      />,
+    );
     const img = host.querySelector("img");
     expect(img).not.toBeNull();
     act(() => {
@@ -106,9 +107,5 @@ describe("RemoteImage", () => {
     expect(host.querySelector("img")).toBeNull();
     expect(host.textContent).toContain("BR");
     expect(host.querySelector("[data-testid=image-fallback]")).not.toBeNull();
-    act(() => {
-      root?.unmount();
-    });
-    host.remove();
   });
 });

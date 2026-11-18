@@ -11,9 +11,9 @@
  * and every `kind: redirect` alias in `AppRoot`.
  *
  * Not covered because they need credentials the seed does not mint, tracked in
- * `frontend/docs/ui-defect-map.md` as coverage holes: `/brand/setup` (redirects
+ * the ui-defect map (buzz-ops design/archive) as coverage holes: `/brand/setup` (redirects
  * to `/` without a valid `?token`) and `/onboarding/connect-instagram`'s connect
- * CTA (needs a `pending_instagram` session; only the bad-token state is shot).
+ * CTA (needs a `awaiting_connect` session; only the bad-token state is shot).
  */
 import type { Page } from "@playwright/test";
 import type { Persona } from "./personas";
@@ -77,9 +77,7 @@ export const SURFACES: Surface[] = [
   },
   { id: "brand-apply", route: "/brand/apply", persona: "public", area: "auth" },
   { id: "brand-forgot-password", route: "/brand/forgot-password", persona: "public", area: "auth" },
-  { id: "admin-forgot-password", route: "/admin/forgot-password", persona: "public", area: "auth" },
   { id: "brand-reset-password", route: "/brand/reset-password", persona: "public", area: "auth" },
-  { id: "admin-reset-password", route: "/admin/reset-password", persona: "public", area: "auth" },
   { id: "reconnect-instagram", route: "/reconnect-instagram", persona: "public", area: "auth" },
 
   // Onboarding (public entry points + their failure states)

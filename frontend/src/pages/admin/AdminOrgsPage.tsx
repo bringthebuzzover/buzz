@@ -7,11 +7,11 @@
  */
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ApiError } from "../../api/client";
 import {
   useAdminOrgs,
   useDenyOrg,
-  useResendAllPendingInstagramConnect,
+  useResendAllAwaitingInstagramConnect,
+  useSendOrgConnectLink,
   useViewAs,
   type AdminOrgRow,
   type ResendConnectAllResult,
@@ -20,10 +20,10 @@ import {
   ActionButton,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   FilterChips,
   PageHeading,
-  Panel,
   QueryState,
   Row,
   StatusPill,
@@ -31,13 +31,14 @@ import {
   IgBindMismatchChip,
 } from "../../components/admin/AdminPrimitives";
 import { formatCompactCount, formatElapsed } from "../../components/admin/labels";
-import { Button, SuccessBanner } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
+import { ApiError } from "../../api/client";
+import { SuccessBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 
 const FILTERS = [
   { value: null, label: "All" },
   { value: "pending_approval", label: "Awaiting approval" },
-  { value: "pending_instagram", label: "Awaiting Instagram" },
+  { value: "awaiting_connect", label: "Awaiting Instagram" },
   { value: "pending_email_verification", label: "Unverified" },
   { value: "pending_org_profile", label: "No profile" },
   { value: "active", label: "Active" },
@@ -66,49 +67,36 @@ export default function AdminOrgsPage() {
   const attention = searchParams.get("attention");
   const orgs = useAdminOrgs(status ?? undefined, attention ?? undefined);
   const deny = useDenyOrg();
-  const resendAll = useResendAllPendingInstagramConnect();
+  const resendAll = useResendAllAwaitingInstagramConnect();
+  const sendConnectLink = useSendOrgConnectLink();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [rowNotice, setRowNotice] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<string | null>(null);
 
-  const busy = deny.isPending || resendAll.isPending;
+  const busy = deny.isPending || resendAll.isPending || sendConnectLink.isPending;
   const actionError = deny.isError;
-
-  const onConfirmResendAll = async () => {
-    setBulkError(null);
-    setBulkNotice(null);
-    try {
-      const result = (await resendAll.mutateAsync(
-        undefined,
-      )) as ResendConnectAllResult;
-      setConfirmOpen(false);
-      if (result.targeted === 0) {
-        setBulkNotice("No organizations are waiting to connect Instagram.");
-        return;
-      }
-      const parts = [`Sent ${result.sent} of ${result.targeted}.`];
-      if (result.failed) parts.push(`${result.failed} failed to send.`);
-      if (result.skipped) {
-        parts.push(`${result.skipped} skipped (no school email).`);
-      }
-      setBulkNotice(parts.join(" "));
-      if (result.failed) {
-        setBulkError(
-          "Some Connect emails did not send. Open those organizations and use Resend connect email.",
-        );
-      }
-    } catch (err) {
-      setBulkError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not send Connect emails.",
-      );
-    }
-  };
 
   const decidable = (row: AdminOrgRow) =>
     row.status === "pending_approval" && row.id !== null;
+
+  async function onSendConnectLink(row: AdminOrgRow) {
+    if (!row.id) return;
+    setRowError(null);
+    setRowNotice(null);
+    try {
+      await sendConnectLink.mutateAsync(row.id);
+      setRowNotice(`Connect Instagram email queued for ${row.orgName ?? "this organization"}.`);
+    } catch (err) {
+      setRowError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not send the Connect Instagram email.",
+      );
+    }
+  }
 
   return (
     <div>
@@ -135,6 +123,12 @@ export default function AdminOrgsPage() {
         </div>
       )}
       {bulkError && <ErrorNote>{bulkError}</ErrorNote>}
+      {rowNotice && (
+        <div className="mb-4">
+          <SuccessBanner>{rowNotice}</SuccessBanner>
+        </div>
+      )}
+      {rowError && <ErrorNote>{rowError}</ErrorNote>}
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
       {actionError && (
         <ErrorNote>
@@ -143,33 +137,39 @@ export default function AdminOrgsPage() {
       )}
 
       {confirmOpen && (
-        <Modal
-          onClose={() => setConfirmOpen(false)}
+        <ConfirmDialog
           title="Email organizations awaiting Instagram"
-          description="Send the Connect Instagram email to every organization whose last step is connecting Instagram. This does not email organizations still verifying school email or awaiting approval."
-        >
-          <div className="mt-6 flex justify-end gap-2 px-6 pb-4">
-            <Button
-              type="button"
-              variant="ghost"
-              size="compact"
-              data-testid="resend-connect-all-cancel"
-              onClick={() => setConfirmOpen(false)}
-              disabled={resendAll.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="compact"
-              data-testid="resend-connect-all-confirm"
-              onClick={() => void onConfirmResendAll()}
-              disabled={resendAll.isPending}
-            >
-              {resendAll.isPending ? "Sending…" : "Send emails"}
-            </Button>
-          </div>
-        </Modal>
+          description="Send the Connect Instagram email to every organization whose next step is connecting Instagram — an approved account switch, and organizations that have not connected yet and cannot be approved until they do. This does not email organizations still verifying school email, organizations without a profile, or organizations already connected."
+          confirmLabel="Send emails"
+          pendingLabel="Sending…"
+          pending={resendAll.isPending}
+          cancelTestId="resend-connect-all-cancel"
+          submitTestId="resend-connect-all-confirm"
+          fallbackError="Could not send Connect emails."
+          onConfirm={async () => {
+            setBulkError(null);
+            setBulkNotice(null);
+            const result = (await resendAll.mutateAsync(
+              undefined,
+            )) as ResendConnectAllResult;
+            if (result.targeted === 0) {
+              setBulkNotice("No organizations are waiting to connect Instagram.");
+              return;
+            }
+            const parts = [`Queued ${result.queued} of ${result.targeted}.`];
+            if (result.failed) parts.push(`${result.failed} failed to queue.`);
+            if (result.skipped) {
+              parts.push(`${result.skipped} skipped (no school email).`);
+            }
+            setBulkNotice(parts.join(" "));
+            if (result.failed) {
+              setBulkError(
+                "Some Connect emails could not be queued. Open those organizations and use Send Connect link (or Resend connect email for a switch).",
+              );
+            }
+          }}
+          onClose={() => setConfirmOpen(false)}
+        />
       )}
 
       <FilterChips
@@ -185,33 +185,38 @@ export default function AdminOrgsPage() {
         param="attention"
       />
 
-      <Panel>
-        <QueryState
-          isPending={orgs.isPending}
-          isError={orgs.isError}
-          label="organizations"
-        />
-        {orgs.data && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={orgs.data.length === 0}
-            empty="No organizations match this filter."
-          >
-            {orgs.data.map((row) => (
-              <Row key={row.userId}>
-                <Cell>
-                  <Link
-                    to={`/admin/orgs/${row.userId}`}
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-                  >
-                    {row.orgName ?? "Profile not submitted"}
-                  </Link>
-                  {row.instagramHandle && (
-                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-                      @{row.instagramHandle.replace(/^@/, "")}
-                    </span>
-                  )}
-                </Cell>
+      <QueryState
+        isPending={orgs.isPending}
+        isError={orgs.isError}
+        label="organizations"
+      />
+      {orgs.data && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={orgs.data.length === 0}
+          empty="No organizations match this filter."
+        >
+          {orgs.data.map((row) => (
+            <Row
+              key={row.userId}
+              attention={
+                row.status === "pending_approval" ||
+                Boolean(row.igBindMismatchedAt && !row.igBindMismatchAckedAt)
+              }
+            >
+              <Cell>
+                <Link
+                  to={`/admin/orgs/${row.userId}`}
+                  className={`block ${entityLinkClass}`}
+                >
+                  {row.orgName ?? "Profile not submitted"}
+                </Link>
+                {row.instagramHandle && (
+                  <span className="mt-0.5 block text-xs text-quiet">
+                    @{row.instagramHandle.replace(/^@/, "")}
+                  </span>
+                )}
+              </Cell>
                 <Cell muted>
                   <span className="tabular-nums">
                     {formatCompactCount(row.followerCount)}
@@ -220,7 +225,9 @@ export default function AdminOrgsPage() {
                 <Cell muted>{row.university ?? "—"}</Cell>
                 <Cell>
                   <div className="flex flex-col items-start gap-1">
-                    <StatusPill status={row.status} />
+                    <StatusPill
+                      status={row.instagramReconnectRequired ? "awaiting_connect" : row.status}
+                    />
                     {row.instagramHandle &&
                       !row.instagramHandleConfirmed &&
                       row.status !== "active" && <UnconfirmedIgChip />}
@@ -231,9 +238,20 @@ export default function AdminOrgsPage() {
                 <Cell muted>{row.eduEmail ?? "—"}</Cell>
                 <Cell muted>{formatElapsed(row.createdAt)}</Cell>
                 <Cell align="right">
-                  <div className="flex flex-wrap justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2 md:flex-nowrap md:gap-4 md:whitespace-nowrap">
+                    {row.instagramConnectRequired && (
+                      <ActionButton
+                        quiet
+                        testId={`send-connect-link-${row.userId}`}
+                        disabled={busy}
+                        onClick={() => void onSendConnectLink(row)}
+                      >
+                        Send Connect link
+                      </ActionButton>
+                    )}
                     {decidable(row) && (
                       <ActionButton
+                        quiet
                         variant="danger"
                         testId={`deny-org-${row.userId}`}
                         disabled={busy}
@@ -243,6 +261,7 @@ export default function AdminOrgsPage() {
                       </ActionButton>
                     )}
                     <ActionButton
+                      quiet
                       testId={`view-as-${row.userId}`}
                       disabled={!row.impersonatable || viewAsPending}
                       onClick={() => void viewAs(row.userId)}
@@ -254,8 +273,7 @@ export default function AdminOrgsPage() {
               </Row>
             ))}
           </AdminTable>
-        )}
-      </Panel>
+      )}
     </div>
   );
 }

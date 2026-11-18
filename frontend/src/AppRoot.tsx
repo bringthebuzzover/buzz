@@ -1,10 +1,11 @@
+import { ScrollToTop } from "./components/routing/ScrollToTop";
 /**
  * Top-level routes: `SiteLayout` for the marketing shell, `AdminLayout` for the
  * admin panel; portal routes use the real auth guards (RequireAuth →
  * RequireStatus → RequireRole, architecture §5.4).
  */
 import type { ReactElement } from "react";
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import type { PortalRole } from "./types/auth";
 import SiteLayout from "./layouts/SiteLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -21,6 +22,7 @@ import OrgPortalProfilePage from "./pages/org/OrgPortalProfilePage";
 import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPage";
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
+import BrandSettingsPage from "./pages/brand/BrandSettingsPage";
 import LoginPage from "./pages/auth/LoginPage";
 import LogoutPage from "./pages/auth/LogoutPage";
 import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
@@ -52,10 +54,10 @@ import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
 import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
 import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
+import AdminShippingChangeRequestDetailPage from "./pages/admin/AdminShippingChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
-// META-REVIEWER-PATH: delete this import and the /meta-review route below.
-import MetaReviewerPage from "./meta-reviewer/MetaReviewerPage";
+import AdminNotFoundPage from "./pages/admin/AdminNotFoundPage";
 import UiKitPage from "./pages/dev/UiKitPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
@@ -78,20 +80,22 @@ function PortalGuard({
   );
 }
 
-/** Forward a legacy `/campaigns/:id` deep link to the real campaign detail
- * route, preserving the id (don't drop it onto the generic feed). */
-function LegacyCampaignRedirect(): ReactElement {
-  const { campaignId } = useParams<{ campaignId: string }>();
+function AdminIgChangeRedirect() {
+  const { requestId } = useParams<{ requestId: string }>();
+  const location = useLocation();
   return (
     <Navigate
-      to={campaignId ? `/org/campaigns/${campaignId}` : "/org/campaigns"}
+      to={`/admin/changes/ig/${requestId ?? ""}${location.search}`}
       replace
     />
   );
 }
 
 export default function AppRoot(): ReactElement {
+  const location = useLocation();
   return (
+    <>
+      <ScrollToTop />
     <Routes>
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
@@ -111,9 +115,9 @@ export default function AppRoot(): ReactElement {
           path="brand/forgot-password"
           element={
             <ForgotPasswordPage
-              portal="brand"
               loginPath="/brand/login"
               title="Forgot password"
+              kicker="Brand"
             />
           }
         />
@@ -121,9 +125,9 @@ export default function AppRoot(): ReactElement {
           path="brand/reset-password"
           element={
             <ResetPasswordPage
-              portal="brand"
               loginPath="/brand/login"
               title="Reset password"
+              kicker="Brand"
             />
           }
         />
@@ -131,8 +135,6 @@ export default function AppRoot(): ReactElement {
         <Route path="brand/apply" element={<BrandApplyPage />} />
         <Route path="org/apply" element={<OrgApplyPage />} />
         <Route path="d/:dropId" element={<PublicDropPage />} />
-        {/* META-REVIEWER-PATH: fragment secret, 404 from the API when the flag is off. */}
-        <Route path="meta-review" element={<MetaReviewerPage />} />
 
         {/* Onboarding pages. These require an authenticated session
             (architecture §6.4) — RequireAuth standardizes the redirect to
@@ -225,72 +227,18 @@ export default function AppRoot(): ReactElement {
             </PortalGuard>
           }
         />
+        <Route
+          path="brand/settings"
+          element={
+            <PortalGuard role="brand">
+              <BrandSettingsPage />
+            </PortalGuard>
+          }
+        />
 
-        {/* Legacy redirects */}
-        <Route
-          path="campaigns"
-          element={
-            <PortalGuard role="org">
-              <Navigate to="/org/browse" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="campaigns/:campaignId"
-          element={
-            <PortalGuard role="org">
-              <LegacyCampaignRedirect />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="register"
-          element={
-            <PortalGuard role="org">
-              <Navigate to="/org/browse" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="brand"
-          element={
-            <PortalGuard role="brand">
-              <Navigate to="/brand/dashboard" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="brand/campaigns/new"
-          element={
-            <PortalGuard role="brand">
-              <Navigate to="/brand/requests/new" replace />
-            </PortalGuard>
-          }
-        />
-        {/* Admin login is public (admins have no Instagram identity, so this is
-            their only session entry point off-dev) and keeps the marketing
-            chrome; the panel itself lives outside this layout. */}
+        {/* Admin login is public. SiteLayout swaps in AuthAdminHeader so the
+            public "Join Us" header does not show. */}
         <Route path="admin/login" element={<AdminLoginPage />} />
-        <Route
-          path="admin/forgot-password"
-          element={
-            <ForgotPasswordPage
-              portal="admin"
-              loginPath="/admin/login"
-              title="Forgot password"
-            />
-          }
-        />
-        <Route
-          path="admin/reset-password"
-          element={
-            <ResetPasswordPage
-              portal="admin"
-              loginPath="/admin/login"
-              title="Reset password"
-            />
-          }
-        />
 
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
@@ -314,17 +262,20 @@ export default function AppRoot(): ReactElement {
         <Route path="brands/:brandId" element={<AdminBrandDetailPage />} />
         <Route path="requests" element={<AdminDropRequestsPage />} />
         <Route path="requests/:requestId" element={<AdminDropRequestDetailPage />} />
-        <Route path="ig-changes" element={<AdminIgChangeRequestsPage />} />
-        <Route path="ig-changes/:requestId" element={<AdminIgChangeRequestDetailPage />} />
+        <Route path="changes" element={<AdminIgChangeRequestsPage />} />
+        <Route path="changes/ig/:requestId" element={<AdminIgChangeRequestDetailPage />} />
+        <Route path="changes/address/:requestId" element={<AdminShippingChangeRequestDetailPage />} />
+        <Route path="ig-changes" element={<Navigate to={`/admin/changes${location.search}`} replace />} />
+        <Route path="ig-changes/:requestId" element={<AdminIgChangeRedirect />} />
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
-        {/* Primitive gallery. PortalGuard keeps it admin-only in every build;
-            production used to omit the route, so signed-in admins hit the
-            public 404. */}
+        {/* Primitive gallery. The route stays admin-only in every build.
+            The sidebar link is development and staging only. */}
         <Route path="ui-kit" element={<UiKitPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<AdminNotFoundPage />} />
       </Route>
     </Routes>
+    </>
   );
 }

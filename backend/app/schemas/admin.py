@@ -1,4 +1,4 @@
-"""Admin endpoint schemas (architecture.md §5.1, §8.5).
+"""Admin endpoint schemas (buzz-ops engineering/architecture.md §5.1, §8.5).
 
 Read schemas here mirror :mod:`app.services.admin_read`. Datetimes serialize to
 epoch-ms like the rest of the API so the React hooks consume them without
@@ -8,7 +8,7 @@ remapping.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -20,6 +20,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
+from app.models.enums import DropStage, SeatProgress
 from app.schemas.auth import UserResponse
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.shipments import ShipmentItem
@@ -36,42 +37,6 @@ def _epoch_ms_to_aware(value: Any) -> Any:
     if not isinstance(value, int):
         raise ValueError("must be an epoch-ms integer")
     return datetime.fromtimestamp(value / 1000.0, tz=timezone.utc)
-
-
-class AdminPendingOrgItem(CamelModel):
-    id: uuid.UUID
-    user_id: uuid.UUID
-    org_name: str
-    university: str
-    instagram_handle: str | None
-    follower_count: int | None
-    member_count: int | None
-    status: str
-    created_at: datetime
-
-    @field_serializer("created_at")
-    def _created_at_epoch(self, value: datetime) -> int:
-        return int(value.timestamp() * 1000)
-
-
-class AdminPendingBrandItem(CamelModel):
-    id: uuid.UUID
-    user_id: uuid.UUID
-    brand_name: str
-    company_email: str
-    intent_message: str | None
-    instagram_handle: str | None
-    status: str
-    created_at: datetime
-
-    @field_serializer("created_at")
-    def _created_at_epoch(self, value: datetime) -> int:
-        return int(value.timestamp() * 1000)
-
-
-class TrackerAdvanceRequest(CamelModel):
-    stage: str
-    note: str | None = None
 
 
 class AdminDropConfigPatch(CamelModel):
@@ -129,7 +94,7 @@ class AdminDropConfigPatch(CamelModel):
 
 
 class AdminDropCreateRequest(CamelModel):
-    """Admin-minted unpublished draft drop (LAUNCH.md Phase B)."""
+    """Admin-minted unpublished draft drop."""
 
     title: str
     description: str
@@ -141,6 +106,7 @@ class AdminDropCreateRequest(CamelModel):
     total_product_units: int | None = Field(default=None, ge=1)
     campaign_hashtag: str | None = None
     drop_request_id: uuid.UUID | None = None
+    brand_can_edit_creative: bool = False
 
     @field_validator("apply_open_at", "apply_close_at")
     @classmethod
@@ -162,6 +128,13 @@ class AdminDropRequestItem(CamelModel):
     brand_id: uuid.UUID
     brand_name: str
     message: str
+    product: str | None
+    title: str | None
+    location: str | None
+    target_date: date | None
+    org_count: int | None
+    units_per_org: int | None
+    campaign_hashtag: str | None
     notes: str | None
     status: str
     converted_drop_id: uuid.UUID | None
@@ -171,11 +144,6 @@ class AdminDropRequestItem(CamelModel):
     @field_serializer("created_at", "updated_at")
     def _epoch(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
-
-
-class AdminCleanupStubsResponse(CamelModel):
-    converted_count: int
-    deleted_drop_ids: list[uuid.UUID]
 
 
 class AdminCreateBrandRequest(CamelModel):
@@ -194,23 +162,6 @@ class AdminCreateBrandRequest(CamelModel):
         if "@" not in v or "." not in v.split("@")[-1] or len(v) > 320:
             raise ValueError("Invalid email address")
         return v
-
-
-class AdminUserItem(CamelModel):
-    """A row in the ``/api/admin/users`` impersonation picker."""
-
-    id: uuid.UUID
-    portal_role: str
-    status: str
-    display_name: str | None
-    email: str | None
-    instagram_handle: str | None
-    impersonatable: bool
-    created_at: datetime
-
-    @field_serializer("created_at")
-    def _created_at_epoch(self, value: datetime) -> int:
-        return int(value.timestamp() * 1000)
 
 
 class ImpersonateRequest(CamelModel):
@@ -285,9 +236,17 @@ class AdminAttentionItem(CamelModel):
         return to_epoch_ms(value)
 
 
+class AdminStageCount(CamelModel):
+    """Visible drops in one computed stage (Overview tiles)."""
+
+    stage: DropStage
+    count: int
+
+
 class AdminOverviewResponse(CamelModel):
     generated_at: datetime
     queues: list[AdminQueueItem]
+    stages: list[AdminStageCount] = []
     warnings: list[AdminWarningItem]
     items: list[AdminAttentionItem] = []
 
@@ -345,6 +304,8 @@ class AdminOrgItem(CamelModel):
     member_count: int | None
     category: str | None
     status: str
+    instagram_reconnect_required: bool = False
+    instagram_connect_required: bool = False
     edu_email: str | None
     email_verified_at: datetime | None
     approved_at: datetime | None
@@ -377,6 +338,8 @@ class AdminBrandItem(CamelModel):
     user_id: uuid.UUID
     brand_name: str
     company_email: str
+    contact_name: str | None
+    marketing_budget: str | None
     intent_message: str | None
     instagram_handle: str | None
     status: str
@@ -385,6 +348,7 @@ class AdminBrandItem(CamelModel):
     approved_at: datetime | None
     last_login_at: datetime | None
     impersonatable: bool
+    ig_change_pending: bool = False
     created_at: datetime
 
     @field_serializer("approved_at", "last_login_at", "created_at")
@@ -421,6 +385,12 @@ class AdminIgChangeApproveRequest(CamelModel):
     tester_invite_confirmed: bool = False
 
 
+class AdminIgChangeRetargetRequest(CamelModel):
+    """New handle for a switch ticket that is stuck waiting to reconnect."""
+
+    requested_handle: str
+
+
 class AdminIgChangeRequestItem(CamelModel):
     id: uuid.UUID
     org_id: uuid.UUID
@@ -441,17 +411,46 @@ class AdminIgChangeRequestItem(CamelModel):
     linked_post_count: int | None = None
     live_drop_count: int | None = None
     finished_drop_count: int | None = None
-    email_sent: bool | None = None
+    email_queued: bool | None = None
 
     @field_serializer("decided_at", "created_at")
     def _epoch(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
+class AdminShippingChangeRequestItem(CamelModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    requester_user_id: uuid.UUID
+    reviewer_user_id: uuid.UUID | None = None
+    org_name: str | None = None
+    university: str | None = None
+    edu_email: str | None = None
+    current_address: dict[str, Any] | None
+    requested_address: dict[str, Any] | None
+    base_address_version: int
+    reason: str | None
+    status: str
+    decision_reason: str | None = None
+    active_drop_titles: list[str] = Field(default_factory=list)
+    created_at: datetime
+    decided_at: datetime | None = None
+
+    @field_serializer("created_at", "decided_at")
+    def _epoch(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
+class AdminShippingChangeDecision(CamelModel):
+    decision_reason: str | None = None
+
+
 class AdminOrgDetail(CamelModel):
     user_id: uuid.UUID
     org_id: uuid.UUID | None
     status: str
+    instagram_reconnect_required: bool = False
+    instagram_connect_required: bool = False
     org_name: str | None
     university: str | None
     category: str | None
@@ -516,17 +515,16 @@ class AdminDropItem(CamelModel):
     brand_name: str
     brand_status: str
     title: str
-    stage: str
+    stage: DropStage
     capacity_total: int
     total_product_units: int | None
     applied_count: int
     accepted_count: int
     apply_open_at: datetime
     apply_close_at: datetime
-    manual_reopen: bool
     needs_tracking: bool
     campaign_hashtag: str | None
-    finalized_at: datetime | None
+    wrapped_at: datetime | None = None
     published_at: datetime | None = None
     hidden_at: datetime | None = None
     drop_request_id: uuid.UUID | None = None
@@ -536,7 +534,43 @@ class AdminDropItem(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at", "published_at", "hidden_at")
+    @field_serializer("wrapped_at", "published_at", "hidden_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
+class AdminBrandPendingIgChange(CamelModel):
+    """Open brand handle-change ticket on ``AdminBrandDetail``."""
+
+    id: uuid.UUID
+    current_handle: str
+    requested_handle: str
+    reason: str
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+
+class AdminBrandIgChangeRequestItem(CamelModel):
+    id: uuid.UUID
+    brand_id: uuid.UUID
+    user_id: uuid.UUID
+    brand_name: str
+    company_email: str
+    current_handle: str
+    requested_handle: str
+    reason: str
+    status: str
+    decided_at: datetime | None = None
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decided_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -546,6 +580,8 @@ class AdminBrandDetail(CamelModel):
     user_id: uuid.UUID
     brand_name: str
     company_email: str
+    contact_name: str | None
+    marketing_budget: str | None
     intent_message: str | None
     instagram_handle: str | None
     status: str
@@ -555,6 +591,7 @@ class AdminBrandDetail(CamelModel):
     created_at: datetime
     last_login_at: datetime | None
     impersonatable: bool
+    pending_ig_change: AdminBrandPendingIgChange | None = None
     invite: AdminInviteState
     drops: list[AdminDropItem]
 
@@ -590,12 +627,17 @@ class AdminApplicantItem(CamelModel):
     linked_post_count: int
     applied_at: datetime
     decision_at: datetime | None
+    decision_sent_at: datetime | None = None
+    added_by: Literal["apply", "late_add"] = "apply"
+    delivered_at: datetime | None = None
+    end_reason: str | None = None
+    progress: SeatProgress | None = None
 
     @field_serializer("applied_at")
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at", "metrics_frozen_at")
+    @field_serializer("decision_at", "decision_sent_at", "delivered_at", "metrics_frozen_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -637,17 +679,17 @@ class AdminDropDetail(CamelModel):
     description: str
     image: str
     location: str
-    stage: str
+    stage: DropStage
     capacity_total: int
     total_product_units: int | None
     allocated_units: int
     campaign_hashtag: str | None
     brand_can_edit_creative: bool
     needs_tracking: bool
-    manual_reopen: bool
     apply_open_at: datetime
     apply_close_at: datetime
-    finalized_at: datetime | None
+    wrapped_at: datetime | None = None
+    canceled_at: datetime | None = None
     published_at: datetime | None = None
     hidden_at: datetime | None = None
     drop_request_id: uuid.UUID | None = None
@@ -662,6 +704,6 @@ class AdminDropDetail(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at", "published_at", "hidden_at")
+    @field_serializer("wrapped_at", "canceled_at", "published_at", "hidden_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

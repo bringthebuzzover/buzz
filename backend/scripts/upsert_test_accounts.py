@@ -41,7 +41,6 @@ import asyncio
 import os
 import sys
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -61,6 +60,7 @@ from app.models.enums import (  # noqa: E402
     PortalRole,
 )
 from app.security.password import hash_password  # noqa: E402
+from app.timeutils import utcnow  # noqa: E402
 
 # Stable high-numbered UUIDs so these never collide with seed_dev's 1..100 range.
 ADMIN_ID = uuid.UUID(int=9001)
@@ -76,10 +76,6 @@ ORG_EDU_EMAIL = "test-org@cornell.edu"
 # Local-only fallbacks. The guard below requires explicit env vars off-dev so a
 # production deploy can never end up with a committed password.
 _DEFAULT_PASSWORD = "buzzdev123"
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _password(var: str) -> str:
@@ -126,7 +122,7 @@ async def _upsert_brand(session: AsyncSession, password: str) -> User:
     brand.instagram_handle = "buzztestbrand"
     brand.intent_message = "Permanent QA account."
     brand.status = BrandStatus.APPROVED.value
-    brand.approved_at = brand.approved_at or _now()
+    brand.approved_at = brand.approved_at or utcnow()
     return user
 
 
@@ -138,7 +134,7 @@ async def _upsert_org(session: AsyncSession) -> User:
     user.portal_role = PortalRole.ORG.value
     user.status = OrgUserStatus.ACTIVE.value
     user.edu_email = ORG_EDU_EMAIL
-    user.email_verified_at = user.email_verified_at or _now()
+    user.email_verified_at = user.email_verified_at or utcnow()
     # Synthetic IG identity with NO access token: enough for the profile/handle
     # display, not enough to pretend the account can log in via OAuth.
     user.instagram_user_id = "buzz_test_org"
@@ -156,7 +152,7 @@ async def _upsert_org(session: AsyncSession) -> User:
     org.city = "Ithaca"
     org.state = "NY"
     org.contact_name = "Buzz QA"
-    org.approved_at = org.approved_at or _now()
+    org.approved_at = org.approved_at or utcnow()
     org.claimed_instagram_username = "buzztestorg"
     return user
 

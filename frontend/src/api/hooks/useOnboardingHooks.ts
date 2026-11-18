@@ -15,8 +15,6 @@ export type OrgOnboardingResponse = components["schemas"]["OrgOnboardingResponse
 export type VerifyEmailResponse = components["schemas"]["VerifyEmailResponse"];
 export type ResendVerificationResponse =
   components["schemas"]["ResendVerificationResponse"];
-export type ChangeEduEmailResponse =
-  components["schemas"]["ChangeEduEmailResponse"];
 export type RotateEduEmailResponse =
   components["schemas"]["RotateEduEmailResponse"];
 export type CancelPendingEduEmailResponse =
@@ -35,6 +33,9 @@ export type AddressSuggestionItem =
 // ── Org onboarding ─────────────────────────────────────────────────────────
 
 export type OrgOnboardingInput = {
+  dropId?: string;
+  pitch?: string;
+  prefillToken?: string;
   orgName: string;
   university: string;
   eduEmail: string;
@@ -54,7 +55,6 @@ export type OrgOnboardingInput = {
 
 export type OrgApplyInput = OrgOnboardingInput & {
   instagramHandle: string;
-  prefillToken?: string;
   dropId?: string;
   pitch?: string;
 };
@@ -75,7 +75,7 @@ export function useOrgApplyPrefill(token: string | null) {
   });
 }
 
-/** Public org apply-first signup (→ pending_email_verification, no IG token). */
+/** Retired signup endpoint; retained for legacy form compatibility. */
 export function useOrgApply() {
   return useMutation({
     mutationFn: async (input: OrgApplyInput) => {
@@ -178,7 +178,7 @@ export type InstagramBindStartResponse = {
   authorize_url?: string;
 };
 
-/** Authenticated bind OAuth start for pending_instagram orgs. */
+/** Authenticated bind OAuth start for awaiting_connect orgs. */
 export function useInstagramBindStart() {
   return useMutation({
     mutationFn: async (nextPath?: string | null) => {
@@ -250,22 +250,6 @@ export function useResendVerification() {
   });
 }
 
-export function useChangeEduEmail() {
-  return useMutation({
-    mutationFn: async (eduEmail: string) => {
-      const { data } = await apiFetch<ChangeEduEmailResponse>(
-        "/api/auth/verify-email/change",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eduEmail }),
-        },
-      );
-      return data;
-    },
-  });
-}
-
 export function useRotateEduEmail() {
   return useMutation({
     mutationFn: async (eduEmail: string) => {
@@ -319,10 +303,12 @@ export function useBrandSetPassword() {
 }
 
 export type BrandApplyInput = {
+  contactName: string;
   brandName: string;
   companyEmail: string;
+  marketingBudget: components["schemas"]["BrandApplyRequest"]["marketingBudget"];
+  intentMessage: string;
   instagramHandle?: string;
-  intentMessage?: string;
 };
 
 /** Public brand self-registration (→ pending_review). No auth required. */

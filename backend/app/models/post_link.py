@@ -1,6 +1,6 @@
 """``post_campaign_links`` table — confirmed (post, campaign) attribution.
 
-``UNIQUE(post_id)`` enforces the PRODUCT.md §4.2 invariant: **one post can
+``UNIQUE(post_id)`` enforces the buzz-ops product/PRODUCT.md §4.2 invariant: **one post can
 belong to at most one campaign**. Anything that would create a second link
 for the same post must raise ``IntegrityError`` at the DB layer — tested
 in ``tests/test_constraints.py``.

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -46,7 +47,7 @@ from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
+    DropStage,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -62,6 +63,7 @@ from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.security import jwt, rate_limit
+from app.security.token_crypto import encrypt_token
 from app.services import address as address_service
 from app.services.address import FormatFallbackAddressClient, get_address_client
 from app.services.instagram import (
@@ -155,6 +157,18 @@ async def db_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
         await session.close()
         await outer_txn.rollback()
         await connection.close()
+
+
+@pytest.fixture
+def email_cleanup_session(db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep background email cleanup inside the test's rolled-back transaction."""
+
+    @asynccontextmanager
+    async def factory() -> AsyncIterator[AsyncSession]:
+        yield db_session
+
+    for module in ("onboarding", "password_reset"):
+        monkeypatch.setattr(f"app.services.{module}.async_session_factory", factory)
 
 
 # --- Auth test helpers -------------------------------------------------------
@@ -288,12 +302,16 @@ def make_user(
     *,
     role: PortalRole = PortalRole.ORG,
     status: OrgUserStatus = OrgUserStatus.ACTIVE,
-    instagram_user_id: str | None = None,
+    instagram_user_id: str | None = "__auto__",
     instagram_username: str | None = None,
 ) -> User:
     """Build (not persist) a ``User`` with sensible auth-test defaults."""
 
     uid = uuid.uuid4()
+    if instagram_user_id == "__auto__":
+        instagram_user_id = (
+            f"ig_{uid.hex}" if role is PortalRole.ORG and status is OrgUserStatus.ACTIVE else None
+        )
     if role is PortalRole.ORG:
         handle = instagram_username if instagram_username is not None else f"org{uid.hex[:16]}"
     else:
@@ -303,6 +321,11 @@ def make_user(
         portal_role=role.value,
         status=status.value,
         instagram_user_id=instagram_user_id,
+        instagram_access_token=(
+            encrypt_token("fake-instagram-token")
+            if role is PortalRole.ORG and instagram_user_id
+            else None
+        ),
         instagram_username=handle,
     )
 
@@ -336,11 +359,52 @@ async def make_org(
     return org
 
 
+async def make_awaiting_connect(
+    db: AsyncSession,
+    user: User,
+    org: Organization,
+    *,
+    current_handle: str | None = "oldclub",
+    requested_handle: str | None = None,
+    is_migration_placeholder: bool = False,
+):
+    """An approved account switch whose credentials have been released.
+
+    ``current_handle`` defaults to a real switch (a *different* previous handle),
+    which is enforced on bind. Explicitly set ``is_migration_placeholder`` for
+    a retirement-migration ticket: it names no target, so any bind satisfies it.
+    """
+    from app.models.org_ig_change_request import OrgIgChangeRequest
+
+    user.instagram_user_id = None
+    user.instagram_token_user_id = None
+    user.instagram_access_token = None
+    requested = requested_handle or user.instagram_username or "newclub"
+    row = OrgIgChangeRequest(
+        id=uuid.uuid4(),
+        org_id=org.id,
+        user_id=user.id,
+        kind="account_switch",
+        decided_kind="account_switch",
+        current_handle=requested if current_handle is None else current_handle,
+        requested_handle=requested,
+        is_migration_placeholder=is_migration_placeholder,
+        reason="Switch to the new organization account.",
+        status="awaiting_connect",
+        decided_at=datetime.now(timezone.utc),
+    )
+    db.add(row)
+    await db.flush()
+    return row
+
+
 async def make_brand(
     db: AsyncSession,
     *,
     brand_name: str = "Test Brand",
     company_email: str | None = None,
+    contact_name: str | None = None,
+    marketing_budget: str | None = None,
 ) -> Brand:
     """Persist a brand (and its owning brand user) for drops to reference.
 
@@ -360,6 +424,8 @@ async def make_brand(
         id=uuid.uuid4(),
         user_id=brand_user.id,
         brand_name=brand_name,
+        contact_name=contact_name,
+        marketing_budget=marketing_budget,
         company_email=company_email or f"brand-{uuid.uuid4().hex[:12]}@test.com",
         status=BrandStatus.APPROVED.value,
     )
@@ -398,10 +464,9 @@ async def make_drop(
     capacity_total: int = 5,
     apply_open_at: datetime | None = None,
     apply_close_at: datetime | None = None,
-    manual_reopen: bool = False,
-    stage: BrandTrackerStage = BrandTrackerStage.REQUEST_RECEIVED,
     total_product_units: int | None = None,
     published_at: datetime | None | object = ...,
+    wrapped_at: datetime | None = None,
 ) -> Drop:
     """Persist a ``drops`` row owned by ``brand`` (apply window open by default).
 
@@ -426,10 +491,9 @@ async def make_drop(
         capacity_total=capacity_total,
         apply_open_at=open_at,
         apply_close_at=close_at,
-        manual_reopen=manual_reopen,
-        brand_tracker_stage=stage.value,
         total_product_units=total_product_units,
         published_at=pub,  # type: ignore[arg-type]
+        wrapped_at=wrapped_at,
     )
     db.add(drop)
     await db.flush()
@@ -444,15 +508,23 @@ async def make_application(
     decision: ApplicationDecision = ApplicationDecision.APPLIED,
     pitch: str | None = None,
     applied_at: datetime | None = None,
+    sent: bool = True,
 ) -> DropApplication:
-    """Persist a ``drop_applications`` row."""
+    """Persist a ``drop_applications`` row.
 
+    A non-``applied`` decision is *sent* by default (the org sees it; an
+    accepted seat is live). Pass ``sent=False`` for a drafted decision.
+    """
+
+    decided_at = None if decision == ApplicationDecision.APPLIED else datetime.now(timezone.utc)
     application = DropApplication(
         id=uuid.uuid4(),
         drop_id=drop.id,
         org_id=org.id,
         decision=decision.value,
         pitch=pitch,
+        decision_at=decided_at,
+        decision_sent_at=decided_at if sent else None,
     )
     if applied_at is not None:
         application.applied_at = applied_at
@@ -566,7 +638,7 @@ async def make_tracker_event(
     db: AsyncSession,
     drop: Drop,
     *,
-    stage: BrandTrackerStage = BrandTrackerStage.REQUEST_RECEIVED,
+    stage: DropStage = DropStage.DRAFT,
     note: str | None = None,
 ) -> DropTrackerEvent:
     """Persist a ``drop_tracker_events`` row."""
@@ -588,6 +660,13 @@ def mint_access_token(user: User) -> str:
         user.status,
         token_version=user.token_version or 0,
     )
+
+
+async def admin_headers(db: AsyncSession) -> dict[str, str]:
+    """Bearer headers for a freshly persisted admin user."""
+
+    admin = await persist(db, make_user(role=PortalRole.ADMIN))
+    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 def mint_expired_access_token(user: User) -> str:

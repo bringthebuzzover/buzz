@@ -2,7 +2,7 @@
 
 A fixed-window counter keyed by ``bucket:identity`` (identity = client IP, or the
 submitted account for login). Process-local — it assumes a **single web replica**
-(see DEPLOYMENT.md); the moment a second replica runs, counters split. For an MVP
+(see buzz-ops engineering/infra.md); the moment a second replica runs, counters split. For an MVP
 on Railway that's an acceptable, documented limitation (Redis is the upgrade
 path). ``settings.RATE_LIMIT_ENABLED`` is read at request time so it can be
 toggled (the test suite disables it).
@@ -20,8 +20,10 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
+from typing import Any
 
 from fastapi import Request
 
@@ -38,11 +40,14 @@ _buckets: dict[str, tuple[float, int]] = {}
 # and if that isn't enough, drop the oldest entries to enforce a hard ceiling.
 _MAX_BUCKETS = 10_000
 _MAX_WINDOW_SECONDS = 3600
+_ACCEPTED_TTL_SECONDS = 3600
 
 
 def reset() -> None:
     """Clear all counters (used between tests)."""
     _buckets.clear()
+    _accepted.clear()
+    _in_flight.clear()
 
 
 def _evict_stale(now: float) -> None:
@@ -62,7 +67,7 @@ def _evict_stale(now: float) -> None:
 def _client_ip(request: Request) -> str:
     # Prefer Railway's ``X-Real-IP`` (edge-set). Do not trust client-supplied
     # ``X-Forwarded-For`` for rate-limit buckets — it is spoofable. Fall back to
-    # the direct peer (documented in DEPLOYMENT.md).
+    # the direct peer (documented in buzz-ops engineering/infra.md).
     real_ip = (request.headers.get("x-real-ip") or "").strip()
     if real_ip:
         return real_ip
@@ -108,3 +113,95 @@ def enforce_account_limit(bucket: str, identity: str, *, limit: int, window: int
         return
     if not _allowed(f"{bucket}:acct:{identity}", limit, window):
         raise _too_many()
+
+
+def reserve_account_send(bucket: str, identity: str, *, limit: int, window: int) -> bool:
+    """Claim one unit of ``identity``'s budget *before* the awaited work.
+
+    Returns False when the budget is already spent. Must be called before the
+    first await in the request: the counter is therefore claimed synchronously,
+    so two concurrent submissions cannot both read zero usage and then both
+    send. Call :func:`release_account_send` if the work turns out to fail.
+    """
+    if not settings.RATE_LIMIT_ENABLED:
+        return True
+    key = f"{bucket}:acct:{identity}"
+    now = time.monotonic()
+    if key not in _buckets and len(_buckets) >= _MAX_BUCKETS:
+        _evict_stale(now)
+    start, count = _buckets.get(key, (now, 0))
+    if now - start >= window:
+        start, count = now, 0
+    if count >= limit:
+        _buckets[key] = (start, count)
+        return False
+    _buckets[key] = (start, count + 1)
+    return True
+
+
+def release_account_send(bucket: str, identity: str) -> None:
+    """Give back a reservation whose work did not happen."""
+    if not settings.RATE_LIMIT_ENABLED:
+        return
+    key = f"{bucket}:acct:{identity}"
+    start, count = _buckets.get(key, (0.0, 0))
+    if count <= 1:
+        _buckets.pop(key, None)
+    else:
+        _buckets[key] = (start, count - 1)
+
+
+# Accepted submission hashes, so an identical retry is not charged again. The
+# provider already dedupes the send by idempotency key; charging the retry would
+# spend the sender's allowance for work that was never repeated.
+_accepted: dict[str, float] = {}
+
+# Like the counters, coalescing is process-local and assumes one web replica.
+# Keep strong references until delivery finishes, even if a request disconnects.
+_in_flight: dict[str, asyncio.Task[None]] = {}
+
+
+def submission_in_flight(key: str) -> asyncio.Task[None] | None:
+    """Find delivery already running for this exact submission."""
+    return _in_flight.get(key)
+
+
+def start_submission(key: str, delivery: Coroutine[Any, Any, None]) -> asyncio.Task[None]:
+    """Register delivery synchronously, after checking and reserving its budget.
+
+    Callers must not await between checking, reserving, and registering. Await
+    the returned task with ``asyncio.shield`` so one disconnected request cannot
+    cancel delivery for every overlapping retry.
+    """
+    task = asyncio.create_task(delivery)
+    _in_flight[key] = task
+
+    def done(completed: asyncio.Task[None]) -> None:
+        if _in_flight.get(key) is completed:
+            _in_flight.pop(key)
+        # Observe failures even when all request waiters have disconnected.
+        if not completed.cancelled():
+            completed.exception()
+
+    task.add_done_callback(done)
+    return task
+
+
+def submission_already_accepted(key: str) -> bool:
+    """Whether this exact submission was accepted inside the window."""
+    stamp = _accepted.get(key)
+    if stamp is None:
+        return False
+    if time.monotonic() - stamp > _ACCEPTED_TTL_SECONDS:
+        _accepted.pop(key, None)
+        return False
+    return True
+
+
+def mark_submission_accepted(key: str) -> None:
+    """Remember an accepted submission so replays are answered, not re-charged."""
+    if len(_accepted) >= _MAX_BUCKETS:
+        oldest = sorted(_accepted.items(), key=lambda kv: kv[1])
+        for stale, _ in oldest[: _MAX_BUCKETS // 4]:
+            _accepted.pop(stale, None)
+    _accepted[key] = time.monotonic()

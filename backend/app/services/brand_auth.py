@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy import update as sa_update
@@ -20,19 +20,17 @@ from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
+from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password, verify_password
+from app.timeutils import utcnow
 
 # A fixed valid bcrypt hash used only to burn the same CPU as a real verify
 # when the account doesn't exist, so login timing can't be used to enumerate
 # registered brand emails.
 _DUMMY_HASH = "$2b$12$BjsWQMEoE/Jrr8bmN2pUfO0P1IFZpAURUcSq7qQGTYUimfCYgUX6S"
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 async def apply_brand(
@@ -42,6 +40,8 @@ async def apply_brand(
     company_email: str,
     instagram_handle: str | None,
     intent_message: str | None,
+    contact_name: str | None = None,
+    marketing_budget: str | None = None,
 ) -> dict[str, str]:
     """Public brand self-registration → creates a User + pending_review Brand.
 
@@ -76,6 +76,8 @@ async def apply_brand(
         company_email=email,
         instagram_handle=(instagram_handle or None),
         intent_message=(intent_message or None),
+        contact_name=contact_name,
+        marketing_budget=marketing_budget,
         status=BrandStatus.PENDING_REVIEW.value,
     )
     db.add(brand)
@@ -105,7 +107,7 @@ async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> tup
     Any prior unused invite for this brand is invalidated first, so re-issuing
     leaves exactly one live setup link (no accumulation of valid tokens).
     """
-    now = _now()
+    now = utcnow()
     await db.execute(
         sa_update(BrandInviteToken)
         .where(
@@ -137,7 +139,7 @@ async def set_brand_password(
     On success the user is activated and ``(user, user_response)`` is returned so
     the route can mint a session immediately (no separate login step).
     """
-    now = _now()
+    now = utcnow()
 
     # FOR UPDATE locks the invite row so two concurrent set-password calls
     # serialize: the second sees used_at set and is rejected.
@@ -224,7 +226,7 @@ async def login_brand(db: AsyncSession, email: str, password: str) -> tuple[User
             status_code=401,
         )
 
-    user.last_login_at = _now()
+    user.last_login_at = utcnow()
     await db.flush()
 
     resp = UserResponse(
@@ -235,3 +237,59 @@ async def login_brand(db: AsyncSession, email: str, password: str) -> tuple[User
         email=brand.company_email,
     )
     return user, resp
+
+
+async def change_brand_password(
+    db: AsyncSession,
+    user: User,
+    *,
+    current_password: str,
+    new_password: str,
+) -> None:
+    """Set a new password for a signed-in brand.
+
+    View-as is refused even when the impersonation token is writable: an
+    admin must never choose the brand's password. Wrong current password is
+    ``WRONG_PASSWORD`` (400), not 401, so the SPA does not treat it as a
+    logged-out session. Outstanding reset links are burned in this
+    transaction; the route bumps ``token_version`` by issuing a fresh pair.
+    """
+
+    # Lazy: deps.auth is imported by auth routes that import this module.
+    from app.deps.auth import impersonated_by
+    from app.security.rate_limit import enforce_account_limit
+
+    if impersonated_by(user):
+        raise BuzzAPIException(
+            errors.FORBIDDEN,
+            "Exit View as before changing this password.",
+            status_code=403,
+        )
+    enforce_account_limit("brand_change_pw", str(user.id), limit=5, window=300)
+    # Serialize concurrent changes on this account and reload ``password_hash``
+    # so the second waiter verifies against the password the first one stored.
+    await db.refresh(user, with_for_update=True)
+    stored = user.password_hash
+    if not stored or not verify_password(current_password, stored):
+        raise BuzzAPIException(
+            errors.WRONG_PASSWORD,
+            "Current password is incorrect.",
+            status_code=400,
+        )
+    if new_password == current_password:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "New password must be different from the current password.",
+            status_code=400,
+        )
+    now = utcnow()
+    await db.execute(
+        sa_update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    user.password_hash = hash_password(new_password)
+    await db.flush()

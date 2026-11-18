@@ -2,6 +2,7 @@
  * Linked posts card shows stored Instagram insights next to likes and comments.
  */
 import { renderToString } from "react-dom/server";
+import ApiPostSelector from "./ApiPostSelector";
 import type { PostItem } from "../../api/hooks/useOrgHooks";
 import { INSIGHT_MISSING } from "../posts/insightMetrics";
 
@@ -55,7 +56,6 @@ jest.mock("../../api/hooks/useOrgHooks", () => ({
   useOrgProfile: () => ({ data: undefined }),
 }));
 
-import ApiPostSelector from "./ApiPostSelector";
 
 describe("ApiPostSelector insights", () => {
   it("shows reel insights on the linked post and an em dash when a metric is missing", () => {
@@ -63,25 +63,25 @@ describe("ApiPostSelector insights", () => {
       isLoading: false,
       data: [post({ views: null })],
     });
-    const html = renderToString(
+    const view = renderToString(
       <ApiPostSelector applicationId={APPLICATION_ID} readOnly />,
     );
-    expect(html).toContain("Linked posts");
-    expect(html).toContain("820 likes");
-    expect(html).toContain("53 comments");
-    expect(html).toContain("Instagram insights");
-    expect(html).toContain("Reach");
-    expect(html).toContain("4,100");
-    expect(html).toContain("Saves");
-    expect(html).toContain("Avg watch time");
-    expect(html).toContain("1.2s");
-    expect(html).toContain("Total watch time");
-    expect(html).toContain("2m 5s");
-    expect(html).toContain("Skip rate");
-    expect(html).toContain("18%");
-    expect(html).toContain(INSIGHT_MISSING);
-    expect(html).not.toContain("Profile visits");
-    expect(html).not.toContain("undefined");
-    expect(html).not.toContain("NaN");
+    expect(view).toContain("Linked posts");
+    expect(view).toContain("820 likes");
+    expect(view).toContain("53 comments");
+    expect(view).toContain("Instagram insights");
+    expect(view).toContain("Reach");
+    expect(view).toContain("4,100");
+    expect(view).toContain("Saves");
+    expect(view).toContain("Avg watch time");
+    expect(view).toContain("1.2s");
+    expect(view).toContain("Total watch time");
+    expect(view).toContain("2m 5s");
+    expect(view).toContain("Skip rate");
+    expect(view).toContain("18%");
+    expect(view).toContain(INSIGHT_MISSING);
+    expect(view).not.toContain("Profile visits");
+    expect(view).not.toContain("undefined");
+    expect(view).not.toContain("NaN");
   });
 });

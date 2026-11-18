@@ -1,14 +1,7 @@
 /**
- * Pure helpers that derive a drop's org-facing feed status (Upcoming / Open / Closed)
- * from its timing fields, current capacity fill, and the manual-reopen override.
- *
- * Spec rules (PRODUCT.md §6.3 / §7.1–§7.2):
- * - Before `applyOpenAt`: Upcoming.
- * - After `applyCloseAt`: Closed (unless `manualReopen === true`).
- * - When `acceptedCount >= capacityTotal`: Closed (full) — post-selection or
- *   reopen leftovers; in a normal first Open window `acceptedCount` stays 0
- *   until batch finalize after close.
- * - Otherwise: Open.
+ * Pure helpers that derive a drop's org-facing feed chip (Upcoming / Open / Closed)
+ * from the API stage and whether every spot is taken. The API stage is the one
+ * clock; the chip never re-derives the window from the dates.
  *
  * `getDropClosedReason` returns a tag for UI copy ("apply window ended" vs "all spots filled").
  */
@@ -18,6 +11,7 @@ import type {
   DropClosedReason,
   DropFeedStatus,
 } from "../types/drop";
+import { dropStageLabel, type DropStage } from "./dropStage";
 
 /** Whether the drop has filled all its capacity. */
 export function isDropFull(drop: DropCardData, acceptedCount: number): boolean {
@@ -29,43 +23,39 @@ export function spotsRemaining(drop: DropCardData, acceptedCount: number): numbe
   return Math.max(0, drop.capacityTotal - acceptedCount);
 }
 
-/**
- * Live org-feed UX clock. Backend enforcement SOT is
- * `drop_apply_eligibility` in `backend/app/services/drops.py` — keep this
- * aligned for card chips, but never treat the FE as the gate.
- */
-export function getDropFeedStatus(
-  drop: DropCardData,
-  acceptedCount: number,
-  now: number
-): DropFeedStatus {
-  if (now < drop.applyOpenAt) return "upcoming";
-  if (isDropFull(drop, acceptedCount)) return "closed";
-  // Finalized selection closes new applies even if manual_reopen was left true.
-  if (drop.applicantSelectionFinalizedAt != null) return "closed";
-  if (now > drop.applyCloseAt && !drop.manualReopen) return "closed";
-  return "open";
+/** Upcoming before the window, Open while applying with spots left, else Closed. */
+export function getDropFeedStatus(stage: DropStage, full: boolean): DropFeedStatus {
+  if (stage === "upcoming") return "upcoming";
+  if (stage === "applying" && !full) return "open";
+  return "closed";
 }
 
-/**
- * Returns the reason a drop is closed, used for chip copy on closed cards.
- * Only meaningful when `getDropFeedStatus` returned `"closed"`.
- */
-export function getDropClosedReason(
-  drop: DropCardData,
-  acceptedCount: number,
-  now: number
-): DropClosedReason | null {
-  if (getDropFeedStatus(drop, acceptedCount, now) !== "closed") return null;
-  if (isDropFull(drop, acceptedCount)) return "spots_filled";
-  if (drop.applicantSelectionFinalizedAt != null) return "manual";
-  if (now > drop.applyCloseAt) return "apply_window_ended";
-  return "manual";
+/** Why a drop is closed (chip copy); null unless `getDropFeedStatus` is "closed". */
+export function getDropClosedReason(stage: DropStage, full: boolean): DropClosedReason | null {
+  if (getDropFeedStatus(stage, full) !== "closed") return null;
+  if (stage === "wrapped") return "manual";
+  if (full) return "spots_filled";
+  return "apply_window_ended";
 }
 
 /** Display copy bundle for a closed reason. */
 export const CLOSED_REASON_COPY: Record<DropClosedReason, string> = {
-  apply_window_ended: "Closed — apply window ended",
-  spots_filled: "Closed — all spots filled",
-  manual: "Closed",
+  apply_window_ended: "Applications closed",
+  spots_filled: "All spots filled",
+  manual: "Applications closed",
 };
+
+/**
+ * Chip for a drop no longer taking applications. "Closed" is never a stage
+ * (D-16): it reads "Applications closed" until seats go live, then the stage.
+ */
+export function closedChipLabel(stage: DropStage): string {
+  if (stage === "live") return "In progress";
+  if (stage === "wrapped" || stage === "canceled") return dropStageLabel(stage);
+  return "Applications closed";
+}
+
+/** "Nov 10": the day a brand-facing lifecycle date falls on. */
+export function shortDate(epochMs: number): string {
+  return new Date(epochMs).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}

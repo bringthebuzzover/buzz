@@ -155,7 +155,7 @@
             "title": "Applicationid",
             "type": "string"
           },
-          "emailBrandSent": {
+          "emailBrandQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -164,9 +164,9 @@
                 "type": "null"
               }
             ],
-            "title": "Emailbrandsent"
+            "title": "Emailbrandqueued"
           },
-          "emailOrgSent": {
+          "emailOrgQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -175,7 +175,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailorgsent"
+            "title": "Emailorgqueued"
           },
           "neverApplied": {
             "title": "Neverapplied",
@@ -231,6 +231,15 @@
             "title": "Accounterased",
             "type": "boolean"
           },
+          "addedBy": {
+            "default": "apply",
+            "enum": [
+              "apply",
+              "late_add"
+            ],
+            "title": "Addedby",
+            "type": "string"
+          },
           "allocatedUnits": {
             "anyOf": [
               {
@@ -261,6 +270,28 @@
             ],
             "title": "Decisionat"
           },
+          "decisionSentAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionsentat"
+          },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
+          },
           "deliveryAddress": {
             "anyOf": [
               {
@@ -271,6 +302,17 @@
               }
             ],
             "title": "Deliveryaddress"
+          },
+          "endReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endreason"
           },
           "followerCount": {
             "anyOf": [
@@ -333,6 +375,16 @@
               }
             ],
             "title": "Pitch"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "shipments": {
             "items": {
@@ -498,6 +550,17 @@
             "title": "Companyemail",
             "type": "string"
           },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
           "createdAt": {
             "title": "Createdat",
             "type": "integer"
@@ -554,9 +617,30 @@
             ],
             "title": "Lastloginat"
           },
+          "marketingBudget": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingbudget"
+          },
           "passwordSet": {
             "title": "Passwordset",
             "type": "boolean"
+          },
+          "pendingIgChange": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandPendingIgChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "title": "Status",
@@ -577,6 +661,8 @@
           "userId",
           "brandName",
           "companyEmail",
+          "contactName",
+          "marketingBudget",
           "intentMessage",
           "instagramHandle",
           "status",
@@ -613,8 +699,8 @@
             "title": "Brandid",
             "type": "string"
           },
-          "emailSent": {
-            "title": "Emailsent",
+          "emailQueued": {
+            "title": "Emailqueued",
             "type": "boolean"
           },
           "emailToDomain": {
@@ -636,20 +722,92 @@
         "required": [
           "brandId",
           "status",
-          "emailSent"
+          "emailQueued"
         ],
         "title": "AdminBrandEraseResponse",
         "type": "object"
       },
-      "AdminBrandInviteResponse": {
-        "description": "Approve / create-with-approve / resend-invite (may include email_sent).",
+      "AdminBrandIgChangeRequestItem": {
         "properties": {
           "brandId": {
             "format": "uuid",
             "title": "Brandid",
             "type": "string"
           },
-          "emailSent": {
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "companyEmail": {
+            "title": "Companyemail",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "userId",
+          "brandName",
+          "companyEmail",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "AdminBrandIgChangeRequestItem",
+        "type": "object"
+      },
+      "AdminBrandInviteResponse": {
+        "description": "Approve / create-with-approve / resend-invite (may include email_queued).",
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -658,7 +816,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "status": {
             "title": "Status",
@@ -694,6 +852,17 @@
             "title": "Companyemail",
             "type": "string"
           },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
           "createdAt": {
             "anyOf": [
               {
@@ -709,6 +878,11 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "igChangePending": {
+            "default": false,
+            "title": "Igchangepending",
+            "type": "boolean"
           },
           "impersonatable": {
             "title": "Impersonatable",
@@ -747,6 +921,17 @@
             ],
             "title": "Lastloginat"
           },
+          "marketingBudget": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingbudget"
+          },
           "passwordSet": {
             "title": "Passwordset",
             "type": "boolean"
@@ -770,6 +955,8 @@
           "userId",
           "brandName",
           "companyEmail",
+          "contactName",
+          "marketingBudget",
           "intentMessage",
           "instagramHandle",
           "status",
@@ -781,6 +968,41 @@
           "createdAt"
         ],
         "title": "AdminBrandItem",
+        "type": "object"
+      },
+      "AdminBrandPendingIgChange": {
+        "description": "Open brand handle-change ticket on ``AdminBrandDetail``.",
+        "properties": {
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "createdAt"
+        ],
+        "title": "AdminBrandPendingIgChange",
         "type": "object"
       },
       "AdminBrandStatusResponse": {
@@ -802,26 +1024,18 @@
         "title": "AdminBrandStatusResponse",
         "type": "object"
       },
-      "AdminCleanupStubsResponse": {
+      "AdminCancelDropRequest": {
+        "description": "Typed confirm: the drop title (cancel is final, D-11).",
         "properties": {
-          "convertedCount": {
-            "title": "Convertedcount",
-            "type": "integer"
-          },
-          "deletedDropIds": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "title": "Deleteddropids",
-            "type": "array"
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
           }
         },
         "required": [
-          "convertedCount",
-          "deletedDropIds"
+          "confirm"
         ],
-        "title": "AdminCleanupStubsResponse",
+        "title": "AdminCancelDropRequest",
         "type": "object"
       },
       "AdminComposeEmailRequest": {
@@ -913,6 +1127,56 @@
           "companyEmail"
         ],
         "title": "AdminCreateBrandRequest",
+        "type": "object"
+      },
+      "AdminDeleteSeatRequest": {
+        "description": "Typed confirm. The word ``delete`` \u2014 erased orgs no longer have a handle.",
+        "properties": {
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "AdminDeleteSeatRequest",
+        "type": "object"
+      },
+      "AdminDeleteSeatResponse": {
+        "properties": {
+          "applicationId": {
+            "format": "uuid",
+            "title": "Applicationid",
+            "type": "string"
+          },
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "postsRemoved": {
+            "title": "Postsremoved",
+            "type": "integer"
+          },
+          "shipmentsRemoved": {
+            "title": "Shipmentsremoved",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dropId",
+          "applicationId",
+          "orgId",
+          "postsRemoved",
+          "shipmentsRemoved"
+        ],
+        "title": "AdminDeleteSeatResponse",
         "type": "object"
       },
       "AdminDropConfigPatch": {
@@ -1038,7 +1302,7 @@
         "type": "object"
       },
       "AdminDropCreateRequest": {
-        "description": "Admin-minted unpublished draft drop (LAUNCH.md Phase B).",
+        "description": "Admin-minted unpublished draft drop.",
         "properties": {
           "applyCloseAt": {
             "format": "date-time",
@@ -1049,6 +1313,11 @@
             "format": "date-time",
             "title": "Applyopenat",
             "type": "string"
+          },
+          "brandCanEditCreative": {
+            "default": false,
+            "title": "Brandcaneditcreative",
+            "type": "boolean"
           },
           "campaignHashtag": {
             "anyOf": [
@@ -1180,6 +1449,17 @@
             ],
             "title": "Campaignhashtag"
           },
+          "canceledAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canceledat"
+          },
           "capacityTotal": {
             "title": "Capacitytotal",
             "type": "integer"
@@ -1203,17 +1483,6 @@
               }
             ],
             "title": "Droprequestid"
-          },
-          "finalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finalizedat"
           },
           "hiddenAt": {
             "anyOf": [
@@ -1251,10 +1520,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "needsTracking": {
             "title": "Needstracking",
             "type": "boolean"
@@ -1275,8 +1540,7 @@
             "title": "Publishedat"
           },
           "stage": {
-            "title": "Stage",
-            "type": "string"
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -1299,6 +1563,17 @@
             },
             "title": "Trackerevents",
             "type": "array"
+          },
+          "wrappedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wrappedat"
           }
         },
         "required": [
@@ -1318,10 +1593,8 @@
           "campaignHashtag",
           "brandCanEditCreative",
           "needsTracking",
-          "manualReopen",
           "applyOpenAt",
           "applyCloseAt",
-          "finalizedAt",
           "createdAt",
           "linkedPostCount",
           "pendingSuggestionCount",
@@ -1465,17 +1738,6 @@
             ],
             "title": "Droprequestid"
           },
-          "finalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finalizedat"
-          },
           "hiddenAt": {
             "anyOf": [
               {
@@ -1491,10 +1753,6 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
-          },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
           },
           "needsTracking": {
             "title": "Needstracking",
@@ -1512,8 +1770,7 @@
             "title": "Publishedat"
           },
           "stage": {
-            "title": "Stage",
-            "type": "string"
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -1529,6 +1786,17 @@
               }
             ],
             "title": "Totalproductunits"
+          },
+          "wrappedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wrappedat"
           }
         },
         "required": [
@@ -1544,10 +1812,8 @@
           "acceptedCount",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
           "needsTracking",
           "campaignHashtag",
-          "finalizedAt",
           "createdAt"
         ],
         "title": "AdminDropItem",
@@ -1563,6 +1829,17 @@
           "brandName": {
             "title": "Brandname",
             "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
           },
           "convertedDropId": {
             "anyOf": [
@@ -1585,6 +1862,17 @@
             "title": "Id",
             "type": "string"
           },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -1600,9 +1888,65 @@
             ],
             "title": "Notes"
           },
+          "orgCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgcount"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product"
+          },
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "targetDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetdate"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "unitsPerOrg": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitsperorg"
           },
           "updatedAt": {
             "title": "Updatedat",
@@ -1614,6 +1958,13 @@
           "brandId",
           "brandName",
           "message",
+          "product",
+          "title",
+          "location",
+          "targetDate",
+          "orgCount",
+          "unitsPerOrg",
+          "campaignHashtag",
           "notes",
           "status",
           "convertedDropId",
@@ -1755,7 +2106,7 @@
             ],
             "title": "Eduemail"
           },
-          "emailSent": {
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -1764,7 +2115,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "finishedDropCount": {
             "anyOf": [
@@ -1876,6 +2227,20 @@
           "createdAt"
         ],
         "title": "AdminIgChangeRequestItem",
+        "type": "object"
+      },
+      "AdminIgChangeRetargetRequest": {
+        "description": "New handle for a switch ticket that is stuck waiting to reconnect.",
+        "properties": {
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestedHandle"
+        ],
+        "title": "AdminIgChangeRetargetRequest",
         "type": "object"
       },
       "AdminInviteState": {
@@ -2106,6 +2471,11 @@
             "title": "Impersonatable",
             "type": "boolean"
           },
+          "instagramConnectRequired": {
+            "default": false,
+            "title": "Instagramconnectrequired",
+            "type": "boolean"
+          },
           "instagramHandle": {
             "anyOf": [
               {
@@ -2120,6 +2490,11 @@
           "instagramHandleConfirmed": {
             "default": false,
             "title": "Instagramhandleconfirmed",
+            "type": "boolean"
+          },
+          "instagramReconnectRequired": {
+            "default": false,
+            "title": "Instagramreconnectrequired",
             "type": "boolean"
           },
           "instagramTokenExpiresAt": {
@@ -2314,8 +2689,8 @@
       },
       "AdminOrgEraseResponse": {
         "properties": {
-          "emailSent": {
-            "title": "Emailsent",
+          "emailQueued": {
+            "title": "Emailqueued",
             "type": "boolean"
           },
           "emailToDomain": {
@@ -2342,7 +2717,7 @@
         "required": [
           "userId",
           "status",
-          "emailSent"
+          "emailQueued"
         ],
         "title": "AdminOrgEraseResponse",
         "type": "object"
@@ -2476,6 +2851,11 @@
             "title": "Impersonatable",
             "type": "boolean"
           },
+          "instagramConnectRequired": {
+            "default": false,
+            "title": "Instagramconnectrequired",
+            "type": "boolean"
+          },
           "instagramHandle": {
             "anyOf": [
               {
@@ -2490,6 +2870,11 @@
           "instagramHandleConfirmed": {
             "default": false,
             "title": "Instagramhandleconfirmed",
+            "type": "boolean"
+          },
+          "instagramReconnectRequired": {
+            "default": false,
+            "title": "Instagramreconnectrequired",
             "type": "boolean"
           },
           "instagramTokenExpiresAt": {
@@ -2580,7 +2965,7 @@
       },
       "AdminOrgStatusResponse": {
         "properties": {
-          "emailSent": {
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -2589,7 +2974,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "orgId": {
             "format": "uuid",
@@ -2636,6 +3021,14 @@
             "title": "Queues",
             "type": "array"
           },
+          "stages": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminStageCount"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
           "warnings": {
             "items": {
               "$ref": "#/components/schemas/AdminWarningItem"
@@ -2650,146 +3043,6 @@
           "warnings"
         ],
         "title": "AdminOverviewResponse",
-        "type": "object"
-      },
-      "AdminPendingBrandItem": {
-        "properties": {
-          "brandName": {
-            "title": "Brandname",
-            "type": "string"
-          },
-          "companyEmail": {
-            "title": "Companyemail",
-            "type": "string"
-          },
-          "createdAt": {
-            "title": "Createdat",
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "instagramHandle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instagramhandle"
-          },
-          "intentMessage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Intentmessage"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "userId": {
-            "format": "uuid",
-            "title": "Userid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "brandName",
-          "companyEmail",
-          "intentMessage",
-          "instagramHandle",
-          "status",
-          "createdAt"
-        ],
-        "title": "AdminPendingBrandItem",
-        "type": "object"
-      },
-      "AdminPendingOrgItem": {
-        "properties": {
-          "createdAt": {
-            "title": "Createdat",
-            "type": "integer"
-          },
-          "followerCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Followercount"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "instagramHandle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instagramhandle"
-          },
-          "memberCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Membercount"
-          },
-          "orgName": {
-            "title": "Orgname",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "university": {
-            "title": "University",
-            "type": "string"
-          },
-          "userId": {
-            "format": "uuid",
-            "title": "Userid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "orgName",
-          "university",
-          "instagramHandle",
-          "followerCount",
-          "memberCount",
-          "status",
-          "createdAt"
-        ],
-        "title": "AdminPendingOrgItem",
         "type": "object"
       },
       "AdminQueueItem": {
@@ -2823,65 +3076,15 @@
         "title": "AdminQueueItem",
         "type": "object"
       },
-      "AdminRemoveParticipantRequest": {
-        "description": "Typed confirm. The word ``remove`` \u2014 erased orgs no longer have a handle.",
-        "properties": {
-          "confirm": {
-            "title": "Confirm",
-            "type": "string"
-          }
-        },
-        "required": [
-          "confirm"
-        ],
-        "title": "AdminRemoveParticipantRequest",
-        "type": "object"
-      },
-      "AdminRemoveParticipantResponse": {
-        "properties": {
-          "applicationId": {
-            "format": "uuid",
-            "title": "Applicationid",
-            "type": "string"
-          },
-          "dropId": {
-            "format": "uuid",
-            "title": "Dropid",
-            "type": "string"
-          },
-          "orgId": {
-            "format": "uuid",
-            "title": "Orgid",
-            "type": "string"
-          },
-          "postsRemoved": {
-            "title": "Postsremoved",
-            "type": "integer"
-          },
-          "shipmentsRemoved": {
-            "title": "Shipmentsremoved",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "dropId",
-          "applicationId",
-          "orgId",
-          "postsRemoved",
-          "shipmentsRemoved"
-        ],
-        "title": "AdminRemoveParticipantResponse",
-        "type": "object"
-      },
       "AdminResendConnectAllResponse": {
-        "description": "Bulk Connect email for ``pending_instagram`` orgs only.",
+        "description": "Bulk Connect scheduling counts; delivery failures are logged after the response.",
         "properties": {
           "failed": {
             "title": "Failed",
             "type": "integer"
           },
-          "sent": {
-            "title": "Sent",
+          "queued": {
+            "title": "Queued",
             "type": "integer"
           },
           "skipped": {
@@ -2895,11 +3098,233 @@
         },
         "required": [
           "targeted",
-          "sent",
+          "queued",
           "failed",
           "skipped"
         ],
         "title": "AdminResendConnectAllResponse",
+        "type": "object"
+      },
+      "AdminSeatDecisionRequest": {
+        "description": "BUZZ sets any seat status. ``withdrew`` / ``removed`` end it at once;\n``removed`` needs a ``reason``.",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "decision": {
+            "enum": [
+              "applied",
+              "accepted",
+              "denied",
+              "withdrew",
+              "removed"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "AdminSeatDecisionRequest",
+        "type": "object"
+      },
+      "AdminShippingChangeDecision": {
+        "properties": {
+          "decisionReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionreason"
+          }
+        },
+        "title": "AdminShippingChangeDecision",
+        "type": "object"
+      },
+      "AdminShippingChangeRequestItem": {
+        "properties": {
+          "activeDropTitles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Activedroptitles",
+            "type": "array"
+          },
+          "baseAddressVersion": {
+            "title": "Baseaddressversion",
+            "type": "integer"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "currentAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentaddress"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "decisionReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionreason"
+          },
+          "eduEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eduemail"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "orgName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgname"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "requestedAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedaddress"
+          },
+          "requesterUserId": {
+            "format": "uuid",
+            "title": "Requesteruserid",
+            "type": "string"
+          },
+          "reviewerUserId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revieweruserid"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "university": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "requesterUserId",
+          "currentAddress",
+          "requestedAddress",
+          "baseAddressVersion",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "AdminShippingChangeRequestItem",
         "type": "object"
       },
       "AdminSignal": {
@@ -2935,6 +3360,24 @@
           "ok"
         ],
         "title": "AdminSignal",
+        "type": "object"
+      },
+      "AdminStageCount": {
+        "description": "Visible drops in one computed stage (Overview tiles).",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
+          }
+        },
+        "required": [
+          "stage",
+          "count"
+        ],
+        "title": "AdminStageCount",
         "type": "object"
       },
       "AdminSyncAutolinkResponse": {
@@ -3177,77 +3620,6 @@
         "title": "AdminTrackerEventItem",
         "type": "object"
       },
-      "AdminUserItem": {
-        "description": "A row in the ``/api/admin/users`` impersonation picker.",
-        "properties": {
-          "createdAt": {
-            "title": "Createdat",
-            "type": "integer"
-          },
-          "displayName": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Displayname"
-          },
-          "email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "impersonatable": {
-            "title": "Impersonatable",
-            "type": "boolean"
-          },
-          "instagramHandle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instagramhandle"
-          },
-          "portalRole": {
-            "title": "Portalrole",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "portalRole",
-          "status",
-          "displayName",
-          "email",
-          "instagramHandle",
-          "impersonatable",
-          "createdAt"
-        ],
-        "title": "AdminUserItem",
-        "type": "object"
-      },
       "AdminVerificationState": {
         "properties": {
           "latestExpiresAt": {
@@ -3462,6 +3834,10 @@
             "title": "Companyemail",
             "type": "string"
           },
+          "contactName": {
+            "title": "Contactname",
+            "type": "string"
+          },
           "instagramHandle": {
             "anyOf": [
               {
@@ -3474,20 +3850,26 @@
             "title": "Instagramhandle"
           },
           "intentMessage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "title": "Intentmessage",
+            "type": "string"
+          },
+          "marketingBudget": {
+            "enum": [
+              "5_20k",
+              "20k_50k",
+              "50k_100k",
+              "100k_plus"
             ],
-            "title": "Intentmessage"
+            "title": "Marketingbudget",
+            "type": "string"
           }
         },
         "required": [
+          "contactName",
           "brandName",
-          "companyEmail"
+          "companyEmail",
+          "marketingBudget",
+          "intentMessage"
         ],
         "title": "BrandApplyRequest",
         "type": "object"
@@ -3509,6 +3891,26 @@
           "status"
         ],
         "title": "BrandApplyResponse",
+        "type": "object"
+      },
+      "BrandChangePasswordRequest": {
+        "additionalProperties": false,
+        "description": "Signed-in brand password change. Wrong current password is not a 401.",
+        "properties": {
+          "currentPassword": {
+            "title": "Currentpassword",
+            "type": "string"
+          },
+          "newPassword": {
+            "title": "Newpassword",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "title": "BrandChangePasswordRequest",
         "type": "object"
       },
       "BrandDropCreativePatch": {
@@ -3617,6 +4019,28 @@
             ],
             "title": "Decisionat"
           },
+          "decisionSentAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionsentat"
+          },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
+          },
           "deliveryAddress": {
             "anyOf": [
               {
@@ -3702,6 +4126,16 @@
             "title": "Posts",
             "type": "array"
           },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "shipments": {
             "items": {
               "$ref": "#/components/schemas/ShipmentItem"
@@ -3724,6 +4158,7 @@
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
+          "decisionSentAt",
           "orgName",
           "university",
           "instagramHandle",
@@ -3743,17 +4178,6 @@
       "BrandDropDetailResponse": {
         "description": "Full drop detail for the brand portal (\u00a78.2).",
         "properties": {
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
-          },
           "applications": {
             "items": {
               "$ref": "#/components/schemas/BrandDropDetailApplicant"
@@ -3782,10 +4206,6 @@
             "title": "Brandname",
             "type": "string"
           },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
           "campaignHashtag": {
             "anyOf": [
               {
@@ -3822,10 +4242,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "publishedAt": {
             "anyOf": [
               {
@@ -3836,6 +4252,9 @@
               }
             ],
             "title": "Publishedat"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -3884,12 +4303,10 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "brandTrackerStage",
+          "stage",
           "totalProductUnits",
           "campaignHashtag",
           "brandCanEditCreative",
-          "applicantSelectionFinalizedAt",
           "createdAt",
           "applications",
           "totalPosts",
@@ -3904,17 +4321,6 @@
       "BrandDropListItem": {
         "description": "One drop in ``GET /api/brands/me/drops`` with per-drop aggregate fields.",
         "properties": {
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
-          },
           "applyCloseAt": {
             "title": "Applycloseat",
             "type": "integer"
@@ -3932,10 +4338,6 @@
             "title": "Brandname",
             "type": "string"
           },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
           "campaignHashtag": {
             "anyOf": [
               {
@@ -3972,9 +4374,8 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -4023,11 +4424,9 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "brandTrackerStage",
+          "stage",
           "totalProductUnits",
           "campaignHashtag",
-          "applicantSelectionFinalizedAt",
           "createdAt",
           "totalPosts",
           "totalLikes",
@@ -4262,13 +4661,10 @@
         "type": "object"
       },
       "BrandDropRequestCreate": {
-        "description": "Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B).",
+        "additionalProperties": false,
+        "description": "Body for ``POST /api/brands/me/drop-requests`` (PRODUCT \u00a75.2).\n\n``message`` and ``product`` are required. Every other field may be omitted.\nUnknown keys are rejected. Length and range checks run after strip.",
         "properties": {
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "notes": {
+          "campaignHashtag": {
             "anyOf": [
               {
                 "type": "string"
@@ -4277,22 +4673,121 @@
                 "type": "null"
               }
             ],
+            "title": "Campaignhashtag"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "message": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Notes"
+          },
+          "orgCount": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgcount"
+          },
+          "product": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Product",
+            "type": "string"
+          },
+          "targetDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetdate"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "unitsPerOrg": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitsperorg"
           }
         },
         "required": [
-          "message"
+          "message",
+          "product"
         ],
         "title": "BrandDropRequestCreate",
         "type": "object"
       },
       "BrandDropRequestResponse": {
-        "description": "A brand intake ticket (not a live drop).",
+        "description": "A brand intake ticket (not a live drop).\n\nStructured fields are nullable: tickets filed before they existed only\nhave ``message`` and ``notes``.",
         "properties": {
           "brandId": {
             "format": "uuid",
             "title": "Brandid",
             "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
           },
           "convertedDropId": {
             "anyOf": [
@@ -4315,6 +4810,17 @@
             "title": "Id",
             "type": "string"
           },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -4330,9 +4836,65 @@
             ],
             "title": "Notes"
           },
+          "orgCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgcount"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product"
+          },
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "targetDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetdate"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "unitsPerOrg": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitsperorg"
           },
           "updatedAt": {
             "title": "Updatedat",
@@ -4343,6 +4905,13 @@
           "id",
           "brandId",
           "message",
+          "product",
+          "title",
+          "location",
+          "targetDate",
+          "orgCount",
+          "unitsPerOrg",
+          "campaignHashtag",
           "notes",
           "status",
           "convertedDropId",
@@ -4350,6 +4919,103 @@
           "updatedAt"
         ],
         "title": "BrandDropRequestResponse",
+        "type": "object"
+      },
+      "BrandIgChangeRequestCreate": {
+        "additionalProperties": false,
+        "description": "Body for ``POST /api/brands/me/ig-change-requests``.",
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestedHandle",
+          "reason"
+        ],
+        "title": "BrandIgChangeRequestCreate",
+        "type": "object"
+      },
+      "BrandIgChangeRequestResponse": {
+        "properties": {
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "BrandIgChangeRequestResponse",
+        "type": "object"
+      },
+      "BrandIgChangeRequestState": {
+        "description": "``GET /api/brands/me/ig-change-request``.",
+        "properties": {
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "BrandIgChangeRequestState",
         "type": "object"
       },
       "BrandLoginRequest": {
@@ -4369,6 +5035,25 @@
           "password"
         ],
         "title": "BrandLoginRequest",
+        "type": "object"
+      },
+      "BrandProfilePatch": {
+        "additionalProperties": false,
+        "description": "``PATCH /api/brands/me``. Omitted fields stay. ``instagramHandle`` and\n``email`` are rejected (``extra=forbid``); handle changes are a request.",
+        "properties": {
+          "brandName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brandname"
+          }
+        },
+        "title": "BrandProfilePatch",
         "type": "object"
       },
       "BrandProfileResponse": {
@@ -4525,10 +5210,6 @@
             "title": "Brandname",
             "type": "string"
           },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
           "capacityTotal": {
             "title": "Capacitytotal",
             "type": "integer"
@@ -4547,6 +5228,17 @@
               }
             ],
             "title": "Decisionat"
+          },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
           },
           "description": {
             "anyOf": [
@@ -4573,6 +5265,10 @@
             "title": "Image",
             "type": "string"
           },
+          "linksOpen": {
+            "title": "Linksopen",
+            "type": "boolean"
+          },
           "orgId": {
             "format": "uuid",
             "title": "Orgid",
@@ -4589,12 +5285,25 @@
             ],
             "title": "Pitch"
           },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "shipments": {
             "items": {
               "$ref": "#/components/schemas/ShipmentItem"
             },
             "title": "Shipments",
             "type": "array"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -4622,11 +5331,14 @@
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
+          "deliveredAt",
+          "progress",
           "title",
           "description",
           "brandName",
           "image",
-          "brandTrackerStage",
+          "stage",
+          "linksOpen",
           "applyOpenAt",
           "applyCloseAt",
           "capacityTotal",
@@ -4657,10 +5369,6 @@
             "title": "Brandname",
             "type": "string"
           },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
           "decision": {
             "title": "Decision",
             "type": "string"
@@ -4676,6 +5384,17 @@
             ],
             "title": "Decisionat"
           },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
+          },
           "dropId": {
             "format": "uuid",
             "title": "Dropid",
@@ -4690,6 +5409,10 @@
             "title": "Image",
             "type": "string"
           },
+          "linksOpen": {
+            "title": "Linksopen",
+            "type": "boolean"
+          },
           "pitch": {
             "anyOf": [
               {
@@ -4701,12 +5424,25 @@
             ],
             "title": "Pitch"
           },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "shipments": {
             "items": {
               "$ref": "#/components/schemas/ShipmentItem"
             },
             "title": "Shipments",
             "type": "array"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -4722,9 +5458,12 @@
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
+          "deliveredAt",
+          "progress",
           "title",
           "brandName",
-          "brandTrackerStage",
+          "stage",
+          "linksOpen",
           "image"
         ],
         "title": "CampaignListItem",
@@ -4754,38 +5493,6 @@
         "title": "CancelPendingEduEmailResponse",
         "type": "object"
       },
-      "ChangeEduEmailRequest": {
-        "description": "Correct a typo'd .edu while still awaiting verification.",
-        "properties": {
-          "eduEmail": {
-            "title": "Eduemail",
-            "type": "string"
-          }
-        },
-        "required": [
-          "eduEmail"
-        ],
-        "title": "ChangeEduEmailRequest",
-        "type": "object"
-      },
-      "ChangeEduEmailResponse": {
-        "properties": {
-          "emailSentTo": {
-            "title": "Emailsentto",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "emailSentTo",
-          "status"
-        ],
-        "title": "ChangeEduEmailResponse",
-        "type": "object"
-      },
       "ClearInstagramTokenResponse": {
         "properties": {
           "instagramTokenCleared": {
@@ -4803,6 +5510,57 @@
           "instagramTokenCleared"
         ],
         "title": "ClearInstagramTokenResponse",
+        "type": "object"
+      },
+      "ContactAccepted": {
+        "description": "Response body. Deliberately says nothing about delivery internals.",
+        "properties": {
+          "accepted": {
+            "default": true,
+            "title": "Accepted",
+            "type": "boolean"
+          }
+        },
+        "title": "ContactAccepted",
+        "type": "object"
+      },
+      "ContactRequest": {
+        "additionalProperties": false,
+        "description": "``POST /api/contact`` body.\n\n``website`` is a **honeypot**: a real browser never fills it because the\nfield is visually hidden, off the tab order, and hidden from assistive\ntech. Anything in it is a bot, and the route answers success while sending\nnothing (see the route for why silence is deliberate).\n\n``extra=\"forbid\"`` is load-bearing here, not stylistic. Without it Pydantic\nsilently ignores an unknown key, so a submission carrying ``Website`` or\n``WEBSITE`` left the honeypot at its empty default, passed the guard, and\nsent both emails \u2014 a casing bypass of the spam check. Forbidding extras\nturns every unrecognised key into a 422, which sends nothing.",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "organization",
+              "brand"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "website": {
+            "default": "",
+            "title": "Website",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "email",
+          "message"
+        ],
+        "title": "ContactRequest",
         "type": "object"
       },
       "DataResponse_AddressPreviewResponse_": {
@@ -4995,6 +5753,44 @@
         "title": "DataResponse[AdminBrandEraseResponse]",
         "type": "object"
       },
+      "DataResponse_AdminBrandIgChangeRequestItem_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandIgChangeRequestItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminBrandIgChangeRequestItem]",
+        "type": "object"
+      },
       "DataResponse_AdminBrandInviteResponse_": {
         "properties": {
           "data": {
@@ -5071,44 +5867,6 @@
         "title": "DataResponse[AdminBrandStatusResponse]",
         "type": "object"
       },
-      "DataResponse_AdminCleanupStubsResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AdminCleanupStubsResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[AdminCleanupStubsResponse]",
-        "type": "object"
-      },
       "DataResponse_AdminComposeEmailResponse_": {
         "properties": {
           "data": {
@@ -5145,6 +5903,44 @@
           }
         },
         "title": "DataResponse[AdminComposeEmailResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminDeleteSeatResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminDeleteSeatResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminDeleteSeatResponse]",
         "type": "object"
       },
       "DataResponse_AdminDropDetail_": {
@@ -5451,44 +6247,6 @@
         "title": "DataResponse[AdminOverviewResponse]",
         "type": "object"
       },
-      "DataResponse_AdminRemoveParticipantResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AdminRemoveParticipantResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[AdminRemoveParticipantResponse]",
-        "type": "object"
-      },
       "DataResponse_AdminResendConnectAllResponse_": {
         "properties": {
           "data": {
@@ -5525,6 +6283,44 @@
           }
         },
         "title": "DataResponse[AdminResendConnectAllResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminShippingChangeRequestItem_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminShippingChangeRequestItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminShippingChangeRequestItem]",
         "type": "object"
       },
       "DataResponse_AdminSyncAutolinkResponse_": {
@@ -5831,6 +6627,82 @@
         "title": "DataResponse[BrandDropRequestResponse]",
         "type": "object"
       },
+      "DataResponse_BrandIgChangeRequestResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandIgChangeRequestResponse]",
+        "type": "object"
+      },
+      "DataResponse_BrandIgChangeRequestState_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandIgChangeRequestState]",
+        "type": "object"
+      },
       "DataResponse_BrandProfileResponse_": {
         "properties": {
           "data": {
@@ -5983,44 +6855,6 @@
         "title": "DataResponse[CancelPendingEduEmailResponse]",
         "type": "object"
       },
-      "DataResponse_ChangeEduEmailResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ChangeEduEmailResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[ChangeEduEmailResponse]",
-        "type": "object"
-      },
       "DataResponse_ClearInstagramTokenResponse_": {
         "properties": {
           "data": {
@@ -6057,6 +6891,44 @@
           }
         },
         "title": "DataResponse[ClearInstagramTokenResponse]",
+        "type": "object"
+      },
+      "DataResponse_ContactAccepted_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContactAccepted"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ContactAccepted]",
         "type": "object"
       },
       "DataResponse_DropDetailResponse_": {
@@ -6097,12 +6969,12 @@
         "title": "DataResponse[DropDetailResponse]",
         "type": "object"
       },
-      "DataResponse_DropReopenResponse_": {
+      "DataResponse_DropStageResponse_": {
         "properties": {
           "data": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DropReopenResponse"
+                "$ref": "#/components/schemas/DropStageResponse"
               },
               {
                 "type": "null"
@@ -6132,45 +7004,7 @@
             "title": "Meta"
           }
         },
-        "title": "DataResponse[DropReopenResponse]",
-        "type": "object"
-      },
-      "DataResponse_FinalizeApplicantsResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/FinalizeApplicantsResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[FinalizeApplicantsResponse]",
+        "title": "DataResponse[DropStageResponse]",
         "type": "object"
       },
       "DataResponse_HealthStatusResponse_": {
@@ -6323,82 +7157,6 @@
           }
         },
         "title": "DataResponse[InstagramDeauthorizeResponse]",
-        "type": "object"
-      },
-      "DataResponse_MetaReviewerSeedResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MetaReviewerSeedResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[MetaReviewerSeedResponse]",
-        "type": "object"
-      },
-      "DataResponse_MetaReviewerStatusResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MetaReviewerStatusResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[MetaReviewerStatusResponse]",
         "type": "object"
       },
       "DataResponse_OkResponse_": {
@@ -6629,6 +7387,82 @@
         "title": "DataResponse[OrgProfileResponse]",
         "type": "object"
       },
+      "DataResponse_OrgShippingChangeRequestResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgShippingChangeRequestResponse]",
+        "type": "object"
+      },
+      "DataResponse_OrgShippingChangeRequestState_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgShippingChangeRequestState]",
+        "type": "object"
+      },
       "DataResponse_PostResponse_": {
         "properties": {
           "data": {
@@ -6819,6 +7653,44 @@
         "title": "DataResponse[RotateEduEmailResponse]",
         "type": "object"
       },
+      "DataResponse_SendDecisionsResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SendDecisionsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[SendDecisionsResponse]",
+        "type": "object"
+      },
       "DataResponse_ShipmentItem_": {
         "properties": {
           "data": {
@@ -6895,44 +7767,6 @@
         "title": "DataResponse[TokenResponse]",
         "type": "object"
       },
-      "DataResponse_TrackerAdvanceResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TrackerAdvanceResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[TrackerAdvanceResponse]",
-        "type": "object"
-      },
       "DataResponse_UserResponse_": {
         "properties": {
           "data": {
@@ -7007,6 +7841,48 @@
           }
         },
         "title": "DataResponse[VerifyEmailResponse]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminBrandIgChangeRequestItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminBrandIgChangeRequestItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminBrandIgChangeRequestItem]]",
         "type": "object"
       },
       "DataResponse_list_AdminBrandItem__": {
@@ -7219,13 +8095,13 @@
         "title": "DataResponse[list[AdminOrgItem]]",
         "type": "object"
       },
-      "DataResponse_list_AdminPendingBrandItem__": {
+      "DataResponse_list_AdminShippingChangeRequestItem__": {
         "properties": {
           "data": {
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/AdminPendingBrandItem"
+                  "$ref": "#/components/schemas/AdminShippingChangeRequestItem"
                 },
                 "type": "array"
               },
@@ -7258,49 +8134,7 @@
             "title": "Meta"
           }
         },
-        "title": "DataResponse[list[AdminPendingBrandItem]]",
-        "type": "object"
-      },
-      "DataResponse_list_AdminPendingOrgItem__": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AdminPendingOrgItem"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Data"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[list[AdminPendingOrgItem]]",
+        "title": "DataResponse[list[AdminShippingChangeRequestItem]]",
         "type": "object"
       },
       "DataResponse_list_AdminTableInfo__": {
@@ -7343,48 +8177,6 @@
           }
         },
         "title": "DataResponse[list[AdminTableInfo]]",
-        "type": "object"
-      },
-      "DataResponse_list_AdminUserItem__": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AdminUserItem"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Data"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[list[AdminUserItem]]",
         "type": "object"
       },
       "DataResponse_list_BrandDropListItem__": {
@@ -7639,6 +8431,90 @@
         "title": "DataResponse[list[PostResponse]]",
         "type": "object"
       },
+      "DataResponse_list_PublicDropCatalogItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PublicDropCatalogItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[PublicDropCatalogItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_ShipmentItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ShipmentItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[ShipmentItem]]",
+        "type": "object"
+      },
       "DataResponse_list_SuggestionResponse__": {
         "properties": {
           "data": {
@@ -7679,6 +8555,20 @@
           }
         },
         "title": "DataResponse[list[SuggestionResponse]]",
+        "type": "object"
+      },
+      "DeliveredRequest": {
+        "description": "Set or clear the seat's delivered fact.",
+        "properties": {
+          "delivered": {
+            "title": "Delivered",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "delivered"
+        ],
+        "title": "DeliveredRequest",
         "type": "object"
       },
       "DevLoginRequest": {
@@ -7730,7 +8620,7 @@
         "type": "object"
       },
       "DropDetailResponse": {
-        "description": "A single drop for the org-facing detail view (architecture \u00a77.1).\n\nSuperset of the feed item: adds ``brand_id``, ``total_product_units`` and\n``created_at``, plus the same notify-me fields as the feed so the detail\nsurface can show subscribed state without a second lookup. Still omits\n``brand_tracker_stage`` (org status is derived on the campaigns surface).",
+        "description": "A single drop for the org-facing detail view (architecture \u00a77.1).\n\nSuperset of the feed item: adds ``brand_id``, ``total_product_units`` and\n``created_at``, plus the same notify-me fields as the feed so the detail\nsurface can show subscribed state without a second lookup.",
         "properties": {
           "acceptedCount": {
             "title": "Acceptedcount",
@@ -7739,17 +8629,6 @@
           "alreadyApplied": {
             "title": "Alreadyapplied",
             "type": "boolean"
-          },
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
           },
           "applyCloseAt": {
             "title": "Applycloseat",
@@ -7815,10 +8694,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "notifyRequested": {
             "title": "Notifyrequested",
             "type": "boolean"
@@ -7833,6 +8708,9 @@
               }
             ],
             "title": "Reminderminutes"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -7861,8 +8739,7 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "applicantSelectionFinalizedAt",
+          "stage",
           "totalProductUnits",
           "createdAt",
           "acceptedCount",
@@ -7883,17 +8760,6 @@
           "alreadyApplied": {
             "title": "Alreadyapplied",
             "type": "boolean"
-          },
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
           },
           "applyCloseAt": {
             "title": "Applycloseat",
@@ -7928,10 +8794,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "notifyRequested": {
             "title": "Notifyrequested",
             "type": "boolean"
@@ -7946,6 +8808,9 @@
               }
             ],
             "title": "Reminderminutes"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -7962,8 +8827,7 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "applicantSelectionFinalizedAt",
+          "stage",
           "acceptedCount",
           "alreadyApplied",
           "notifyRequested",
@@ -7990,23 +8854,37 @@
         "title": "DropIntentPitchRequest",
         "type": "object"
       },
-      "DropReopenResponse": {
+      "DropStage": {
+        "description": "Computed drop stage (``app.services.lifecycle``; never stored).\n\n``draft`` \u2192 ``upcoming`` \u2192 ``applying`` \u2192 ``selecting`` \u2192 ``live`` \u2192\n``wrapped``, or ``canceled`` from any published stage before wrap-up.\nOnly draft (unpublished), wrapped (``wrapped_at``) and canceled\n(``canceled_at``) come from a BUZZ click; the rest follow from the apply\ndates and the seats.\nHidden is a separate flag (``drops.hidden_at``), not a stage.",
+        "enum": [
+          "draft",
+          "upcoming",
+          "applying",
+          "selecting",
+          "live",
+          "wrapped",
+          "canceled"
+        ],
+        "title": "DropStage",
+        "type": "string"
+      },
+      "DropStageResponse": {
+        "description": "A drop's computed stage after a lifecycle action (wrap / unwrap / cancel).",
         "properties": {
           "dropId": {
             "format": "uuid",
             "title": "Dropid",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           }
         },
         "required": [
           "dropId",
-          "manualReopen"
+          "stage"
         ],
-        "title": "DropReopenResponse",
+        "title": "DropStageResponse",
         "type": "object"
       },
       "EngagementSeriesPoint": {
@@ -8059,68 +8937,8 @@
         "title": "ErrorDetail",
         "type": "object"
       },
-      "FinalizeAllocation": {
-        "description": "One (org, units) entry in a finalize-applicants request (\u00a78.3).",
-        "properties": {
-          "orgId": {
-            "format": "uuid",
-            "title": "Orgid",
-            "type": "string"
-          },
-          "units": {
-            "default": 0,
-            "title": "Units",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "orgId"
-        ],
-        "title": "FinalizeAllocation",
-        "type": "object"
-      },
-      "FinalizeApplicantsRequest": {
-        "description": "Body for ``POST /api/brands/me/drops/{id}/finalize-applicants`` (\u00a78.3).",
-        "properties": {
-          "allocations": {
-            "items": {
-              "$ref": "#/components/schemas/FinalizeAllocation"
-            },
-            "title": "Allocations",
-            "type": "array"
-          }
-        },
-        "required": [
-          "allocations"
-        ],
-        "title": "FinalizeApplicantsRequest",
-        "type": "object"
-      },
-      "FinalizeApplicantsResponse": {
-        "properties": {
-          "acceptedCount": {
-            "title": "Acceptedcount",
-            "type": "integer"
-          },
-          "deniedCount": {
-            "title": "Deniedcount",
-            "type": "integer"
-          },
-          "finalizedCount": {
-            "title": "Finalizedcount",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "finalizedCount",
-          "acceptedCount",
-          "deniedCount"
-        ],
-        "title": "FinalizeApplicantsResponse",
-        "type": "object"
-      },
       "ForgotPasswordRequest": {
-        "description": "Enumerate-safe password-reset request (brand or admin).",
+        "description": "Enumerate-safe password-reset request (brand only).",
         "properties": {
           "email": {
             "title": "Email",
@@ -8272,99 +9090,6 @@
           "postId"
         ],
         "title": "LinkPostRequest",
-        "type": "object"
-      },
-      "MetaReviewerSeedResponse": {
-        "properties": {
-          "applicationId": {
-            "title": "Applicationid",
-            "type": "string"
-          },
-          "createdApplication": {
-            "title": "Createdapplication",
-            "type": "boolean"
-          },
-          "createdUser": {
-            "title": "Createduser",
-            "type": "boolean"
-          },
-          "dropId": {
-            "title": "Dropid",
-            "type": "string"
-          },
-          "orgId": {
-            "title": "Orgid",
-            "type": "string"
-          },
-          "userId": {
-            "title": "Userid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "userId",
-          "orgId",
-          "dropId",
-          "applicationId",
-          "createdUser",
-          "createdApplication"
-        ],
-        "title": "MetaReviewerSeedResponse",
-        "type": "object"
-      },
-      "MetaReviewerStatusResponse": {
-        "description": "Setup snapshot. ``user_id`` is the admin org-page key, not a secret.",
-        "properties": {
-          "dropId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dropid"
-          },
-          "enabled": {
-            "title": "Enabled",
-            "type": "boolean"
-          },
-          "orgId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Orgid"
-          },
-          "seeded": {
-            "title": "Seeded",
-            "type": "boolean"
-          },
-          "userId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Userid"
-          }
-        },
-        "required": [
-          "enabled",
-          "seeded",
-          "orgId",
-          "userId",
-          "dropId"
-        ],
-        "title": "MetaReviewerStatusResponse",
         "type": "object"
       },
       "NotifyRequest": {
@@ -8684,20 +9409,20 @@
           "orgName",
           "university",
           "eduEmail",
-          "instagramHandle",
           "memberCount",
           "category",
           "contactName",
           "shippingLine1",
           "shippingCity",
           "shippingState",
-          "shippingPostalCode"
+          "shippingPostalCode",
+          "instagramHandle"
         ],
         "title": "OrgApplyRequest",
         "type": "object"
       },
       "OrgCategory": {
-        "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
+        "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (buzz-ops product/PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
         "enum": [
           "sorority",
           "fraternity",
@@ -8785,7 +9510,7 @@
             ],
             "title": "Decidedkind"
           },
-          "emailSent": {
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -8794,7 +9519,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "id": {
             "format": "uuid",
@@ -8903,7 +9628,7 @@
       },
       "OrgOnboardingRequest": {
         "additionalProperties": false,
-        "description": "Phase 2: submit org profile after Instagram OAuth (legacy drain).",
+        "description": "Submit an authenticated profile and optional public-drop apply intent.",
         "properties": {
           "category": {
             "$ref": "#/components/schemas/OrgCategory"
@@ -8923,6 +9648,18 @@
             "title": "Contactname",
             "type": "string"
           },
+          "dropId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dropid"
+          },
           "eduEmail": {
             "title": "Eduemail",
             "type": "string"
@@ -8934,6 +9671,29 @@
           "orgName": {
             "title": "Orgname",
             "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "prefillToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefilltoken"
           },
           "shippingCity": {
             "title": "Shippingcity",
@@ -9017,8 +9777,8 @@
       },
       "OrgOnboardingResponse": {
         "properties": {
-          "emailSent": {
-            "title": "Emailsent",
+          "emailQueued": {
+            "title": "Emailqueued",
             "type": "boolean"
           },
           "emailSentTo": {
@@ -9039,7 +9799,7 @@
           "orgId",
           "status",
           "emailSentTo",
-          "emailSent"
+          "emailQueued"
         ],
         "title": "OrgOnboardingResponse",
         "type": "object"
@@ -9184,6 +9944,11 @@
               }
             ],
             "title": "Previousinstagramhandle"
+          },
+          "shippingAddressVersion": {
+            "default": 0,
+            "title": "Shippingaddressversion",
+            "type": "integer"
           },
           "shippingCity": {
             "anyOf": [
@@ -9446,6 +10211,191 @@
           }
         },
         "title": "OrgProfileUpdate",
+        "type": "object"
+      },
+      "OrgShippingChangeRequestCreate": {
+        "properties": {
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Reason",
+            "type": "string"
+          },
+          "shippingCity": {
+            "title": "Shippingcity",
+            "type": "string"
+          },
+          "shippingLine1": {
+            "title": "Shippingline1",
+            "type": "string"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPlaceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingplaceid"
+          },
+          "shippingPostalCode": {
+            "title": "Shippingpostalcode",
+            "type": "string"
+          },
+          "shippingState": {
+            "title": "Shippingstate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shippingLine1",
+          "shippingCity",
+          "shippingState",
+          "shippingPostalCode",
+          "reason"
+        ],
+        "title": "OrgShippingChangeRequestCreate",
+        "type": "object"
+      },
+      "OrgShippingChangeRequestResponse": {
+        "properties": {
+          "baseAddressVersion": {
+            "title": "Baseaddressversion",
+            "type": "integer"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "currentAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentaddress"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "decisionReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionreason"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "requestedAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedaddress"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "status",
+          "currentAddress",
+          "requestedAddress",
+          "baseAddressVersion",
+          "reason",
+          "createdAt"
+        ],
+        "title": "OrgShippingChangeRequestResponse",
+        "type": "object"
+      },
+      "OrgShippingChangeRequestState": {
+        "properties": {
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "OrgShippingChangeRequestState",
         "type": "object"
       },
       "PostResponse": {
@@ -9751,6 +10701,65 @@
         "title": "PublicConfigResponse",
         "type": "object"
       },
+      "PublicDropCatalogItem": {
+        "description": "Allowlisted public campaign card; deliberately has no org or admin state.",
+        "properties": {
+          "applyCloseAt": {
+            "title": "Applycloseat",
+            "type": "integer"
+          },
+          "applyOpenAt": {
+            "title": "Applyopenat",
+            "type": "integer"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "brandName",
+          "title",
+          "description",
+          "image",
+          "location",
+          "capacityTotal",
+          "applyOpenAt",
+          "applyCloseAt",
+          "stage"
+        ],
+        "title": "PublicDropCatalogItem",
+        "type": "object"
+      },
       "PublicResendVerificationRequest": {
         "description": "Public resend of .edu verify mail (no session; rate-limited).",
         "properties": {
@@ -9766,7 +10775,7 @@
         "type": "object"
       },
       "RefreshResponse": {
-        "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see ``gaps/auth.ci-session-restore-flake.md``).",
+        "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``).",
         "properties": {
           "access_token": {
             "title": "Access Token",
@@ -9864,6 +10873,67 @@
         "title": "RotateEduEmailResponse",
         "type": "object"
       },
+      "SeatDecisionRequest": {
+        "description": "Draft one seat's decision (``applied`` = back to undecided).",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "decision": {
+            "enum": [
+              "applied",
+              "accepted",
+              "denied"
+            ],
+            "title": "Decision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "SeatDecisionRequest",
+        "type": "object"
+      },
+      "SeatProgress": {
+        "description": "Where a live seat has got to: the furthest fact reached, never a gate.\n\nComputed (``app.services.lifecycle.seat_progress``), never stored. Only\naccepted seats whose decision went out have progress.",
+        "enum": [
+          "accepted",
+          "shipped",
+          "delivered",
+          "posted"
+        ],
+        "title": "SeatProgress",
+        "type": "string"
+      },
+      "SendDecisionsResponse": {
+        "description": "How many drafted decisions just went out.",
+        "properties": {
+          "acceptedCount": {
+            "title": "Acceptedcount",
+            "type": "integer"
+          },
+          "deniedCount": {
+            "title": "Deniedcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "acceptedCount",
+          "deniedCount"
+        ],
+        "title": "SendDecisionsResponse",
+        "type": "object"
+      },
       "ShipmentItem": {
         "properties": {
           "carrier": {
@@ -9874,6 +10944,29 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "shippingAddressCapturedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingaddresscapturedat"
+          },
+          "shippingAddressSnapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingaddresssnapshot"
           },
           "trackUrl": {
             "anyOf": [
@@ -9987,6 +11080,17 @@
             ],
             "title": "Next"
           },
+          "prefill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefill"
+          },
           "token_type": {
             "const": "bearer",
             "default": "bearer",
@@ -10004,51 +11108,8 @@
         "title": "TokenResponse",
         "type": "object"
       },
-      "TrackerAdvanceRequest": {
-        "properties": {
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "stage": {
-            "title": "Stage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "stage"
-        ],
-        "title": "TrackerAdvanceRequest",
-        "type": "object"
-      },
-      "TrackerAdvanceResponse": {
-        "properties": {
-          "dropId": {
-            "format": "uuid",
-            "title": "Dropid",
-            "type": "string"
-          },
-          "stage": {
-            "title": "Stage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "dropId",
-          "stage"
-        ],
-        "title": "TrackerAdvanceResponse",
-        "type": "object"
-      },
       "UserResponse": {
-        "description": "Current-user payload returned by login + ``GET /api/auth/me`` (\u00a76.2).\n\n``impersonated_by`` is set only while an admin is viewing as this user; the\nSPA keys its exit banner off it.",
+        "description": "Current-user payload returned by login + ``GET /api/auth/me`` (\u00a76.2).\n\n``impersonated_by`` is set only while an admin is viewing as this user; the\nSPA keys its exit banner off it.\n\nTwo distinct Connect reasons, kept apart on purpose:\n\n* ``instagram_reconnect_required`` \u2014 an active org whose approved account\n  switch released its credentials. The portal is closed until it binds.\n* ``instagram_connect_required`` \u2014 an unbound org still awaiting approval\n  that has never connected Instagram. Nothing is closed; it simply has one\n  step left, and ``approve_org`` refuses until it is done.",
         "properties": {
           "email": {
             "anyOf": [
@@ -10088,6 +11149,16 @@
               }
             ],
             "title": "Impersonation Readonly"
+          },
+          "instagram_connect_required": {
+            "default": false,
+            "title": "Instagram Connect Required",
+            "type": "boolean"
+          },
+          "instagram_reconnect_required": {
+            "default": false,
+            "title": "Instagram Reconnect Required",
+            "type": "boolean"
           },
           "instagram_username": {
             "anyOf": [
@@ -10216,6 +11287,76 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/admin/applications/{application_id}/delivered": {
+      "put": {
+        "description": "Mark the seat delivered (or not). A fact, never a gate.",
+        "operationId": "set_application_delivered_api_admin_applications__application_id__delivered_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveredRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Set Application Delivered",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/applications/{application_id}/shipments": {
       "post": {
         "operationId": "add_application_shipment_api_admin_applications__application_id__shipments_post",
@@ -10354,6 +11495,189 @@
         ]
       }
     },
+    "/api/admin/brand-ig-change-requests": {
+      "get": {
+        "operationId": "list_brand_ig_change_requests_endpoint_api_admin_brand_ig_change_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_AdminBrandIgChangeRequestItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Brand Ig Change Requests Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/brand-ig-change-requests/{request_id}/approve": {
+      "post": {
+        "operationId": "approve_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Approve Brand Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/brand-ig-change-requests/{request_id}/deny": {
+      "post": {
+        "operationId": "deny_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Deny Brand Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/brands": {
       "get": {
         "operationId": "list_brands_endpoint_api_admin_brands_get",
@@ -10472,55 +11796,6 @@
           }
         },
         "summary": "Create Brand Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/admin/brands/pending": {
-      "get": {
-        "operationId": "get_pending_brands_api_admin_brands_pending_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_list_AdminPendingBrandItem__"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Get Pending Brands",
         "tags": [
           "admin"
         ]
@@ -11481,10 +12756,10 @@
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/applications/{application_id}/remove": {
-      "post": {
-        "description": "Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics.",
-        "operationId": "remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post",
+    "/api/admin/drops/{drop_id}/applications/{application_id}/decision": {
+      "put": {
+        "description": "Set one seat's status. accepted/denied are drafts until the next send (may\noverbook); withdrew/removed end the seat at once, keeping its history.",
+        "operationId": "put_seat_decision_endpoint_api_admin_drops__drop_id__applications__application_id__decision_put",
         "parameters": [
           {
             "in": "path",
@@ -11527,7 +12802,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdminRemoveParticipantRequest"
+                "$ref": "#/components/schemas/AdminSeatDecisionRequest"
               }
             }
           },
@@ -11538,7 +12813,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_AdminRemoveParticipantResponse_"
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
                 }
               }
             },
@@ -11555,15 +12830,16 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Remove Participant Endpoint",
+        "summary": "Put Seat Decision Endpoint",
         "tags": [
           "admin"
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/clear-reopen": {
+    "/api/admin/drops/{drop_id}/applications/{application_id}/delete": {
       "post": {
-        "operationId": "clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post",
+        "description": "Hard-delete one seat (test data, mistakes): the seat, its shipments, its linked metrics.",
+        "operationId": "delete_seat_endpoint_api_admin_drops__drop_id__applications__application_id__delete_post",
         "parameters": [
           {
             "in": "path",
@@ -11572,6 +12848,16 @@
             "schema": {
               "format": "uuid",
               "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
               "type": "string"
             }
           },
@@ -11592,12 +12878,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminDeleteSeatRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_DropReopenResponse_"
+                  "$ref": "#/components/schemas/DataResponse_AdminDeleteSeatResponse_"
                 }
               }
             },
@@ -11614,16 +12910,16 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Clear Reopen Endpoint",
+        "summary": "Delete Seat Endpoint",
         "tags": [
           "admin"
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/finalize-applicants": {
+    "/api/admin/drops/{drop_id}/cancel": {
       "post": {
-        "description": "Same batch finalize as the brand portal: window closed, selection stage, deny the rest.",
-        "operationId": "finalize_drop_applicants_endpoint_api_admin_drops__drop_id__finalize_applicants_post",
+        "description": "Cancel a published drop (typed title; final).",
+        "operationId": "cancel_drop_endpoint_api_admin_drops__drop_id__cancel_post",
         "parameters": [
           {
             "in": "path",
@@ -11656,7 +12952,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FinalizeApplicantsRequest"
+                "$ref": "#/components/schemas/AdminCancelDropRequest"
               }
             }
           },
@@ -11667,7 +12963,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_FinalizeApplicantsResponse_"
+                  "$ref": "#/components/schemas/DataResponse_DropStageResponse_"
                 }
               }
             },
@@ -11684,7 +12980,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Finalize Drop Applicants Endpoint",
+        "summary": "Cancel Drop Endpoint",
         "tags": [
           "admin"
         ]
@@ -11818,9 +13114,10 @@
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/reopen": {
+    "/api/admin/drops/{drop_id}/send-decisions": {
       "post": {
-        "operationId": "reopen_drop_endpoint_api_admin_drops__drop_id__reopen_post",
+        "description": "Send every drafted decision on the drop (any stage).",
+        "operationId": "send_decisions_endpoint_api_admin_drops__drop_id__send_decisions_post",
         "parameters": [
           {
             "in": "path",
@@ -11854,7 +13151,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_DropReopenResponse_"
+                  "$ref": "#/components/schemas/DataResponse_SendDecisionsResponse_"
                 }
               }
             },
@@ -11871,7 +13168,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Reopen Drop Endpoint",
+        "summary": "Send Decisions Endpoint",
         "tags": [
           "admin"
         ]
@@ -11937,75 +13234,6 @@
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/tracker": {
-      "patch": {
-        "operationId": "advance_tracker_endpoint_api_admin_drops__drop_id__tracker_patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "drop_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Drop Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TrackerAdvanceRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_TrackerAdvanceResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Advance Tracker Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/api/admin/drops/{drop_id}/unhide": {
       "post": {
         "operationId": "unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post",
@@ -12065,9 +13293,127 @@
         ]
       }
     },
+    "/api/admin/drops/{drop_id}/unwrap": {
+      "post": {
+        "operationId": "unwrap_drop_endpoint_api_admin_drops__drop_id__unwrap_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_DropStageResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Unwrap Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/wrap": {
+      "post": {
+        "operationId": "wrap_drop_endpoint_api_admin_drops__drop_id__wrap_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_DropStageResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Wrap Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/health": {
       "get": {
-        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See ``gaps/`` for why the pipeline\nblock is inferred rather than measured.",
+        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See buzz-ops ``engineering/gaps/`` for why the pipeline\nblock is inferred rather than measured.",
         "operationId": "get_health_endpoint_api_admin_health_get",
         "parameters": [
           {
@@ -12367,6 +13713,76 @@
         ]
       }
     },
+    "/api/admin/ig-change-requests/{request_id}/retarget": {
+      "post": {
+        "description": "Point a stuck reconnect ticket at the handle the org can actually bind.",
+        "operationId": "retarget_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__retarget_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminIgChangeRetargetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Retarget Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/impersonate/resume": {
       "post": {
         "description": "Remint View as from the httpOnly intent cookie.\n\nRequires the caller's own admin access token. The cookie alone is not a\nsession. Missing cookie is 404 (nothing to resume). A cookie whose role\ndoes not match ``body.role`` is also 404 and is left in place, so opening\nan org URL does not mint a brand session or destroy it. A cookie minted\nfor a different admin, a stale ``imp_ver``, or a target that can no longer\nbe impersonated is rejected and the cookie is cleared.\n\nDoes not rewrite the cookie. The 8h cap is fixed at the first mint;\nrefresh rotation updates ``imp_ver`` without extending ``exp``.",
@@ -12585,59 +14001,10 @@
         ]
       }
     },
-    "/api/admin/orgs/pending": {
-      "get": {
-        "operationId": "get_pending_orgs_api_admin_orgs_pending_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_list_AdminPendingOrgItem__"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Get Pending Orgs",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/api/admin/orgs/resend-connect-all": {
       "post": {
-        "description": "Email Connect Instagram to every ``pending_instagram`` org.\n\nDoes not email orgs still verifying school email or awaiting approval.",
-        "operationId": "resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post",
+        "description": "Email Connect Instagram to every org that still has to connect.\n\nCovers both cohorts: an approved account switch awaiting its bind, and an\norg that verified its ``.edu`` but never connected Instagram (it must connect\nbefore an admin can approve it). Does not email orgs still verifying school\nemail, orgs without a profile, already-connected orgs, or erased accounts.",
+        "operationId": "resend_all_awaiting_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post",
         "parameters": [
           {
             "in": "header",
@@ -12678,7 +14045,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Resend All Pending Instagram Connect Endpoint",
+        "summary": "Resend All Awaiting Instagram Connect Endpoint",
         "tags": [
           "admin"
         ]
@@ -12874,6 +14241,7 @@
     },
     "/api/admin/orgs/{org_id}/resend-connect": {
       "post": {
+        "description": "Re-send the Connect link for an **approved account switch**.\n\nSwitch holders only. For an org that has never connected Instagram, use\n``send-connect-link`` instead.",
         "operationId": "resend_org_connect_endpoint_api_admin_orgs__org_id__resend_connect_post",
         "parameters": [
           {
@@ -12926,6 +14294,66 @@
           }
         },
         "summary": "Resend Org Connect Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/orgs/{org_id}/send-connect-link": {
+      "post": {
+        "description": "Email a Connect Instagram link to an unbound org that has never connected.\n\nFor orgs that verified their ``.edu`` under the apply-first flow and were\nnever approved: they have no credentials, so approval refuses and\n``resend-connect`` (switch holders) refuses too. The link lets them bind\nfirst; they stay ``pending_approval`` until an admin approves them.",
+        "operationId": "send_org_connect_link_endpoint_api_admin_orgs__org_id__send_connect_link_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgStatusResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Send Org Connect Link Endpoint",
         "tags": [
           "admin"
         ]
@@ -13299,6 +14727,258 @@
         ]
       }
     },
+    "/api/admin/shipping-change-requests": {
+      "get": {
+        "operationId": "list_shipping_change_requests_endpoint_api_admin_shipping_change_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_AdminShippingChangeRequestItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Shipping Change Requests Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/shipping-change-requests/{request_id}": {
+      "get": {
+        "operationId": "get_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminShippingChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Shipping Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/shipping-change-requests/{request_id}/approve": {
+      "post": {
+        "operationId": "approve_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminShippingChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Approve Shipping Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/shipping-change-requests/{request_id}/deny": {
+      "post": {
+        "operationId": "deny_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminShippingChangeDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminShippingChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Deny Shipping Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/tables": {
       "get": {
         "description": "Allowlisted tables + column flags. Hidden columns never appear in row payloads.",
@@ -13561,148 +15241,6 @@
         ]
       }
     },
-    "/api/admin/tools/cleanup-request-received": {
-      "post": {
-        "description": "One-shot B6b: convert unpublished request_received stubs into tickets.\n\nBlocked in production (run the script with ``--confirm`` after explicit ops OK).",
-        "operationId": "cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_AdminCleanupStubsResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Cleanup Request Received Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/admin/users": {
-      "get": {
-        "description": "Org + brand users for the admin impersonation picker.",
-        "operationId": "list_users_endpoint_api_admin_users_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_list_AdminUserItem__"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "List Users Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/auth/admin/forgot-password": {
-      "post": {
-        "description": "Enumerate-safe admin password-reset request.",
-        "operationId": "admin_forgot_password_api_auth_admin_forgot_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ForgotPasswordRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Admin Forgot Password",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
     "/api/auth/admin/login": {
       "post": {
         "description": "Admin email + password login \u2014 the only admin session entry point.\n\nAdmins have neither an Instagram identity nor an invite flow, so without\nthis they are unreachable outside local dev (``dev-login`` 404s off-dev).\nRate-limited per-IP and per-account like the brand path.",
@@ -13745,15 +15283,33 @@
         ]
       }
     },
-    "/api/auth/admin/reset-password": {
+    "/api/auth/brand/change-password": {
       "post": {
-        "description": "Consume an admin password-reset token and set a new password.",
-        "operationId": "admin_reset_password_api_auth_admin_reset_password_post",
+        "description": "Change the signed-in brand's password and keep this session.\n\nPer-IP limit is the route dependency. Per-account limit, the current\npassword check, and the View-as refusal live in ``change_brand_password``.\n``issue_token_pair`` bumps ``token_version`` (other sessions die) and\ncommits before the notice email.",
+        "operationId": "brand_change_password_api_auth_brand_change_password_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResetPasswordRequest"
+                "$ref": "#/components/schemas/BrandChangePasswordRequest"
               }
             }
           },
@@ -13764,7 +15320,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
                 }
               }
             },
@@ -13781,7 +15337,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Admin Reset Password",
+        "summary": "Brand Change Password",
         "tags": [
           "auth"
         ]
@@ -13999,7 +15555,7 @@
     },
     "/api/auth/instagram/bind-start": {
       "post": {
-        "description": "Mint OAuth state with bind claim for ``pending_instagram`` orgs.",
+        "description": "Mint OAuth state with bind claim for any org that must connect Instagram.\n\nTwo cohorts may bind: an active org whose approved account switch released\nits credentials, and an unbound org still awaiting approval that never\nconnected Instagram. A bind never activates the latter \u2014 ``approve_org``\nstays the only path to ``active``.",
         "operationId": "instagram_bind_start_api_auth_instagram_bind_start_post",
         "parameters": [
           {
@@ -14165,6 +15721,24 @@
                 }
               ],
               "title": "Next"
+            }
+          },
+          {
+            "in": "query",
+            "name": "prefill",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prefill"
             }
           }
         ],
@@ -14452,66 +16026,6 @@
         ]
       }
     },
-    "/api/auth/verify-email/change": {
-      "post": {
-        "description": "Correct a typo'd .edu while still awaiting verification.",
-        "operationId": "change_edu_email_endpoint_api_auth_verify_email_change_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeEduEmailRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_ChangeEduEmailResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Change Edu Email Endpoint",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
     "/api/auth/verify-email/resend": {
       "post": {
         "description": "Re-send the .edu verification email (rate-limited, auth required).",
@@ -14658,7 +16172,7 @@
     },
     "/api/auth/verify-email/rotate": {
       "post": {
-        "description": "Start a pending-swap .edu rotate (active / pending_approval orgs).",
+        "description": "Start a pending-swap .edu rotate (approved orgs only; awaiting approval is locked).",
         "operationId": "rotate_edu_email_endpoint_api_auth_verify_email_rotate_post",
         "parameters": [
           {
@@ -14837,6 +16351,64 @@
         "tags": [
           "brands"
         ]
+      },
+      "patch": {
+        "description": "Update the brand's display name. Handle and email are not accepted.",
+        "operationId": "patch_brand_profile_api_brands_me_patch",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandProfilePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandProfileResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Patch Brand Profile",
+        "tags": [
+          "brands"
+        ]
       }
     },
     "/api/brands/me/aggregate": {
@@ -14937,7 +16509,7 @@
         ]
       },
       "post": {
-        "description": "Plan your Campaign \u2014 create an intake ticket (LAUNCH.md Phase B).",
+        "description": "Plan your Campaign \u2014 create an intake ticket.",
         "operationId": "create_drop_request_api_brands_me_drop_requests_post",
         "parameters": [
           {
@@ -14990,65 +16562,6 @@
           }
         },
         "summary": "Create Drop Request",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
-    "/api/brands/me/drop-requests/{request_id}": {
-      "get": {
-        "operationId": "get_drop_request_api_brands_me_drop_requests__request_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Request Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_BrandDropRequestResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Get Drop Request",
         "tags": [
           "brands"
         ]
@@ -15229,9 +16742,402 @@
         ]
       }
     },
-    "/api/brands/me/drops/{drop_id}/finalize-applicants": {
+    "/api/brands/me/drops/{drop_id}/applications/{application_id}/decision": {
+      "put": {
+        "description": "Draft one applicant's decision. Nothing reaches the org until Send decisions.",
+        "operationId": "put_seat_decision_api_brands_me_drops__drop_id__applications__application_id__decision_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandDropDetailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Put Seat Decision",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/drops/{drop_id}/applications/{application_id}/shipments": {
+      "get": {
+        "operationId": "list_brand_shipments_api_brands_me_drops__drop_id__applications__application_id__shipments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_ShipmentItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Brand Shipments",
+        "tags": [
+          "brands"
+        ]
+      },
       "post": {
-        "operationId": "finalize_drop_applicants_api_brands_me_drops__drop_id__finalize_applicants_post",
+        "operationId": "add_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAddShipmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ShipmentItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Add Brand Shipment",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/drops/{drop_id}/applications/{application_id}/shipments/{shipment_id}": {
+      "delete": {
+        "operationId": "delete_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments__shipment_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shipment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Shipment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Delete Brand Shipment",
+        "tags": [
+          "brands"
+        ]
+      },
+      "patch": {
+        "operationId": "update_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments__shipment_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shipment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Shipment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAddShipmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ShipmentItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Update Brand Shipment",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/drops/{drop_id}/send-decisions": {
+      "post": {
+        "description": "Send every drafted decision (repeatable; undecided applicants keep waiting).",
+        "operationId": "post_send_decisions_api_brands_me_drops__drop_id__send_decisions_post",
         "parameters": [
           {
             "in": "path",
@@ -15260,22 +17166,12 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FinalizeApplicantsRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_FinalizeApplicantsResponse_"
+                  "$ref": "#/components/schemas/DataResponse_SendDecisionsResponse_"
                 }
               }
             },
@@ -15292,7 +17188,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Finalize Drop Applicants",
+        "summary": "Post Send Decisions",
         "tags": [
           "brands"
         ]
@@ -15371,9 +17267,117 @@
         ]
       }
     },
+    "/api/brands/me/ig-change-request": {
+      "get": {
+        "operationId": "get_my_brand_ig_change_request_api_brands_me_ig_change_request_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandIgChangeRequestState_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get My Brand Ig Change Request",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/ig-change-requests": {
+      "post": {
+        "operationId": "create_my_brand_ig_change_request_api_brands_me_ig_change_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandIgChangeRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandIgChangeRequestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create My Brand Ig Change Request",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
     "/api/campaigns": {
       "get": {
-        "description": "The caller org's campaigns (non-denied applications + joined drop).",
+        "description": "The caller org's campaigns (seats that have not ended + joined drop).",
         "operationId": "list_campaigns_api_campaigns_get",
         "parameters": [
           {
@@ -15536,6 +17540,76 @@
           }
         },
         "summary": "Campaign Aggregate",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/campaigns/{application_id}/delivered": {
+      "put": {
+        "description": "Org says \"I got it\": it has the product (a fact, never a gate).",
+        "operationId": "set_campaign_delivered_api_campaigns__application_id__delivered_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveredRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Set Campaign Delivered",
         "tags": [
           "campaigns"
         ]
@@ -15879,6 +17953,66 @@
         ]
       }
     },
+    "/api/campaigns/{application_id}/withdraw": {
+      "post": {
+        "description": "Withdraw: while applied, or accepted before shipping (409 after).",
+        "operationId": "withdraw_campaign_api_campaigns__application_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Withdraw Campaign",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
     "/api/config": {
       "get": {
         "description": "Public, unauthenticated feature flags the SPA needs before login.\n\nLets the brand-apply page hide itself when self-registration is disabled.",
@@ -15911,6 +18045,48 @@
         ]
       }
     },
+    "/api/contact": {
+      "post": {
+        "description": "Accept a contact message and mail it to the team.\n\nA filled honeypot returns the **same success shape** without sending. That\nsilence is deliberate: a distinct response would tell a bot which field to\nleave alone, and an operator chasing false positives gets nothing useful\nfrom a louder failure. The rejection is logged with no message body.\n\nThe two sends are **not** symmetric. If the ops notice fails, nothing\nreached the team, so the request fails with a 502 the visitor can act on\nand the ack is *not* sent \u2014 a \"we got your message\" copy for a message no\none at BUZZ ever saw is worse than an honest error. If the notice landed\nand only the sender's copy failed, that is a normal, acceptable outcome\n(the team can still reply), so it must not fail the request.",
+        "operationId": "submit_contact_api_contact_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ContactAccepted_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Submit Contact",
+        "tags": [
+          "contact"
+        ]
+      }
+    },
     "/api/drops": {
       "get": {
         "description": "Org drop browse feed (JWT + ``org`` role + ``active``).",
@@ -15937,6 +18113,21 @@
               "minimum": 1,
               "title": "Per Page",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "upcoming",
+                "open"
+              ],
+              "title": "Status",
+              "type": "string"
             }
           },
           {
@@ -15979,6 +18170,63 @@
           }
         },
         "summary": "List Drops",
+        "tags": [
+          "drops"
+        ]
+      }
+    },
+    "/api/drops/public": {
+      "get": {
+        "description": "Anonymous allowlisted catalog of Upcoming and Applying drops.",
+        "operationId": "list_public_drops_api_drops_public_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_PublicDropCatalogItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Public Drops",
         "tags": [
           "drops"
         ]
@@ -16344,159 +18592,6 @@
         ]
       }
     },
-    "/api/meta-reviewer/seed": {
-      "post": {
-        "description": "Admin-only idempotent seed. 404 when the flag is off, before auth.",
-        "operationId": "meta_reviewer_seed_api_meta_reviewer_seed_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_MetaReviewerSeedResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Meta Reviewer Seed",
-        "tags": [
-          "meta-reviewer"
-        ]
-      }
-    },
-    "/api/meta-reviewer/start": {
-      "post": {
-        "description": "Verify the reusable link secret and mint a reviewer OAuth state.\n\nThe state cookie is the same CSRF binding as Connect. ``next`` is not\ntaken from the client (no open redirect).",
-        "operationId": "meta_reviewer_start_api_meta_reviewer_start_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "token": {
-                    "maxLength": 256,
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "token"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_InstagramBindStartResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Meta Reviewer Start",
-        "tags": [
-          "meta-reviewer"
-        ]
-      }
-    },
-    "/api/meta-reviewer/status": {
-      "get": {
-        "description": "Admin-only setup status. 404 when the flag is off, before auth.\n\nReturns whether the reviewer org exists, its admin-page user id, and the\nconfigured drop id. Never returns the link secret, its hash, or the email.\nNot rate-limited: the admin overview reads it on each visit. Flag-off\nstill 404s before auth, so that probe never reaches the handler body.",
-        "operationId": "meta_reviewer_status_api_meta_reviewer_status_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_MetaReviewerStatusResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Meta Reviewer Status",
-        "tags": [
-          "meta-reviewer"
-        ]
-      }
-    },
     "/api/orgs/address-preview": {
       "get": {
         "description": "Fill structured fields from a Places suggestion (re-validated on submit).",
@@ -16589,7 +18684,7 @@
     },
     "/api/orgs/apply": {
       "post": {
-        "description": "Public apply-first signup (no Instagram OAuth).",
+        "description": "Retired anonymous signup; organization identity requires Instagram OAuth.",
         "operationId": "org_apply_api_orgs_apply_post",
         "requestBody": {
           "content": {
@@ -16987,6 +19082,114 @@
           }
         },
         "summary": "Refresh My Posts",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/me/shipping-change-request": {
+      "get": {
+        "operationId": "get_my_shipping_change_request_api_orgs_me_shipping_change_request_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgShippingChangeRequestState_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get My Shipping Change Request",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/me/shipping-change-requests": {
+      "post": {
+        "operationId": "create_my_shipping_change_request_api_orgs_me_shipping_change_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgShippingChangeRequestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create My Shipping Change Request",
         "tags": [
           "orgs"
         ]

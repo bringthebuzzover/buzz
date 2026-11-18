@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
+from urllib.parse import parse_qs, urlparse
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -21,7 +24,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
-from tests.conftest import make_brand, make_user, mint_access_token, persist
+from tests.conftest import admin_headers, make_brand, make_user, mint_access_token, persist
 
 # --- Org onboarding: profile submit -----------------------------------------
 
@@ -55,7 +58,7 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     data = resp.json()["data"]
     assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
     assert data["emailSentTo"] == "club@test.edu"
-    assert data["emailSent"] is True
+    assert data["emailQueued"] is True
 
     # Org row + verification token created; identity lives on the user.
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
@@ -74,33 +77,29 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     assert evt is not None
 
 
-async def test_onboarding_rejects_client_instagram_handle(
-    app_client: AsyncClient, db_session
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"instagramHandle": "someoneelse"},  # handle comes from Instagram, not the client
+        {"followerCount": 1200},  # so does the follower count
+        {"eduEmail": "club@gmail.com"},
+        {"bogusField": "x"},
+    ],
+)
+async def test_onboarding_rejects_bad_profile(
+    app_client: AsyncClient, db_session, extra: dict
 ) -> None:
     user = await persist(
         db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_handle"),
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_reject"),
     )
     resp = await app_client.post(
         "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "instagramHandle": "someoneelse"},
+        json={**_VALID_PROFILE, **extra},
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
-
-
-async def test_onboarding_rejects_non_edu_email(app_client: AsyncClient, db_session) -> None:
-    user = await persist(
-        db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_2"),
-    )
-    resp = await app_client.post(
-        "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "eduEmail": "club@gmail.com"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 422
 
 
 async def test_onboarding_rejects_wrong_status(app_client: AsyncClient, db_session) -> None:
@@ -179,61 +178,6 @@ async def test_onboarding_takeover_stale_unverified_edu(
     assert resp.status_code == 200, resp.text
     await db_session.refresh(peer)
     assert peer.edu_email is None
-
-
-async def test_change_edu_email_while_pending(app_client: AsyncClient, db_session) -> None:
-    user, evt, _raw = await _seed_pending_verification(
-        db_session, email="old@test.edu", suffix="chg1"
-    )
-    org = Organization(
-        id=uuid.uuid4(),
-        user_id=user.id,
-        org_name="Change Club",
-        university="Test University",
-    )
-    db_session.add(org)
-    await db_session.flush()
-
-    resp = await app_client.post(
-        "/api/auth/verify-email/change",
-        json={"eduEmail": "new@test.edu"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["data"]["emailSentTo"] == "new@test.edu"
-    await db_session.refresh(user)
-    await db_session.refresh(evt)
-    assert user.edu_email == "new@test.edu"
-    assert evt.expires_at <= datetime.now(timezone.utc)
-
-
-async def test_onboarding_rejects_unknown_field(app_client: AsyncClient, db_session) -> None:
-    user = await persist(
-        db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_extra"),
-    )
-    resp = await app_client.post(
-        "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "bogusField": "x"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 422
-
-
-async def test_onboarding_rejects_client_follower_count(
-    app_client: AsyncClient, db_session
-) -> None:
-    user = await persist(
-        db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_followers"),
-    )
-    resp = await app_client.post(
-        "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "followerCount": 1200},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 422
-    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 async def test_onboarding_requires_profile_fields(app_client: AsyncClient, db_session) -> None:
@@ -527,7 +471,7 @@ async def test_resend_rate_limited(app_client: AsyncClient, db_session) -> None:
 
 
 async def test_resend_email_send_failed_does_not_burn_token(
-    app_client: AsyncClient, db_session, monkeypatch
+    app_client: AsyncClient, db_session, monkeypatch, email_cleanup_session
 ) -> None:
     user, _evt, _raw = await _seed_pending_verification(db_session, suffix="rs_fail")
 
@@ -547,8 +491,8 @@ async def test_resend_email_send_failed_does_not_burn_token(
         json={},
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
-    assert resp.status_code == 502
-    assert resp.json()["error"]["code"] == "EMAIL_SEND_FAILED"
+    # Delivery occurs after the response; failure is logged and the token removed.
+    assert resp.status_code == 200
 
     await db_session.refresh(user)
     after = list(
@@ -556,13 +500,13 @@ async def test_resend_email_send_failed_does_not_burn_token(
             select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
         )
     )
-    # Raise rolls back the mint; original token remains the only live one.
+    # Background cleanup removes the mint; the original token remains live.
     assert len(after) == 1
     assert after[0].id == before[0].id
 
 
-async def test_onboarding_submit_email_sent_false_keeps_profile(
-    app_client: AsyncClient, db_session, monkeypatch
+async def test_onboarding_submit_email_failure_keeps_profile(
+    app_client: AsyncClient, db_session, monkeypatch, email_cleanup_session
 ) -> None:
     user = await persist(
         db_session,
@@ -580,7 +524,7 @@ async def test_onboarding_submit_email_sent_false_keeps_profile(
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
-    assert data["emailSent"] is False
+    assert data["emailQueued"] is True  # Accepted for delivery after commit.
     assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
 
     await db_session.refresh(user)
@@ -603,6 +547,8 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
     resp = await app_client.post(
         "/api/brands/apply",
         json={
+            "contactName": "  Test Applicant  ",
+            "marketingBudget": "5_20k",
             "brandName": "Acme Co",
             "companyEmail": "Hello@Acme.com",
             "instagramHandle": "@acme",
@@ -615,6 +561,8 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
 
     brand = await db_session.scalar(select(Brand).where(Brand.company_email == "hello@acme.com"))
     assert brand is not None
+    assert brand.contact_name == "Test Applicant"
+    assert brand.marketing_budget == "5_20k"
     assert brand.instagram_handle == "acme" or brand.instagram_handle == "@acme"
     user = await db_session.get(User, brand.user_id)
     assert user.portal_role == PortalRole.BRAND.value
@@ -622,11 +570,46 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
     assert user.password_hash is None
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("contactName", None),
+        ("contactName", "   "),
+        ("contactName", "x" * 256),
+        ("intentMessage", None),
+        ("intentMessage", "   "),
+        ("intentMessage", "x" * 2001),
+        ("marketingBudget", None),
+        ("marketingBudget", "invalid"),
+    ],
+)
+async def test_brand_apply_required_fields(app_client: AsyncClient, field, value) -> None:
+    payload = {
+        "contactName": "Test Applicant",
+        "brandName": "Test Company",
+        "companyEmail": "user1@example.com",
+        "marketingBudget": "5_20k",
+        "intentMessage": "Campus campaign.",
+    }
+    if value is None:
+        payload.pop(field)
+    else:
+        payload[field] = value
+    resp = await app_client.post("/api/brands/apply", json=payload)
+    assert resp.status_code == 422
+
+
 async def test_brand_apply_duplicate_email_conflict(app_client: AsyncClient, db_session) -> None:
     await make_brand(db_session, brand_name="Existing", company_email="brand@test.com")
     resp = await app_client.post(
         "/api/brands/apply",
-        json={"brandName": "Dup", "companyEmail": "BRAND@test.com"},
+        json={
+            "contactName": "Test Applicant",
+            "marketingBudget": "5_20k",
+            "intentMessage": "Campus campaign.",
+            "brandName": "Dup",
+            "companyEmail": "BRAND@test.com",
+        },
     )
     assert resp.status_code == 409
     assert resp.json()["error"]["code"] == "BRAND_EMAIL_TAKEN"
@@ -640,7 +623,13 @@ async def test_brand_apply_disabled_returns_403(
     monkeypatch.setattr(app_settings, "BRAND_SELF_REGISTRATION_ENABLED", False)
     resp = await app_client.post(
         "/api/brands/apply",
-        json={"brandName": "Nope", "companyEmail": "nope@brand.com"},
+        json={
+            "contactName": "Test Applicant",
+            "marketingBudget": "5_20k",
+            "intentMessage": "Campus campaign.",
+            "brandName": "Nope",
+            "companyEmail": "nope@brand.com",
+        },
     )
     assert resp.status_code == 403
     assert resp.json()["error"]["code"] == "BRAND_REGISTRATION_DISABLED"
@@ -821,32 +810,28 @@ async def test_brand_login_success(app_client: AsyncClient, db_session) -> None:
     assert settings.REFRESH_COOKIE_NAME in resp.headers.get("set-cookie", "")
 
 
-async def test_brand_login_wrong_password(app_client: AsyncClient, db_session) -> None:
-    await _seed_active_brand_with_password(db_session, email="wp@test.com")
+@pytest.mark.parametrize(
+    ("email", "password", "brand_status"),
+    [
+        ("wp@test.com", "wrongpass1", None),  # wrong password
+        ("ghost@test.com", "whatever12", None),  # unknown email
+        ("wp@test.com", "hunter2pass", BrandStatus.PENDING_REVIEW),  # brand not approved
+    ],
+)
+async def test_brand_login_rejected(
+    app_client: AsyncClient,
+    db_session,
+    email: str,
+    password: str,
+    brand_status: BrandStatus | None,
+) -> None:
+    brand = await _seed_active_brand_with_password(db_session, email="wp@test.com")
+    if brand_status is not None:
+        brand.status = brand_status.value
+        await db_session.flush()
     resp = await app_client.post(
         "/api/auth/brand/login",
-        json={"email": "wp@test.com", "password": "wrongpass1"},
-    )
-    assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
-
-
-async def test_brand_login_unknown_email(app_client: AsyncClient) -> None:
-    resp = await app_client.post(
-        "/api/auth/brand/login",
-        json={"email": "ghost@test.com", "password": "whatever12"},
-    )
-    assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
-
-
-async def test_brand_login_unapproved_brand(app_client: AsyncClient, db_session) -> None:
-    brand = await _seed_active_brand_with_password(db_session, email="pending@test.com")
-    brand.status = BrandStatus.PENDING_REVIEW.value
-    await db_session.flush()
-    resp = await app_client.post(
-        "/api/auth/brand/login",
-        json={"email": "pending@test.com", "password": "hunter2pass"},
+        json={"email": email, "password": password},
     )
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
@@ -941,7 +926,7 @@ async def test_rotate_edu_email_pending_swap_then_verify(
     assert user.status == OrgUserStatus.ACTIVE.value
 
 
-async def test_rotate_edu_email_pending_approval_eligible(
+async def test_rotate_edu_email_refused_while_pending_approval(
     app_client: AsyncClient, db_session
 ) -> None:
     user = await _seed_verified_org(
@@ -955,28 +940,51 @@ async def test_rotate_edu_email_pending_approval_eligible(
         json={"eduEmail": "pend-new@test.edu"},
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
-    assert resp.status_code == 200, resp.text
+    assert resp.status_code == 400
+    body = resp.json()["error"]
+    assert body["code"] == "INVALID_ONBOARDING_STATE"
+    assert body["message"] == "Your school email is locked while we review your application."
     await db_session.refresh(user)
     assert user.edu_email == "pend@test.edu"
-    assert user.pending_edu_email == "pend-new@test.edu"
+    assert user.pending_edu_email is None
     assert user.status == OrgUserStatus.PENDING_APPROVAL.value
 
 
-async def test_rotate_rejects_onboarding_only_change_path(
+async def test_latched_swap_verifies_after_move_to_pending_approval(
     app_client: AsyncClient, db_session
 ) -> None:
-    """POST /verify-email/change stays onboarding-only (typo fix)."""
-    user = await _seed_verified_org(db_session, email="keep@test.edu", suffix="r3")
-    resp = await app_client.post(
-        "/api/auth/verify-email/change",
-        json={"eduEmail": "typo@test.edu"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    """A swap latched while active still redeems after status moves to pending_approval."""
+    user = await _seed_verified_org(db_session, email="live-lock@test.edu", suffix="rlock")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    started = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "next-lock@test.edu"},
+        headers=headers,
     )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
+    assert started.status_code == 200, started.text
+
+    user.status = OrgUserStatus.PENDING_APPROVAL.value
+    tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+        )
+    )
+    assert len(tokens) == 1
+    raw = uuid.uuid4().hex
+    tokens[0].token_hash = hash_token(raw)
+    await db_session.flush()
+
+    verify = await app_client.post("/api/auth/verify-email", json={"token": raw})
+    assert verify.status_code == 200, verify.text
+    assert verify.json()["data"]["status"] == OrgUserStatus.PENDING_APPROVAL.value
+
     await db_session.refresh(user)
-    assert user.edu_email == "keep@test.edu"
+    assert user.edu_email == "next-lock@test.edu"
     assert user.pending_edu_email is None
+    assert user.status == OrgUserStatus.PENDING_APPROVAL.value
 
 
 async def test_cancel_pending_edu_email(app_client: AsyncClient, db_session) -> None:
@@ -1085,3 +1093,176 @@ async def test_me_exposes_pending_edu_email(app_client: AsyncClient, db_session)
     data = resp.json()["data"]
     assert data["email"] == "me-live@test.edu"
     assert data["pending_edu_email"] == "me-pend@test.edu"
+
+
+async def test_instagram_signup_through_approval(
+    app_client: AsyncClient, db_session, fake_instagram, monkeypatch
+) -> None:
+    from app.models.org_connect_token import OrgConnectToken
+
+    queued_verification = AsyncMock(return_value=True)
+    queued_approval = AsyncMock(return_value=True)
+    monkeypatch.setattr("app.services.onboarding.schedule_email", queued_verification)
+    monkeypatch.setattr("app.services.admin.schedule_email", queued_approval)
+    login = await app_client.get("/api/auth/instagram/login", follow_redirects=False)
+    state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
+    signup = await app_client.post(
+        "/api/auth/instagram/callback", json={"code": "signup", "state": state}
+    )
+    assert signup.status_code == 200, signup.text
+    session = signup.json()["data"]
+    assert session["user"]["status"] == "pending_org_profile"
+    headers = {"Authorization": f"Bearer {session['access_token']}"}
+    profile = await app_client.post("/api/orgs/onboarding", json=_VALID_PROFILE, headers=headers)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["data"]["status"] == "pending_email_verification"
+    assert profile.json()["data"]["emailQueued"] is True
+    org = await db_session.scalar(select(Organization))
+    assert org is not None
+    assert org.instagram_handle_confirmed is True
+    assert org.follower_count == 1000
+    raw_verification = queued_verification.await_args.args[4]
+    verified = await app_client.post("/api/auth/verify-email", json={"token": raw_verification})
+    assert verified.status_code == 200, verified.text
+    assert verified.json()["data"]["status"] == "pending_approval"
+    approved = await app_client.post(
+        f"/api/admin/orgs/{org.id}/approve",
+        headers=await admin_headers(db_session),
+        json={},
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["data"]["status"] == "active"
+    assert await db_session.scalar(select(OrgConnectToken)) is None
+    assert "connect_token" not in queued_approval.await_args.kwargs
+    refreshed = await app_client.post("/api/auth/refresh")
+    assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["data"]["user"]["status"] == "active"
+
+
+@pytest.mark.parametrize("failure", ["validation", "address", "used", "expired", "missing"])
+async def test_onboarding_prefill_failure_and_retry(
+    app_client: AsyncClient, db_session, monkeypatch, failure: str
+) -> None:
+    from app.models.org_apply_prefill import OrgApplyPrefill
+    from app.services.address import FormatFallbackAddressClient
+
+    raw = "fake-invitation-draft"
+    row = OrgApplyPrefill(
+        token_hash=hash_token(raw),
+        invite_email="org1@example.edu",
+        org_name="Test Org",
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    user = make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_prefill")
+    await persist(db_session, user)
+    db_session.add(row)
+    await db_session.flush()
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    draft = await app_client.get("/api/orgs/apply/prefill", params={"token": raw})
+    assert draft.status_code == 200
+    assert draft.json()["data"]["orgName"] == "Test Org"
+    payload = {**_VALID_PROFILE, "prefillToken": raw}
+    if failure == "validation":
+        payload["orgName"] = ""
+    elif failure == "address":
+
+        async def invalid_address(*args, **kwargs):
+            from app import errors
+            from app.exceptions import BuzzAPIException
+
+            raise BuzzAPIException(errors.NOT_FOUND, "Invalid test address.", status_code=400)
+
+        monkeypatch.setattr(FormatFallbackAddressClient, "validate", invalid_address)
+    elif failure == "used":
+        row.used_at = datetime.now(timezone.utc)
+    elif failure == "expired":
+        row.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+    else:
+        payload["prefillToken"] = "missing-draft"
+    await db_session.flush()
+    response = await app_client.post("/api/orgs/onboarding", json=payload, headers=headers)
+    assert response.status_code in {400, 404, 422}
+    await db_session.refresh(row)
+    await db_session.refresh(user)
+    assert user.status == "pending_org_profile"
+    assert row.used_by_user_id is None
+    assert (
+        await db_session.scalar(select(Organization).where(Organization.user_id == user.id)) is None
+    )
+    if failure not in {"validation", "address"}:
+        return
+    assert row.used_at is None
+    monkeypatch.undo()
+    response = await app_client.post(
+        "/api/orgs/onboarding", json={**_VALID_PROFILE, "prefillToken": raw}, headers=headers
+    )
+    assert response.status_code == 200, response.text
+    await db_session.refresh(row)
+    assert row.used_at is not None
+    assert row.used_by_user_id == user.id
+    reused = await app_client.get("/api/orgs/apply/prefill", params={"token": raw})
+    assert reused.status_code == 404
+
+
+@pytest.mark.parametrize("drop_state", ["open", "closed", "upcoming", "hidden", "draft", "unknown"])
+async def test_profile_records_public_drop_intent(app_client, db_session, drop_state):
+    from app.models.application import DropApplication
+    from app.models.drop_apply_intent import DropApplyIntent
+    from tests.conftest import make_drop
+
+    user = await persist(db_session, make_user(status=OrgUserStatus.PENDING_ORG_PROFILE))
+    brand = await make_brand(db_session)
+    now = datetime.now(timezone.utc)
+    drop = await make_drop(db_session, brand)
+    if drop_state == "closed":
+        drop.apply_close_at = now - timedelta(hours=1)
+    elif drop_state == "upcoming":
+        drop.apply_open_at = now + timedelta(hours=1)
+    elif drop_state == "hidden":
+        drop.hidden_at = now
+    elif drop_state == "draft":
+        drop.published_at = None
+    await db_session.flush()
+    drop_id = uuid.uuid4() if drop_state == "unknown" else drop.id
+    payload = {**_VALID_PROFILE, "dropId": str(drop_id), "pitch": "  Test pitch  "}
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    response = await app_client.post("/api/orgs/onboarding", json=payload, headers=headers)
+    if drop_state in {"hidden", "draft", "unknown"}:
+        assert response.json()["error"]["code"] == "DROP_NOT_OPEN"
+        assert (
+            await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
+            is None
+        )
+        assert list(await db_session.scalars(select(DropApplyIntent))) == []
+        return
+    assert response.status_code == 200, response.text
+    intent = await db_session.scalar(
+        select(DropApplyIntent).where(DropApplyIntent.drop_id == drop_id)
+    )
+    assert intent is not None
+    assert intent.pitch == "Test pitch"
+    assert intent.status == ("expired" if drop_state == "closed" else "open")
+    assert list(await db_session.scalars(select(DropApplication))) == []
+    retry = await app_client.post("/api/orgs/onboarding", json=payload, headers=headers)
+    assert retry.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
+    assert len(list(await db_session.scalars(select(DropApplyIntent)))) == 1
+    assert (
+        len(
+            list(
+                await db_session.scalars(
+                    select(Organization).where(Organization.user_id == user.id)
+                )
+            )
+        )
+        == 1
+    )
+
+
+@pytest.mark.parametrize("extra", [{"dropId": "https://example.test"}, {"pitch": "x" * 2001}])
+def test_onboarding_bounds_drop_context(extra):
+    from pydantic import ValidationError
+
+    from app.schemas.onboarding import OrgOnboardingRequest
+
+    with pytest.raises(ValidationError):
+        OrgOnboardingRequest.model_validate({**_VALID_PROFILE, **extra})

@@ -19,6 +19,6 @@ export function composeDefaultBody(recipientName: string): string {
   const name = recipientName.trim() || "there";
   return (
     `Hi ${name},\n\n\n` +
-    `—\nThis email was sent by Buzz. Replies go to ${brandEmails.contactEmail}.`
+    `—\nThis email was sent by BUZZ. Replies go to ${brandEmails.contactEmail}.`
   );
 }

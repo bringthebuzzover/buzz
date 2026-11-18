@@ -1,5 +1,5 @@
 /**
- * Org classification (PRODUCT.md §5.3.1) — mirrors the backend `OrgCategory`
+ * Org classification (buzz-ops product/PRODUCT.md §5.3.1) — mirrors the backend `OrgCategory`
  * native enum. Drives the signup selector and the brand-side applicant filter.
  */
 export type OrgCategory =

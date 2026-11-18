@@ -3,7 +3,27 @@ export type Shipment = {
   trackingNumber: string;
   carrier: string;
   trackUrl: string | null;
+  shippingAddressSnapshot?: {
+    shippingLine1?: string | null;
+    shippingLine2?: string | null;
+    shippingCity?: string | null;
+    shippingState?: string | null;
+    shippingPostalCode?: string | null;
+    formatted?: string | null;
+  } | null;
+  shippingAddressCapturedAt?: number | null;
 };
+
+export function shipmentDestination(shipment: Shipment): string {
+  const snapshot = shipment.shippingAddressSnapshot;
+  if (!snapshot) return "Destination unknown";
+  if (snapshot.formatted) return snapshot.formatted;
+  return [
+    [snapshot.shippingLine1, snapshot.shippingLine2].filter(Boolean).join(", "),
+    [snapshot.shippingCity, snapshot.shippingState].filter(Boolean).join(", "),
+    snapshot.shippingPostalCode,
+  ].filter(Boolean).join(", ") || "Destination unknown";
+}
 
 export function carrierLabel(carrier: string): string {
   if (carrier === "ups") return "UPS";

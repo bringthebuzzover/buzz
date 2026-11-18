@@ -22,7 +22,7 @@ export default function ImpersonationBanner() {
     <div
       role="status"
       data-testid="impersonation-banner"
-      className="sticky top-0 z-buzzBanner flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-buzz-danger px-4 py-2 text-center text-sm font-semibold text-buzz-paper"
+      className="sticky top-0 z-buzzBanner flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-buzz-dangerFill px-4 py-2 text-center text-sm font-semibold text-buzz-fg"
     >
       <span>
         Viewing as {label}
@@ -34,7 +34,7 @@ export default function ImpersonationBanner() {
         onClick={() => {
           void endImpersonation();
         }}
-        className="rounded-buzzControl border border-buzz-paper/70 px-3 py-0.5 text-xs font-semibold uppercase tracking-wide transition hover:bg-buzz-paper hover:text-buzz-danger"
+        className="rounded-full border border-buzz-fg/40 px-3 py-0.5 text-xs font-medium uppercase tracking-wide transition hover:bg-buzz-fg hover:text-buzz-dangerFill"
       >
         Exit impersonation
       </button>

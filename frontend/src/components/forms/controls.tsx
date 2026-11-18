@@ -1,24 +1,67 @@
-import type {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
-  TextareaHTMLAttributes,
+import {
+  useId,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Link, type LinkProps } from "react-router-dom";
 import {
-  CONTROL_HEIGHT,
   fieldClass,
+  fieldErrorClass,
+  fieldHintClass,
   fieldLabelClass,
   fieldLabelCompactClass,
+  focusRingClass,
   selectChevronClass,
   selectWrapClass,
   textAreaClass,
   type ControlSize,
 } from "../../theme/controls";
+import FieldError from "./FieldError";
 import { TONE, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import {
+  Calendar,
+  CalendarGrid,
+  DatePicker,
+  DateRangePicker,
+  DateTimePicker,
+  PickerField,
+  TimeList,
+  TimePicker,
+  type CalendarGridProps,
+  type CalendarProps,
+  type DatePickerProps,
+  type DateRange,
+  type DateRangePickerProps,
+  type DateTimePickerProps,
+  type PickerFieldProps,
+  type TimeListProps,
+  type TimePickerProps,
+} from "../ui/Calendar";
+
+export {
+  Calendar,
+  CalendarGrid,
+  DatePicker,
+  DateRangePicker,
+  DateTimePicker,
+  PickerField,
+  TimeList,
+  TimePicker,
+  type CalendarGridProps,
+  type CalendarProps,
+  type DatePickerProps,
+  type DateRange,
+  type DateRangePickerProps,
+  type DateTimePickerProps,
+  type PickerFieldProps,
+  type TimeListProps,
+  type TimePickerProps,
+};
 
 export { fieldClass, fieldLabelClass, fieldLabelCompactClass };
 
@@ -41,24 +84,78 @@ function FieldLabel({
   );
 }
 
+function joinDescribedBy(
+  ...parts: Array<string | undefined>
+): string | undefined {
+  const value = parts
+    .flatMap((part) => (part ? part.split(/\s+/) : []))
+    .filter(Boolean);
+  return value.length ? value.join(" ") : undefined;
+}
+
+/**
+ * Stable id for the control, plus hint/error ids. A caller `aria-describedby`
+ * is merged in so an external error (org apply) does not drop the hint.
+ */
+function useDescribedField(
+  id: string | undefined,
+  hint: ReactNode | undefined,
+  error: string | undefined,
+  ariaDescribedBy: string | undefined,
+) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const hintId = hint ? `${fieldId}-hint` : undefined;
+  const errorId = error ? `${fieldId}-error` : undefined;
+  const describedBy = joinDescribedBy(
+    error ? errorId : hintId,
+    ariaDescribedBy,
+  );
+  return { fieldId, hintId, errorId, describedBy };
+}
+
 export function TextField({
   id,
   label,
+  hint,
+  error,
   size = "default",
   className,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   label?: ReactNode;
+  /** Quiet helper under the field. Hidden while `error` is set. */
+  hint?: ReactNode;
+  error?: string;
   size?: ControlSize;
 }) {
+  const { fieldId, hintId, errorId, describedBy } = useDescribedField(
+    id,
+    hint,
+    error,
+    ariaDescribedBy,
+  );
   return (
     <div>
       {label && (
-        <FieldLabel htmlFor={id} size={size}>
+        <FieldLabel htmlFor={fieldId} size={size}>
           {label}
         </FieldLabel>
       )}
-      <input id={id} className={cn(fieldClass[size], className)} {...props} />
+      <input
+        className={cn(fieldClass[size], error && fieldErrorClass, className)}
+        {...props}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+      />
+      {error ? <FieldError id={errorId ?? `${fieldId}-error`} message={error} /> : null}
+      {hint && !error ? (
+        <p id={hintId} className={fieldHintClass}>
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -66,13 +163,18 @@ export function TextField({
 export function TextArea({
   id,
   label,
+  hint,
+  error,
   size = "default",
   resizable = false,
   className,
   wrapperClassName,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size"> & {
   label?: ReactNode;
+  hint?: ReactNode;
+  error?: string;
   size?: ControlSize;
   wrapperClassName?: string;
   /**
@@ -81,47 +183,76 @@ export function TextArea({
    */
   resizable?: boolean;
 }) {
+  const { fieldId, hintId, errorId, describedBy } = useDescribedField(
+    id,
+    hint,
+    error,
+    ariaDescribedBy,
+  );
   return (
     <div className={wrapperClassName}>
       {label && (
-        <FieldLabel htmlFor={id} size={size}>
+        <FieldLabel htmlFor={fieldId} size={size}>
           {label}
         </FieldLabel>
       )}
       <textarea
-        id={id}
         className={cn(
           textAreaClass[size],
           resizable ? "resize-y" : "resize-none",
+          error && fieldErrorClass,
           className,
         )}
         {...props}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
       />
+      {error ? <FieldError id={errorId ?? `${fieldId}-error`} message={error} /> : null}
+      {hint && !error ? (
+        <p id={hintId} className={fieldHintClass}>
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 export function DateTimeField({
   id,
+  name,
   label,
   size = "compact",
   className,
+  value,
+  defaultValue,
+  onChange,
+  disabled,
+  required,
+  min,
+  max,
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   label?: ReactNode;
   size?: ControlSize;
 }) {
   return (
-    <TextField
+    <DateTimePicker
       id={id}
+      name={name}
       label={label}
       size={size}
-      // `buzz-datetime` restyles the browser's calendar glyph to match the
-      // Select chevron (see index.css). Keeping `type="datetime-local"` is a
-      // hard requirement — E2E fills these fields.
-      className={cn("buzz-datetime", className)}
-      {...props}
-      type="datetime-local"
+      className={className}
+      value={value !== undefined ? String(value) : undefined}
+      defaultValue={
+        defaultValue !== undefined ? String(defaultValue) : undefined
+      }
+      onChange={onChange as any}
+      disabled={disabled}
+      required={required}
+      min={min !== undefined ? String(min) : undefined}
+      max={max !== undefined ? String(max) : undefined}
+      {...(props as any)}
     />
   );
 }
@@ -135,30 +266,44 @@ export function DateTimeField({
 export function Select({
   id,
   label,
+  hint,
+  error,
   size = "default",
   className,
   children,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> & {
   label?: ReactNode;
+  hint?: ReactNode;
+  error?: string;
   size?: ControlSize;
 }) {
+  const { fieldId, hintId, errorId, describedBy } = useDescribedField(
+    id,
+    hint,
+    error,
+    ariaDescribedBy,
+  );
   return (
     <div>
       {label && (
-        <FieldLabel htmlFor={id} size={size}>
+        <FieldLabel htmlFor={fieldId} size={size}>
           {label}
         </FieldLabel>
       )}
       <div className={selectWrapClass}>
         <select
-          id={id}
           className={cn(
             fieldClass[size],
             "cursor-pointer appearance-none pr-10",
+            error && fieldErrorClass,
             className,
           )}
           {...props}
+          id={fieldId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
         >
           {children}
         </select>
@@ -175,11 +320,18 @@ export function Select({
           />
         </svg>
       </div>
+      {error ? <FieldError id={errorId ?? `${fieldId}-error`} message={error} /> : null}
+      {hint && !error ? (
+        <p id={hintId} className={fieldHintClass}>
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 export { Checkbox } from "./Checkbox";
+export { Radio } from "../ui/Radio";
 
 /**
  * One button contract for the whole app.
@@ -188,27 +340,39 @@ export { Checkbox } from "./Checkbox";
  * without it a hugging CTA rendered full-bleed with padding sized for a
  * hugging button. `fullWidth` is how a form submit opts back in.
  *
- * Disabled is a designed state, not `opacity` alone — a faded coral fill read
- * as a broken button rather than a gated one.
+ * Pen pills: primary is yellow with ink type (40px), secondary is the dark pill
+ * (36px, paper-09 line), ghost and outline are the stroked 44px pill, danger
+ * is the solid red pill. Labels on yellow are `on-accent` (#0b0b0b, 13.4:1).
+ * Light paper type on yellow is 1.29:1 and is not used.
+ *
+ * Disabled is a designed state, not `opacity` alone.
  */
+const GHOST_PILL =
+  "h-11 border border-primary bg-transparent px-6 text-sm text-primary hover:border-accent hover:bg-accent hover:text-on-accent disabled:border-transparent disabled:bg-transparent disabled:text-quiet";
+
 export const buttonVariants = cva(
-  "inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-buzzControl font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-coral/40 disabled:cursor-not-allowed",
+  `inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-normal cursor-pointer transition-all duration-100 active:scale-95 motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 ${focusRingClass}`,
   {
     variants: {
       variant: {
+        // Pen Pill / Yellow: 40px, 14px, weight 400.
         primary:
-          "bg-buzz-coral text-buzz-paper hover:bg-buzz-coralDark disabled:bg-buzz-neutralHover disabled:text-buzz-inkFaint",
-        outline:
-          "border-2 border-buzz-coral bg-transparent text-buzz-coral hover:bg-buzz-coral hover:text-buzz-paper disabled:border-buzz-neutralHover disabled:bg-transparent disabled:text-buzz-inkFaint",
-        ghost:
-          "bg-transparent font-medium text-buzz-inkMuted underline-offset-2 hover:text-buzz-coral hover:underline disabled:text-buzz-inkFaint",
+          "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover active:bg-buzz-yellowHover focus-visible:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
+        // Pen Pill / Dark: 36px, paper-09 line; inverts to solid yellow pill on hover and scales on click.
+        secondary:
+          "h-9 border border-line bg-buzz-inkBtn px-3.5 text-xs text-primary hover:border-accent hover:bg-accent hover:text-on-accent active:border-buzz-yellowHover active:bg-buzz-yellowHover active:text-on-accent disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",
+        // Pen Pill / Ghost: 44px, paper stroke, padding 24. `outline` keeps the old name.
+        outline: GHOST_PILL,
+        ghost: GHOST_PILL,
+        // Pen Pill / Danger: 40px, solid red, paper label, weight 400.
         danger:
-          "border-2 border-buzz-dangerLine bg-buzz-dangerWash text-buzz-danger hover:border-buzz-danger hover:bg-buzz-danger hover:text-buzz-paper disabled:border-buzz-neutralHover disabled:bg-transparent disabled:text-buzz-inkFaint",
+          "h-10 bg-buzz-dangerFill px-4 text-sm text-primary hover:bg-buzz-dangerInk hover:text-on-accent active:bg-buzz-dangerInk disabled:bg-buzz-neutral disabled:text-quiet",
       },
       size: {
-        default: `${CONTROL_HEIGHT.default} px-5 text-sm`,
-        compact: `${CONTROL_HEIGHT.compact} px-3 text-xs`,
-        hero: "h-14 px-8 text-base",
+        default: "",
+        compact: "h-9 px-3 text-xs",
+        /** 48px. Only for a button sitting on the same row as a field. */
+        field: "h-12 px-4 text-sm",
       },
       fullWidth: {
         true: "w-full",
@@ -226,13 +390,27 @@ export function Button({
   size,
   fullWidth,
   className,
+  loading = false,
+  loadingLabel,
+  disabled,
+  children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & ButtonVariants) {
+}: ButtonHTMLAttributes<HTMLButtonElement> &
+  ButtonVariants & {
+    /** Disables the control and shows `loadingLabel` while a submit is in flight. */
+    loading?: boolean;
+    loadingLabel?: ReactNode;
+  }) {
+  const busy = Boolean(loading);
   return (
     <button
       className={cn(buttonVariants({ variant, size, fullWidth }), className)}
       {...props}
-    />
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+    >
+      {busy && loadingLabel != null ? loadingLabel : children}
+    </button>
   );
 }
 
@@ -313,8 +491,74 @@ export function ErrorBanner({ children }: { children: ReactNode }) {
   );
 }
 
-export function SuccessBanner({ children }: { children: ReactNode }) {
-  return <Banner tone="success">{children}</Banner>;
+/**
+ * Pen Notice. Accent is the yellow wash used for a real success. Neutral is
+ * the info note: paper-08 fill, paper-09 line, paper text.
+ */
+export function Notice({
+  tone = "neutral",
+  children,
+  icon,
+}: {
+  tone?: "neutral" | "accent" | "success";
+  children: ReactNode;
+  icon?: ReactNode;
+}) {
+  if (!children) return null;
+  const accent = tone === "accent";
+  const success = tone === "success";
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 rounded-buzzField border px-4 py-4 text-sm text-primary",
+        success
+          ? "border-[#4ade80]/30 bg-[#4ade80]/15"
+          : accent
+            ? "border-buzz-yellowLine bg-accent-wash"
+            : "border-line bg-buzz-paper08",
+      )}
+      role="status"
+    >
+      {icon ? (
+        <span
+          className={cn(
+            "flex h-[1.25rem] shrink-0 items-center",
+            success && "text-[#4ade80]",
+          )}
+        >
+          {icon}
+        </span>
+      ) : (
+        <span
+          className={cn(
+            "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
+            success
+              ? "bg-[#4ade80]"
+              : accent
+                ? "bg-accent"
+                : "bg-quiet",
+          )}
+          aria-hidden
+        />
+      )}
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+/** Pen Notice, accent tone. Not the paper success chip. */
+export function SuccessBanner({
+  children,
+  icon,
+}: {
+  children: ReactNode;
+  icon?: ReactNode;
+}) {
+  return (
+    <Notice tone="accent" icon={icon}>
+      {children}
+    </Notice>
+  );
 }
 
 export function WarningBanner({ children }: { children: ReactNode }) {

@@ -3,25 +3,32 @@
  *
  * Renders from the real backend (GET /api/campaigns/:id + derived status).
  */
-import { Link, Navigate, useParams } from "react-router-dom";
-import { ChevronLeft, ClipboardList, Truck } from "lucide-react";
+import { useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import ApiPostSelector from "../../components/org/ApiPostSelector";
-import { useCampaignDetail, useCampaignAggregate } from "../../api/hooks/useOrgHooks";
-import { ApiError } from "../../api/errors";
-import { BRAND_DROP_TRACKER_FULL_ORDER } from "../../types/brandPortal";
+import { CampaignStatusBadge } from "../../components/org/CampaignRow";
 import {
-  deriveOrgCampaignStatus,
-  ORG_CAMPAIGN_STATUS_LABELS,
-} from "../../utils/orgCampaignStatus";
+  useCampaignAggregate,
+  useCampaignDetail,
+  type CampaignDetail,
+  useSetCampaignDelivered,
+  useWithdrawCampaign,
+} from "../../api/hooks/useOrgHooks";
+import { Button, ErrorBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { ApiError } from "../../api/errors";
+import { SEATED_STATUSES, deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
+import type { SeatProgress } from "../../utils/dropStage";
 import PageShell from "../../components/site/PageShell";
-import { Card } from "../../components/ui/Card";
-import { Chip } from "../../components/ui/Chip";
+import { Card, CardHeader, StatCard } from "../../components/ui/Card";
+import { BackLink, PageHeader } from "../../components/ui/PageHeader";
+import { Loader } from "../../components/ui/EmptyState";
 import { StatePanel } from "../../components/ui/StatePanel";
-import { GAP, STACK, SURFACE, TEXT } from "../../theme/tokens";
+import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import ShipmentList from "../../components/shipments/ShipmentList";
-import type { Shipment } from "../../utils/shipments";
 
+/** Pen `Stat` row: Posts, Likes, Comments, Instagram Reach. */
 function CampaignMetrics({
   agg,
 }: {
@@ -32,41 +39,112 @@ function CampaignMetrics({
     estimatedReach: number;
   };
 }) {
+  const stats = [
+    { label: "Posts", value: agg.postCount },
+    { label: "Likes", value: agg.likes },
+    { label: "Comments", value: agg.comments },
+    { label: "Instagram Reach", value: agg.estimatedReach },
+  ];
   return (
-    <Card kind="card" pad="roomy">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.postCount}</p>
-          <p className={TEXT.meta}>Posts</p>
-        </div>
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.likes}</p>
-          <p className={TEXT.meta}>Likes</p>
-        </div>
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.comments}</p>
-          <p className={TEXT.meta}>Comments</p>
-        </div>
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.estimatedReach}</p>
-          <p className={TEXT.meta}>Instagram Reach</p>
-        </div>
-      </div>
-    </Card>
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      {stats.map((stat) => (
+        <StatCard
+          key={stat.label}
+          label={stat.label}
+          value={stat.value.toLocaleString()}
+        />
+      ))}
+    </div>
   );
 }
 
-function shipmentOnTheWay(detail: {
-  shipments?: Shipment[];
-  brandTrackerStage: string;
-}): boolean {
-  if ((detail.shipments ?? []).length > 0) return true;
-  const idx = BRAND_DROP_TRACKER_FULL_ORDER.indexOf(
-    detail.brandTrackerStage as (typeof BRAND_DROP_TRACKER_FULL_ORDER)[number],
+/** Leave the drop. The API refuses once a package has shipped (BUZZ handles that). */
+function WithdrawButton({ applicationId, dropId }: { applicationId: string; dropId: string }) {
+  const withdraw = useWithdrawCampaign(applicationId, dropId);
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="compact"
+        data-testid="campaign-withdraw"
+        onClick={() => setOpen(true)}
+      >
+        Withdraw
+      </Button>
+      {open ? (
+        <ConfirmDialog
+          title="Withdraw from this drop"
+          description="Your seat goes back to the brand and the drop leaves My Campaigns. You can apply again while applications are open."
+          confirmLabel="Withdraw"
+          pendingLabel="Withdrawing…"
+          destructive
+          pending={withdraw.isPending}
+          fallbackError="Could not withdraw."
+          submitTestId="campaign-withdraw-confirm"
+          onConfirm={async () => {
+            await withdraw.mutateAsync(undefined);
+            navigate("/org/campaigns", { replace: true });
+          }}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
   );
-  const awaitingIdx = BRAND_DROP_TRACKER_FULL_ORDER.indexOf("awaiting_products");
-  return idx >= awaitingIdx && idx !== -1;
 }
+
+/** "I got it": the org confirms the product arrived; undo if tapped by mistake. */
+function DeliveredControl({ detail }: { detail: CampaignDetail }) {
+  const setDelivered = useSetCampaignDelivered(detail.id);
+  const delivered = detail.deliveredAt != null;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        {delivered ? (
+          <span className={cn(TEXT.body, "text-muted")} data-testid="campaign-delivered">
+            Received {new Date(detail.deliveredAt as number).toLocaleDateString()}
+          </span>
+        ) : null}
+        <Button
+          type="button"
+          variant={delivered ? "ghost" : "primary"}
+          size="compact"
+          data-testid="campaign-delivered-toggle"
+          loading={setDelivered.isPending}
+          onClick={() => setDelivered.mutate(!delivered)}
+        >
+          {delivered ? "Undo" : "I got it"}
+        </Button>
+      </div>
+      {setDelivered.error ? (
+        <ErrorBanner>{setDelivered.error.message}</ErrorBanner>
+      ) : null}
+    </div>
+  );
+}
+
+const backLink = <BackLink to="/org/campaigns">Back to My Campaigns</BackLink>;
+
+/** What the org reads at each step of its own seat (plan §3.3). */
+const SEAT_COPY: Record<SeatProgress, { title: string; description: string }> = {
+  accepted: { title: "Accepted", description: "Accepted — awaiting shipping." },
+  shipped: {
+    title: "On the way",
+    description:
+      "You are accepted! Your shipment is on the way. Once it arrives, mark it received and link a post or reel below.",
+  },
+  delivered: {
+    title: "Delivered",
+    description: "Your product arrived. Link a post or reel below.",
+  },
+  posted: {
+    title: "Posted",
+    description: "Your posts are linked. Metrics update below; link more any time.",
+  },
+};
 
 function ApiCampaignDetail() {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -75,8 +153,8 @@ function ApiCampaignDetail() {
 
   if (isLoading) {
     return (
-      <PageShell width="portal">
-        <StatePanel>Loading...</StatePanel>
+      <PageShell width="wide">
+        <Loader className="py-16" />
       </PageShell>
     );
   }
@@ -87,14 +165,8 @@ function ApiCampaignDetail() {
 
   if (error || !detail) {
     return (
-      <PageShell width="portal">
-        <Link
-          to="/org/campaigns"
-          className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
-        >
-          <ChevronLeft size={16} className="mr-1" />
-          Back to My Campaigns
-        </Link>
+      <PageShell width="wide">
+        <div className="mb-6">{backLink}</div>
         <StatePanel tone="danger">
           {error instanceof Error
             ? error.message
@@ -116,120 +188,99 @@ function ApiCampaignDetail() {
     engagement: 0,
     estimatedReach: 0,
   };
-  const onTheWay = shipmentOnTheWay(detail);
+  const shipments = detail.shipments ?? [];
+  const onTheWay = shipments.length > 0;
+  const seated = SEATED_STATUSES.includes(status);
+  // Self-withdrawal ends when the drop ends or anything ships.
+  const canWithdraw =
+    detail.stage !== "wrapped" &&
+    detail.stage !== "canceled" &&
+    (status === "applied" || status === "under_review" || (seated && !onTheWay));
+  const seatCopy = seated ? SEAT_COPY[status as SeatProgress] : null;
 
   return (
-    <PageShell width="portal">
-      <Link
-        to="/org/campaigns"
-        className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
-      >
-        <ChevronLeft size={16} className="mr-1" />
-        Back to My Campaigns
-      </Link>
-
-      <header className="mb-8">
-        <div className={cn("mb-3 flex items-center", GAP.tight)}>
-          <Chip accent>{detail.brandName}</Chip>
-          <Chip>{ORG_CAMPAIGN_STATUS_LABELS[status]}</Chip>
-        </div>
-        <h1 className={TEXT.h1}>{detail.title}</h1>
-        <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
-          {detail.description ?? ""}
-        </p>
-      </header>
-
-      {status === "applied" ? (
-        <Card kind="card" pad="roomy">
-          <div className="flex items-start gap-4">
-            <ClipboardList size={28} className="mt-1 text-buzz-coral" />
-            <div>
-              <h2 className={cn(TEXT.h2, "mb-1")}>
-                {detail.brandName} is reviewing your application
-              </h2>
-              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
-                Submitted on{" "}
-                {new Date(detail.appliedAt).toLocaleDateString()}. We will
-                let you know once a decision has been made.
-              </p>
-              {detail.pitch ? (
-                <blockquote className="mt-4 border-l-4 border-buzz-coral bg-buzz-cream p-4 text-sm font-medium italic text-buzz-inkMuted">
-                  {detail.pitch}
-                </blockquote>
-              ) : null}
-            </div>
+    <PageShell width="wide" className="flex flex-col gap-10">
+      <PageHeader
+        className="mb-0"
+        back={backLink}
+        kicker={
+          <span className="uppercase tracking-[0.05em] text-quiet">
+            {detail.brandName}
+          </span>
+        }
+        title={detail.title}
+        description={detail.description ?? ""}
+        actions={
+          <div className="flex items-center gap-3">
+            {canWithdraw ? <WithdrawButton applicationId={detail.id} dropId={detail.dropId} /> : null}
+            <CampaignStatusBadge status={status} />
           </div>
+        }
+      />
+
+      {status === "canceled" ? (
+        <Card kind="panel" pad="card">
+          <CardHeader
+            className="mb-0"
+            title="This drop was canceled"
+            description="BUZZ canceled this drop. Nothing more is needed from you; any posts you linked stay as they are."
+          />
         </Card>
       ) : null}
 
-      {status === "accepted" ? (
-        <div className={STACK.group}>
-          <Card kind="card" pad="roomy">
-            <div className="flex items-start gap-4">
-              <Truck size={28} className="mt-1 text-buzz-coral" />
-              <div>
-                <h2 className={cn(TEXT.h2, "mb-1")}>
-                  {onTheWay ? "Awaiting product" : "Accepted"}
-                </h2>
-                <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
-                  {onTheWay
-                    ? "You are accepted! Your shipment is on the way."
-                    : "Accepted — awaiting shipping."}
-                </p>
-                {detail.brandTrackerStage === "awaiting_products" ? (
-                  <p className={cn(TEXT.body, "mt-3 text-buzz-inkMuted")}>
-                    If the product already arrived, link a post or reel below.
-                  </p>
-                ) : null}
-                {(detail.shipments ?? []).length > 0 ? (
-                  <div className={cn(SURFACE.inset, "mt-4 px-4 py-3")}>
-                    <p className={cn(TEXT.micro, "mb-2 text-buzz-inkMuted")}>
-                      Tracking
-                    </p>
-                    <ShipmentList
-                      shipments={detail.shipments ?? []}
-                      testId="org-campaign-shipments"
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </Card>
-          {detail.brandTrackerStage === "awaiting_products" ? (
-            <>
-              <CampaignMetrics agg={agg} />
-              <ApiPostSelector applicationId={detail.id} />
-            </>
+      {status === "applied" || status === "under_review" ? (
+        <Card kind="panel" pad="card">
+          <CardHeader
+            className="mb-5"
+            title={`${detail.brandName} is reviewing your application`}
+            description={`Submitted on ${new Date(detail.appliedAt).toLocaleDateString()}. We will let you know once a decision has been made.`}
+          />
+          {detail.pitch ? (
+            <blockquote className={cn(SURFACE.inset, TEXT.body, "p-4 text-muted")}>
+              {detail.pitch}
+            </blockquote>
           ) : null}
-        </div>
+        </Card>
       ) : null}
 
-      {status === "active" || status === "finished" ? (
-        <div className={STACK.group}>
-          {(detail.shipments ?? []).length > 0 ? (
-            <Card kind="card" pad="roomy">
-              <h2 className={cn(TEXT.h2, "mb-2")}>Shipments</h2>
-              <ShipmentList
-                shipments={detail.shipments ?? []}
-                testId="org-campaign-shipments"
+      {seatCopy || status === "wrapped" ? (
+        <>
+          {seatCopy || onTheWay ? (
+            <Card kind="panel" pad="card">
+              <CardHeader
+                className={onTheWay ? "mb-5" : "mb-0"}
+                title={seatCopy?.title ?? "Shipments"}
+                description={seatCopy?.description}
               />
+              {onTheWay ? (
+                <>
+                  <p className="mb-3 text-xs text-quiet">Tracking</p>
+                  <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
+                  {seated ? (
+                    <div className="mt-5">
+                      <DeliveredControl detail={detail} />
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
             </Card>
           ) : null}
           <CampaignMetrics agg={agg} />
-          {status === "finished" ? (
-            <Card kind="card" pad="roomy">
-              <h2 className={cn(TEXT.h2, "mb-2")}>Final results</h2>
-              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
-                This campaign has ended. Your linked posts are read-only — final
-                metrics are shown above.
-              </p>
+          {status === "wrapped" ? (
+            <Card kind="panel" pad="card">
+              <CardHeader
+                className="mb-0"
+                title="Final results"
+                description={
+                  detail.linksOpen
+                    ? "This campaign has wrapped. You can still link late posts for a few weeks."
+                    : "This campaign has ended. Your linked posts are read-only — final metrics are shown above."
+                }
+              />
             </Card>
           ) : null}
-          <ApiPostSelector
-            applicationId={detail.id}
-            readOnly={status === "finished"}
-          />
-        </div>
+          <ApiPostSelector applicationId={detail.id} readOnly={!detail.linksOpen} />
+        </>
       ) : null}
     </PageShell>
   );

@@ -1,4 +1,4 @@
-"""Notify Me reminder delivery (architecture.md §10.6, PRODUCT §6.3.1).
+"""Notify Me reminder delivery (buzz-ops engineering/architecture.md §10.6, PRODUCT §6.3.1).
 
 Every ~5 minutes. An org that tapped Notify Me on an Upcoming drop picked a
 lead time (5 / 15 / 60 minutes); this job emails them once ``apply_open_at``
@@ -15,6 +15,10 @@ changed under that key, or a concurrent in-flight request) is not success, so
 keeps two overlapping runs from double-sending. Rows whose apply window has
 already closed are skipped rather than mailed — a reminder to apply to a
 closed drop is worse than no reminder.
+
+The same run sends the brand's "Choose your orgs" emails
+(``drop_notices.send_choose_orgs_reminders``), so they need no schedule of
+their own.
 """
 
 from __future__ import annotations
@@ -27,15 +31,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import BrandStatus, BrandTrackerStage
+from app.models.enums import BrandStatus
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
+from app.services.drop_notices import send_choose_orgs_reminders
 from app.services.email import (
     KIND_REMINDER,
     build_idempotency_key,
     send_drop_opening_reminder_email,
 )
+from app.services.lifecycle import drop_running
 
 
 async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
@@ -59,8 +65,7 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
                     Drop.apply_close_at > now,
                     # Same browsable gate as the org feed / detail / notify APIs.
                     Brand.status == BrandStatus.APPROVED.value,
-                    Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
-                    Drop.published_at.isnot(None),
+                    drop_running(),
                     Drop.hidden_at.is_(None),
                 )
                 .with_for_update(of=NotifyMe, skip_locked=True)
@@ -90,4 +95,8 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
         sent += 1
 
     await db.flush()
-    return {"reminders_sent": sent, "reminders_skipped": skipped}
+    return {
+        "reminders_sent": sent,
+        "reminders_skipped": skipped,
+        **await send_choose_orgs_reminders(db),
+    }

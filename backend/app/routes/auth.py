@@ -1,4 +1,4 @@
-"""Auth routes — ``/api/auth/*`` (architecture.md §5.1).
+"""Auth routes — ``/api/auth/*`` (buzz-ops engineering/architecture.md §5.1).
 
 Covers the org Instagram OAuth handshake plus the shared session surface
 (``/refresh``, ``/logout``, ``/me``). All JSON responses use the standard
@@ -10,14 +10,14 @@ from __future__ import annotations
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, Form, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Query, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.config import settings
-from app.deps.auth import get_current_user
+from app.deps.auth import CurrentBrand, get_current_user
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
@@ -25,7 +25,6 @@ from app.models.user import User
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
     CancelPendingEduEmailResponse,
-    ChangeEduEmailResponse,
     InstagramBindStartResponse,
     InstagramDeauthorizeResponse,
     OkResponse,
@@ -42,10 +41,10 @@ from app.schemas.auth import (
 )
 from app.schemas.onboarding import (
     AdminLoginRequest,
+    BrandChangePasswordRequest,
     BrandLoginRequest,
     BrandSetPasswordRequest,
     CancelPendingEduEmailRequest,
-    ChangeEduEmailRequest,
     ForgotPasswordRequest,
     OrgConnectRedeemRequest,
     PublicResendVerificationRequest,
@@ -67,17 +66,24 @@ from app.services.auth import (
     issue_token_pair,
     revoke_instagram_authorization,
 )
-from app.services.brand_auth import login_brand, set_brand_password
+from app.services.brand_auth import change_brand_password, login_brand, set_brand_password
+from app.services.brands import _require_brand
+from app.services.email import (
+    KIND_PASSWORD_CHANGED,
+    build_idempotency_key,
+    send_brand_password_changed_email,
+)
+from app.services.email_tasks import schedule_email
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import (
     cancel_pending_edu_email,
-    change_edu_email,
     resend_verification_email,
     resend_verification_from_token,
     resend_verification_public,
     rotate_edu_email,
     verify_email,
 )
+from app.services.org_connect import org_may_connect_instagram
 from app.services.password_reset import request_password_reset, reset_password
 
 logger = logging.getLogger(__name__)
@@ -133,6 +139,7 @@ def _clear_state_cookie(response: Response) -> None:
 async def instagram_login(
     ig: InstagramClient = Depends(get_instagram_client),
     next_path: str | None = Query(default=None, alias="next"),
+    prefill: str | None = Query(default=None, max_length=256, pattern=r"^[A-Za-z0-9_-]+$"),
 ) -> RedirectResponse:
     """Redirect (302) to the Instagram OAuth authorize URL (§3.4 Phase 1).
 
@@ -140,7 +147,7 @@ async def instagram_login(
     (authenticated) which returns an authorize URL with bind state.
     """
 
-    state = jwt.create_oauth_state_token(next_path=next_path)
+    state = jwt.create_oauth_state_token(next_path=next_path, prefill=prefill)
     redirect = RedirectResponse(ig.build_authorize_url(state), status_code=302)
     _set_state_cookie(redirect, state)
     return redirect
@@ -152,16 +159,20 @@ async def instagram_bind_start(
     user: User = Depends(get_current_user),
     ig: InstagramClient = Depends(get_instagram_client),
     next_path: str | None = Query(default=None, alias="next"),
+    db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Mint OAuth state with bind claim for ``pending_instagram`` orgs."""
+    """Mint OAuth state with bind claim for any org that must connect Instagram.
 
-    if (
-        user.portal_role != PortalRole.ORG.value
-        or user.status != OrgUserStatus.PENDING_INSTAGRAM.value
-    ):
+    Two cohorts may bind: an active org whose approved account switch released
+    its credentials, and an unbound org still awaiting approval that never
+    connected Instagram. A bind never activates the latter — ``approve_org``
+    stays the only path to ``active``.
+    """
+
+    if user.portal_role != PortalRole.ORG.value or not await org_may_connect_instagram(db, user):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "Only organizations awaiting Instagram connect can start a bind login.",
+            "Only organizations waiting to connect Instagram can start a bind login.",
             status_code=400,
         )
     state = jwt.create_oauth_state_token(bind_user_id=user.id, next_path=next_path)
@@ -192,12 +203,14 @@ async def instagram_callback(
     state_ok = bool(cookie_state) and cookie_state == payload.state
     bind_user_id: uuid.UUID | None = None
     oauth_next: str | None = None
+    oauth_prefill: str | None = None
     if state_ok:
         try:
             state_payload = jwt.decode_token(
                 payload.state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE
             )
             oauth_next = jwt.allowlisted_oauth_next(state_payload.next)
+            oauth_prefill = state_payload.prefill
             if state_payload.bind:
                 try:
                     bind_user_id = uuid.UUID(state_payload.bind)
@@ -214,16 +227,7 @@ async def instagram_callback(
         )
     _clear_state_cookie(response)
 
-    # META-REVIEWER-PATH: reviewer states are handled only by the isolated module.
-    # Normal login and Connect leave ``reviewer`` unset and skip this branch.
-    if state_payload.reviewer:
-        from app.meta_reviewer.callback import complete_reviewer_instagram_callback
-
-        user = await complete_reviewer_instagram_callback(
-            db, ig, payload.code, bind_user_id=bind_user_id
-        )
-    else:
-        user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
+    user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
     # Don't mint fresh credentials for a terminally-denied account — symmetric
     # with the refresh boundary. New users are pending_org_profile, so signup
     # is unaffected. Distinct code so the SPA can land on /onboarding/denied.
@@ -242,7 +246,12 @@ async def instagram_callback(
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(
-        data=TokenResponse(access_token=access, user=build_user_response(user), next=oauth_next)
+        data=TokenResponse(
+            access_token=access,
+            user=await build_user_response(db, user),
+            next=oauth_next,
+            prefill=oauth_prefill,
+        )
     )
 
 
@@ -401,9 +410,12 @@ async def refresh(
         )
     # Return user in the same response as the mint so the SPA bootstrap can
     # skip a follow-up /me. That /me was the mint-then-read race window in
-    # gaps/auth.ci-session-restore-flake.md — same UserResponse fields as
+    # buzz-ops engineering/gaps/archive/auth.ci-session-restore-flake.md — same
+    # UserResponse fields as
     # /me, same transaction, so token_version can't drift between them.
-    return api_response(data=RefreshResponse(access_token=access, user=build_user_response(user)))
+    return api_response(
+        data=RefreshResponse(access_token=access, user=await build_user_response(db, user))
+    )
 
 
 @router.post("/view-as/end", response_model=DataResponse[OkResponse])
@@ -483,10 +495,12 @@ async def logout(
 
 
 @router.get("/me", response_model=DataResponse[UserResponse])
-async def me(user: User = Depends(get_current_user)) -> APIResponse:
+async def me(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> APIResponse:
     """Return the current user (no status gate; onboarding pages call this)."""
 
-    return api_response(data=build_user_response(user))
+    return api_response(data=await build_user_response(db, user))
 
 
 @router.post(
@@ -545,7 +559,9 @@ async def dev_login(
 
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
-    return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
+    return api_response(
+        data=TokenResponse(access_token=access, user=await build_user_response(db, user))
+    )
 
 
 # ── Org onboarding (Stage 7) ────────────────────────────────────────────────
@@ -571,7 +587,7 @@ async def verify_email_endpoint(
         user = result["user"]
         access, refresh = await issue_token_pair(db, user)
         _set_refresh_cookie(response, refresh)
-        ur = build_user_response(user)
+        ur = await build_user_response(db, user)
         return api_response(
             data=VerifyEmailResponse(
                 status=user.status,
@@ -589,11 +605,14 @@ async def verify_email_endpoint(
     dependencies=[Depends(rate_limited("verify_resend_public", limit=3, window=60))],
 )
 async def resend_verification_public_endpoint(
+    background_tasks: BackgroundTasks,
     payload: PublicResendVerificationRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Public resend after apply (no session). Enumerate-safe: always 200-shaped."""
-    result = await resend_verification_public(db, payload.edu_email)
+    result = await resend_verification_public(
+        db, payload.edu_email, background_tasks=background_tasks
+    )
     return api_response(data=ResendVerificationResponse.model_validate(result))
 
 
@@ -603,11 +622,14 @@ async def resend_verification_public_endpoint(
     dependencies=[Depends(rate_limited("verify_resend_from_token", limit=3, window=60))],
 )
 async def resend_verification_from_token_endpoint(
+    background_tasks: BackgroundTasks,
     payload: VerifyEmailRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Sessionless resend using the unused/expired token from the email link."""
-    result = await resend_verification_from_token(db, payload.token)
+    result = await resend_verification_from_token(
+        db, payload.token, background_tasks=background_tasks
+    )
     return api_response(data=ResendVerificationResponse.model_validate(result))
 
 
@@ -627,7 +649,9 @@ async def redeem_org_connect_endpoint(
     user = await redeem_org_connect_token(db, payload.token)
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
-    return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
+    return api_response(
+        data=TokenResponse(access_token=access, user=await build_user_response(db, user))
+    )
 
 
 @router.post(
@@ -636,28 +660,14 @@ async def redeem_org_connect_endpoint(
     dependencies=[Depends(rate_limited("verify_resend", limit=3, window=60))],
 )
 async def resend_verification_endpoint(
+    background_tasks: BackgroundTasks,
     _payload: ResendVerificationRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Re-send the .edu verification email (rate-limited, auth required)."""
-    result = await resend_verification_email(db, user)
+    result = await resend_verification_email(db, user, background_tasks=background_tasks)
     return api_response(data=ResendVerificationResponse.model_validate(result))
-
-
-@router.post(
-    "/verify-email/change",
-    response_model=DataResponse[ChangeEduEmailResponse],
-    dependencies=[Depends(rate_limited("verify_change", limit=5, window=60))],
-)
-async def change_edu_email_endpoint(
-    payload: ChangeEduEmailRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Correct a typo'd .edu while still awaiting verification."""
-    result = await change_edu_email(db, user, payload.edu_email)
-    return api_response(data=ChangeEduEmailResponse.model_validate(result))
 
 
 @router.post(
@@ -666,12 +676,13 @@ async def change_edu_email_endpoint(
     dependencies=[Depends(rate_limited("verify_rotate", limit=5, window=60))],
 )
 async def rotate_edu_email_endpoint(
+    background_tasks: BackgroundTasks,
     payload: RotateEduEmailRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Start a pending-swap .edu rotate (active / pending_approval orgs)."""
-    result = await rotate_edu_email(db, user, payload.edu_email)
+    """Start a pending-swap .edu rotate (approved orgs only; awaiting approval is locked)."""
+    result = await rotate_edu_email(db, user, payload.edu_email, background_tasks=background_tasks)
     return api_response(data=RotateEduEmailResponse.model_validate(result))
 
 
@@ -740,12 +751,15 @@ async def brand_login(
     dependencies=[Depends(rate_limited("brand_forgot", limit=5, window=60))],
 )
 async def brand_forgot_password(
+    background_tasks: BackgroundTasks,
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Enumerate-safe brand password-reset request."""
     enforce_account_limit("brand_forgot", payload.email.strip().lower(), limit=5, window=300)
-    result = await request_password_reset(db, portal="brand", email=payload.email)
+    result = await request_password_reset(
+        db, email=payload.email, background_tasks=background_tasks
+    )
     return api_response(data=OkResponse.model_validate(result))
 
 
@@ -759,10 +773,59 @@ async def brand_reset_password(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Consume a brand password-reset token and set a new password."""
-    result = await reset_password(
-        db, portal="brand", token=payload.token, password=payload.password
-    )
+    result = await reset_password(db, token=payload.token, password=payload.password)
     return api_response(data=OkResponse.model_validate(result))
+
+
+@router.post(
+    "/brand/change-password",
+    response_model=DataResponse[TokenResponse],
+    dependencies=[Depends(rate_limited("brand_change_pw", limit=5, window=60))],
+)
+async def brand_change_password(
+    background_tasks: BackgroundTasks,
+    payload: BrandChangePasswordRequest,
+    response: Response,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Change the signed-in brand's password and keep this session.
+
+    Per-IP limit is the route dependency. Per-account limit, the current
+    password check, and the View-as refusal live in ``change_brand_password``.
+    ``issue_token_pair`` bumps ``token_version`` (other sessions die) and
+    commits before the notice email.
+    """
+    brand = await _require_brand(db, user)
+    await change_brand_password(
+        db,
+        user,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+    )
+    access, refresh = await issue_token_pair(db, user)
+    _set_refresh_cookie(response, refresh)
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_password_changed_email,
+        brand.company_email,
+        idempotency_key=build_idempotency_key(
+            KIND_PASSWORD_CHANGED, user.id, user.token_version or 0
+        ),
+    )
+    logger.info(
+        "brand_password_changed user_id=%s email_queued=%s",
+        user.id,
+        email_queued,
+    )
+    user_resp = UserResponse(
+        id=user.id,
+        portal_role=user.portal_role,
+        status=user.status,
+        instagram_username=user.instagram_username,
+        email=brand.company_email,
+    )
+    return api_response(data=TokenResponse(access_token=access, user=user_resp))
 
 
 # ── Admin auth ──────────────────────────────────────────────────────────────
@@ -789,34 +852,3 @@ async def admin_login(
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
-
-
-@router.post(
-    "/admin/forgot-password",
-    response_model=DataResponse[OkResponse],
-    dependencies=[Depends(rate_limited("admin_forgot", limit=5, window=60))],
-)
-async def admin_forgot_password(
-    payload: ForgotPasswordRequest,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Enumerate-safe admin password-reset request."""
-    enforce_account_limit("admin_forgot", payload.email.strip().lower(), limit=5, window=300)
-    result = await request_password_reset(db, portal="admin", email=payload.email)
-    return api_response(data=OkResponse.model_validate(result))
-
-
-@router.post(
-    "/admin/reset-password",
-    response_model=DataResponse[OkResponse],
-    dependencies=[Depends(rate_limited("admin_reset", limit=10, window=60))],
-)
-async def admin_reset_password(
-    payload: ResetPasswordRequest,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Consume an admin password-reset token and set a new password."""
-    result = await reset_password(
-        db, portal="admin", token=payload.token, password=payload.password
-    )
-    return api_response(data=OkResponse.model_validate(result))

@@ -11,15 +11,15 @@
 import brandEmails from "@brandEmails";
 import instaIcon from "../assets/insta-icon.png";
 import linkedinIcon from "../assets/linkedin-icon.png";
-import { publicLogo } from "../utils/publicLogo";
+import { publicLogo } from "../utils/publicAsset";
 
 /** Read-only config object consumed by header, footer, modals, and hero. */
 export const siteIdentity = {
   images: {
-    /** Full-color mark for dark / coral bars (white wordmark). */
-    logo: publicLogo("buzz-logo.svg"),
-    /** Coral wordmark for light backgrounds (footer, etc.). */
-    logoCoral: publicLogo("buzz-logo-coral.svg"),
+    /** Paper wordmark + yellow bee, for ink surfaces. */
+    logo: publicLogo("buzz-logo-on-ink.svg"),
+    /** Black wordmark + yellow bee, for a light band. */
+    logoOnPaper: publicLogo("buzz-logo-on-paper.svg"),
     logoAlt: "BUZZ",
     socialInstagramIcon: instaIcon,
     socialLinkedinIcon: linkedinIcon,
@@ -35,13 +35,10 @@ export const siteIdentity = {
       /** Shorter variant for modals / deep links */
       webUrl: "https://instagram.com/bringthebuzzover",
       handleWithAt: "@bringthebuzzover",
-      handleBare: "bringthebuzzover",
     },
     linkedin: {
       /** Company page — header top bar */
       companyUrl: "https://www.linkedin.com/company/bringthebuzzover/",
-      /** Personal / founder — use in bios, press, etc. */
-      personalProfileUrl: "https://www.linkedin.com/in/melissachowdhury/",
     },
   },
   contact: {

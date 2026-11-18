@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Full local CI gate — mirrors `.github/workflows/ci.yml` as closely as practical.
 #
-#   Backend:  black --check → ruff → mypy → openapi dump/diff → alembic upgrade → pytest
+#   Backend:  black --check → ruff → mypy → openapi dump/diff → alembic upgrade + check → pytest
 #   Frontend: tsc → gen:api diff → build
 #   E2E:      Playwright with CI=true (fresh webServers; always runs)
 #
@@ -13,6 +13,9 @@
 #
 # Env:
 #   DATABASE_URL   asyncpg URL (default: postgresql+asyncpg://localhost/buzz)
+#   BUZZ_VERIFIED_TEST_DATABASE_URL  optional caller-verified disposable local
+#                 buzz_test_* / buzz_gate_* URL; must equal DATABASE_URL. Enables
+#                 committed separate-connection races; never inferred from it.
 #   ENVIRONMENT    passed through to E2E/backend (default: development)
 
 set -euo pipefail
@@ -24,6 +27,10 @@ export DATABASE_URL="${DATABASE_URL:-postgresql+asyncpg://localhost/buzz}"
 export ENVIRONMENT="${ENVIRONMENT:-development}"
 
 die() { echo "error: $*" >&2; exit 1; }
+
+if [[ -n "${BUZZ_VERIFIED_TEST_DATABASE_URL:-}" && "${BUZZ_VERIFIED_TEST_DATABASE_URL}" != "$DATABASE_URL" ]]; then
+  die "BUZZ_VERIFIED_TEST_DATABASE_URL must match DATABASE_URL for this gate"
+fi
 
 if ! command -v poetry >/dev/null 2>&1; then
   die "poetry not found"
@@ -74,10 +81,13 @@ echo "==> [backend 4/6] OpenAPI dump + diff"
 )
 
 echo
-echo "==> [backend 5/6] Alembic upgrade head"
+echo "==> [backend 5/6] Alembic upgrade head + drift check"
 (
   cd backend
   poetry run alembic upgrade head
+  # Tests build the schema with create_all, so only this catches a model
+  # change that has no migration.
+  poetry run alembic check
 )
 
 echo

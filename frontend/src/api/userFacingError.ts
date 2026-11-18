@@ -69,6 +69,9 @@ export function userFacingApiError(
     return { fields: {}, banner: fallbackBanner };
   }
 
+  if (err.code === "WRONG_PASSWORD") {
+    return { fields: { currentPassword: err.message }, banner: null };
+  }
   if (err.code === "EDU_EMAIL_TAKEN") {
     return { fields: { eduEmail: err.message }, banner: null };
   }

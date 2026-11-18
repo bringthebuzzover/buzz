@@ -1,6 +1,6 @@
 # Buzz backend (FastAPI)
 
-Python service for Buzz: JWT auth, PostgreSQL, and the `/api` surface. As-built system map: [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Agent guide: [`../AGENTS.md`](../AGENTS.md). Product behavior: [`../PRODUCT.md`](../PRODUCT.md).
+Python service for Buzz: JWT auth, PostgreSQL, and the `/api` surface. Agent guide: [`../AGENTS.md`](../AGENTS.md).
 
 ## Prerequisites
 
@@ -77,84 +77,6 @@ Verify counts directly with `psql`:
 psql -d buzz -c "SELECT count(*) FROM drops"
 ```
 
-## Authentication (Stage 3)
-
-JWT auth with the org **Instagram OAuth** login flow. Tokens follow architecture §5.3: a short-lived access token (`Authorization: Bearer`, 1h) and a long-lived refresh token in an httpOnly cookie (`buzz_refresh`, 7d, `SameSite=Lax`, path `/api/auth`). The long-lived Instagram token is Fernet-encrypted at rest; the short-lived IG token is never persisted.
-
-`/api/auth/*` surface:
-
-```
-GET  /api/auth/instagram/login     302 -> Instagram OAuth (signed `state`)
-POST /api/auth/instagram/callback  { code, state } -> { access_token, user } + refresh cookie
-POST /api/auth/refresh             refresh cookie -> new access token (cookie rotated)
-POST /api/auth/logout              clears the refresh cookie
-GET  /api/auth/me                  current user (Authorization: Bearer)
-POST /api/auth/dev-login           dev-only: token + refresh cookie for a seeded org (404 outside ENVIRONMENT=development)
-```
-
-Endpoint authorization composes three dependencies from `app/deps/auth.py` (§5.4): `get_current_user` (auth), `require_role` (role), `require_status` (status), plus the combined `require_active_role` and the `CurrentOrg` / `CurrentBrand` aliases.
-
-## Drops + org journey (Stage 4 + 5A + 5B)
-
-The org browse feed read (Stage 4) plus the org journey write/read paths (5A) and the post-attribution loop (5B). All `CurrentOrg` (JWT + `org` role + `active`); responses are camelCase + epoch-ms.
-
-```
-GET    /api/drops                              org browse feed — ?page=&per_page=
-GET    /api/drops/{id}                         org-facing drop detail (acceptedCount, alreadyApplied)
-POST   /api/drops/{id}/apply                   apply { pitch? } -> DROP_NOT_OPEN | ALREADY_APPLIED | CAPACITY_EXCEEDED
-POST   /api/drops/{id}/notify                  set reminder { reminderMinutes: 5|15|60 } (upsert)
-DELETE /api/drops/{id}/notify                  remove reminder (idempotent)
-GET    /api/orgs/me                            org profile (eduEmail + instagramHandle projected from users)
-PATCH  /api/orgs/me                            update editable subset (extra=forbid; edu_email / instagram_handle not editable)
-GET    /api/orgs/me/posts                      post library (flattened metrics + linkedApplicationId)
-POST   /api/orgs/me/posts/refresh              returns currently stored posts (IG sync is the metric_sync job)
-GET    /api/campaigns                          my campaigns (excludes denied; sorted active→accepted→applied→finished)
-GET    /api/campaigns/{id}                     campaign detail (404 for other-org / denied / unknown)
-GET    /api/campaigns/{id}/aggregate           per-campaign rollup (postCount/likes/comments/engagement/estimatedReach)
-POST   /api/campaigns/{id}/link-post           link { postId } -> 409 POST_ALREADY_LINKED
-DELETE /api/campaigns/{id}/link-post           unlink { postId } (idempotent; re-arms suggestion)
-GET    /api/campaigns/{id}/suggestions         pending auto-link suggestions
-POST   /api/campaigns/{id}/suggestions/{postId}/accept   confirm + link -> 404/409/410
-POST   /api/campaigns/{id}/suggestions/{postId}/dismiss  reject -> 404 SUGGESTION_NOT_FOUND
-```
-
-Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). Every `/api/campaigns/{id}/*` sub-resource gates on ownership via `resolve_owned_application` (404 for unknown/other-org/denied — no existence leak); the aggregate ports `frontend/src/utils/metrics.ts` `computeCampaignAggregate`. `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials.
-
-## Brand portal (Stage 5C)
-
-Brand-facing endpoints. All `CurrentBrand` (JWT + `brand` role + `active`); responses are camelCase + epoch-ms. After LAUNCH Phase B, brand intake is a **ticket** (`drop_requests`). Live campaigns are admin-minted `drops` with `published_at`. Brand-facing tracker after publish: `awaiting_products` → `drop_active` → `drop_finished`.
-
-```
-GET    /api/brands/me                           brand profile
-POST   /api/brands/me/drop-requests             ticket only {message, notes?} — not a Drop
-GET    /api/brands/me/drop-requests             list tickets
-GET    /api/brands/me/drops                     list brand's drops with per-drop aggregate (posts, likes, comments, engagement, reach)
-GET    /api/brands/me/drops/{drop_id}           drop detail with applicants + org-attributed totals
-POST   /api/brands/me/drops/{drop_id}/finalize-applicants   accept/deny applicants (7 rules, atomic txn)
-GET    /api/brands/me/aggregate                 brand-level rollup (drops, posts, likes, comments, engagement, reach, orgs, campuses)
-GET    /api/brands/me/engagement-series         cumulative engagement time series (?bucket_count=&window_days=)
-```
-
-Admin **Publish** (`POST /api/admin/drops/{id}/publish`) sets `published_at` and emails the brand. Org feed / apply / Notify Me require `published_at IS NOT NULL`.
-
-`finalize-applicants` enforces 7 rules before the atomic accept/deny transaction: no duplicate orgs, stage must be `finalizing_agreements`, apply window closed, not already finalized, selected ≤ capacity, unit allocation ≤ budget, all allocated orgs must have applied. `resolve_brand_drop` gates every per-drop endpoint (404 not 403, no existence leak). Aggregates port `frontend/src/utils/metrics.ts` (`computeDropAggregate`, `computeBrandAggregate`, `computeEngagementTimeSeries`) — all SQL SUMs are COALESCE'd.
-
-Remaining Stage 5 surface — admin tooling (5D) — is tracked in the transition plan.
-
-New env vars are documented in [`.env.example`](./.env.example); only `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, and the three `INSTAGRAM_*` credentials must be set for staging/prod (and for a live local OAuth run). Tests use a fake Instagram client and need none of them.
-
-```bash
-# Login redirect (302 to Instagram with a signed state)
-curl -i http://localhost:8000/api/auth/instagram/login
-
-# /me with a dev-minted token for the seeded active org user
-TOK=$(poetry run python -c "from app.security import jwt; \
-print(jwt.create_access_token('00000000-0000-0000-0000-000000000002','org','active'))")
-curl http://localhost:8000/api/auth/me -H "Authorization: Bearer $TOK"
-```
-
-The brand password/invite path landed in Stage 7 (bcrypt password hashing, invite tokens, `POST /api/auth/brand/set-password` + `/brand/login`, public self-registration behind `BRAND_SELF_REGISTRATION_ENABLED`); the JWT/deps/refresh core stayed identity-agnostic so it slotted in cleanly. See [`../ARCHITECTURE.md`](../ARCHITECTURE.md) (auth) and [`../PRODUCT.md`](../PRODUCT.md) §5.1 / §3.
-
 ## Run the dev server
 
 Always run `uvicorn` from inside `backend/` so relative imports resolve:
@@ -169,6 +91,18 @@ Smoke-test the envelope:
 ```bash
 curl http://localhost:8000/api/health
 # => {"data":{"status":"ok","version":"0.1.0"},"meta":null,"error":null}
+```
+
+Local auth smoke (dev-minted token; no Meta credentials):
+
+```bash
+# Login redirect (302 to Instagram with a signed state)
+curl -i http://localhost:8000/api/auth/instagram/login
+
+# /me with a dev-minted token for the seeded active org user
+TOK=$(poetry run python -c "from app.security import jwt; \
+print(jwt.create_access_token('00000000-0000-0000-0000-000000000002','org','active'))")
+curl http://localhost:8000/api/auth/me -H "Authorization: Bearer $TOK"
 ```
 
 Auto-generated OpenAPI docs (development only): <http://localhost:8000/api/docs>.
@@ -186,23 +120,21 @@ poetry run pytest
 
 ### One-shot quality gate
 
-Run all three stages — **Black → Ruff → pytest** — fail-fast:
+Run the full gate from the repo root (backend, frontend, then Playwright):
 
 ```bash
-./scripts/check.sh           # format in place, lint, test
-./scripts/check.sh --check   # don't rewrite; verify only (CI mode)
+./scripts/ci-local.sh
 ```
 
 CI runs `black --check`, then `ruff check`, then `mypy`, then `pytest`
 ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)).
 
-## Background jobs (Stage 8, architecture §10)
+## Background jobs (Stage 8)
 
-Scheduled work runs as one-shot scripts a scheduler (Railway Cron) invokes — no
+Scheduled work runs as one-shot scripts a scheduler such as Railway Cron invokes — no
 extra runtime/worker. Each job is idempotent and prints a JSON summary.
 
 ```bash
-poetry run python scripts/run_job.py drop_autoclose   # §10.2 — every ~5 min
 poetry run python scripts/run_job.py notify_reminders # §10.6 — every ~5 min
 poetry run python scripts/run_job.py metric_sync      # §10.1 — every 8h (Instagram)
 poetry run python scripts/run_job.py autolink_scan    # §10.4 — daily, after metric_sync
@@ -211,8 +143,7 @@ poetry run python scripts/run_job.py token_cleanup    # §10.3 — daily
 ```
 
 Suggested cron (UTC): `metric_sync` 03:00 / 11:00 / 19:00 → `autolink_scan` 03:30 →
-`token_refresh` 04:00; `token_cleanup` 03:00; `drop_autoclose` and
-`notify_reminders` every 5 min. The
+`token_refresh` 04:00; `token_cleanup` 03:00; `notify_reminders` every 5 min. The
 primary Instagram token refresh is **on-login** (`get_current_user`, §10.5.1);
 `token_refresh` only catches inactive orgs and is optional for a tight MVP.
 
@@ -265,13 +196,11 @@ backend/
       posts.py     # Post library + link/unlink + aggregate + suggestions
       brands.py    # Brand aggregate, engagement series, finalize (7 rules + atomic txn)
     jobs/          # Stage 8 background jobs (architecture §10), run by scripts/run_job.py
-      drop_autoclose.py # §10.2
       token_cleanup.py  # §10.3
       autolink_scan.py  # §10.4
       token_refresh.py  # §10.5.2 safety-net cron
       metric_sync.py    # §10.1 Instagram metric sync
   scripts/
-    check.sh        # Local quality gate (black → ruff → mypy → alembic → pytest)
     run_job.py      # Background-job runner: run_job.py <name> (Railway Cron)
     dump_openapi.py # Write ../openapi.json at the repo root (source for `cd ../frontend && npm run gen:api`)
     seed_dev.py     # Destructive local dev seed

@@ -13,6 +13,7 @@ from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.marketing_budget import marketing_budget_check_sql
 from app.models.base import Base
 from app.models.enums import BrandStatusEnum
 
@@ -23,6 +24,10 @@ class Brand(Base):
     # pre-checks + catches IntegrityError, but this index is the hard invariant
     # that makes two concurrent self-registrations safe.
     __table_args__ = (
+        sa.CheckConstraint(
+            marketing_budget_check_sql(),
+            name="ck_brands_marketing_budget",
+        ),
         sa.Index(
             "uq_brands_company_email_lower",
             sa.func.lower(sa.text("company_email")),
@@ -40,6 +45,8 @@ class Brand(Base):
 
     brand_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     company_email: Mapped[str] = mapped_column(sa.String(320), nullable=False)
+    contact_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    marketing_budget: Mapped[str | None] = mapped_column(sa.String(16), nullable=True)
     intent_message: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     instagram_handle: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
 

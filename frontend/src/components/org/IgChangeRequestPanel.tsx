@@ -5,11 +5,12 @@ import {
   useSubmitIgChangeRequest,
 } from "../../api/hooks/useOrgHooks";
 import { ApiError } from "../../api/errors";
-import { Button, ErrorBanner, TextField } from "../forms/controls";
+import { Button, ErrorBanner, Notice, TextArea, TextField } from "../forms/controls";
 import { Card } from "../ui/Card";
-import { Modal } from "../ui/Modal";
+import { Modal, ModalActions } from "../ui/Modal";
 import { fieldLabelClass } from "../../theme/controls";
-import { STACK } from "../../theme/tokens";
+import { quietLinkClass } from "../ui/navItem";
+import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 function atHandle(raw: string): string {
@@ -56,41 +57,39 @@ export default function IgChangeRequestPanel({
       })
       .catch((err) => {
         setConfirming(false);
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : "Could not submit the request.",
-        );
+        setError(err instanceof ApiError ? err.message : "Could not submit the request.");
       });
   };
 
   return (
     <>
-      <Card kind="inset" pad="tight">
-        <p className={fieldLabelClass}>Instagram identity</p>
+      <Card kind="panel" pad="card" className="flex flex-col gap-5">
+        <h2 className={TEXT.h3}>Instagram identity</h2>
         {pending ? (
-          <div data-testid="ig-change-pending">
-            <p className="mt-2 text-sm font-semibold text-buzz-ink">
-              {atHandle(pending.currentHandle)} →{" "}
-              {atHandle(pending.requestedHandle)}
-            </p>
-            <p className="mt-1 text-sm font-medium text-buzz-inkMuted">
-              You submitted a request to change{" "}
-              {atHandle(pending.currentHandle)} to{" "}
+          <div className="flex flex-col gap-5" data-testid="ig-change-pending">
+            <div>
+              <p className="text-xs text-quiet">Handle</p>
+              <p className="mt-1 text-sm text-primary">
+                {atHandle(pending.currentHandle)} → {atHandle(pending.requestedHandle)}
+              </p>
+            </div>
+            <Notice tone="accent">
+              You submitted a request to change {atHandle(pending.currentHandle)} to{" "}
               {atHandle(pending.requestedHandle)}. Under review.
-            </p>
+            </Notice>
           </div>
         ) : (
           <>
-            <p className="mt-2 text-sm font-semibold text-buzz-ink">
-              {atHandle(currentHandle)}
-            </p>
+            <div>
+              <p className="text-xs text-quiet">Handle</p>
+              <p className="mt-1 text-sm text-primary">{atHandle(currentHandle)}</p>
+            </div>
             {canRequest ? (
               <button
                 type="button"
                 data-testid="ig-change-open"
                 onClick={() => setOpen(true)}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:underline"
+                className={cn(quietLinkClass, "self-start")}
               >
                 <Pencil size={14} aria-hidden />
                 Request a change
@@ -102,52 +101,43 @@ export default function IgChangeRequestPanel({
       {open ? (
         <Modal
           onClose={close}
-          title={
-            confirming
-              ? "Confirm Instagram change"
-              : "Request an Instagram change"
-          }
+          title={confirming ? "Confirm Instagram change" : "Request an Instagram change"}
           description={
             confirming
-              ? "If Buzz approves this as an account switch, the Connect Instagram email goes to the school email on file. A rename does not send that email. Cancel and change school email first if a new officer should receive it."
-              : "Buzz reviews whether this is a rename or a different account. A switch closes the portal until you Connect again."
+              ? "If BUZZ approves this as an account switch, the Connect Instagram email goes to the school email on file. A rename does not send that email. Cancel and change school email first if a new officer should receive it."
+              : "BUZZ reviews whether this is a rename or a different account. A switch closes the portal until you Connect again."
           }
-          size="wide"
         >
           {confirming ? (
-            <div className={cn("px-6 pb-6 pt-4", STACK.default)}>
-              <p className={fieldLabelClass}>Connect email inbox</p>
-              <p
-                className="text-sm font-semibold text-buzz-ink"
-                data-testid="ig-change-connect-email"
-              >
-                {connectEmail}
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="compact"
-                  data-testid="ig-change-confirm-cancel"
-                  onClick={() => setConfirming(false)}
-                  disabled={submit.isPending}
+            <>
+              <div className="flex flex-col gap-1">
+                <p className={fieldLabelClass}>Connect email inbox</p>
+                <p
+                  className="text-sm text-primary"
+                  data-testid="ig-change-connect-email"
                 >
-                  Cancel
-                </Button>
+                  {connectEmail}
+                </p>
+              </div>
+              <ModalActions
+                onCancel={() => setConfirming(false)}
+                cancelDisabled={submit.isPending}
+                cancelTestId="ig-change-confirm-cancel"
+              >
                 <Button
                   type="button"
-                  size="compact"
                   data-testid="ig-change-confirm"
                   onClick={sendRequest}
-                  disabled={submit.isPending}
+                  loading={submit.isPending}
+                  loadingLabel="Sending…"
                 >
-                  {submit.isPending ? "Sending…" : "Confirm"}
+                  Confirm
                 </Button>
-              </div>
-            </div>
+              </ModalActions>
+            </>
           ) : (
             <form
-              className={cn("px-6 pb-6 pt-4", STACK.default)}
+              className="flex flex-col gap-6"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (submit.isPending || !requested.trim() || !reason.trim()) {
@@ -157,32 +147,36 @@ export default function IgChangeRequestPanel({
                 setConfirming(true);
               }}
             >
-              {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-              <TextField
-                id="ig-change-requested"
-                label="Requested handle"
-                size="compact"
-                data-testid="ig-change-requested"
-                value={requested}
-                onChange={(e) => setRequested(e.target.value)}
-              />
-              <TextField
-                id="ig-change-reason"
-                label="Why"
-                size="compact"
-                data-testid="ig-change-reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-              <Button
-                type="submit"
-                data-testid="ig-change-submit"
-                disabled={
-                  submit.isPending || !requested.trim() || !reason.trim()
-                }
-              >
-                Submit request
-              </Button>
+              <div className="flex flex-col gap-4">
+                {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+                <TextField
+                  id="ig-change-requested"
+                  label="Requested handle"
+                  data-testid="ig-change-requested"
+                  placeholder="@yourorg"
+                  value={requested}
+                  onChange={(e) => setRequested(e.target.value)}
+                />
+                <TextArea
+                  id="ig-change-reason"
+                  label="Why"
+                  rows={4}
+                  data-testid="ig-change-reason"
+                  placeholder="e.g. Our social chair changed and the old account is locked"
+                  hint="At least 10 characters."
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
+              <ModalActions onCancel={close}>
+                <Button
+                  type="submit"
+                  data-testid="ig-change-submit"
+                  disabled={submit.isPending || !requested.trim() || !reason.trim()}
+                >
+                  Submit request
+                </Button>
+              </ModalActions>
             </form>
           )}
         </Modal>

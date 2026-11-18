@@ -1,4 +1,4 @@
-"""Admin orchestration (architecture.md §8.5, §9.2).
+"""Admin orchestration (buzz-ops engineering/architecture.md §8.5, §9.2).
 
 Pure service functions (no FastAPI types) the route layer calls.
 """
@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
+from fastapi import BackgroundTasks
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,22 +26,22 @@ from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
+    DropStage,
     OrgUserStatus,
     PortalRole,
 )
-from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
-from app.security.session import bump_token_version, commit_revocation
-from app.services.brands import finalize_applicants
+from app.security.session import bump_token_version, commit_revocation, lock_user
+from app.services.brand_ig_change_requests import brands_with_pending_ig_change
 from app.services.drop_apply_intents import (
     expire_open_intents_for_org,
     promote_drop_apply_intents,
 )
 from app.services.drop_image import validate_https_image
+from app.services.drop_notices import notify_canceled, notify_wrapped
 from app.services.drop_requests import touch_updated_at
 from app.services.email import (
     KIND_BRAND_INVITE,
@@ -48,8 +49,8 @@ from app.services.email import (
     KIND_IG_SWITCH_CONNECT,
     KIND_LATE_ADD_BRAND,
     KIND_LATE_ADD_ORG,
-    KIND_ORG_APPROVED,
     KIND_ORG_APPROVED_BOUND,
+    KIND_ORG_CONNECT_BEFORE_APPROVAL,
     _ops_cc,
     build_idempotency_key,
     send_admin_compose_email,
@@ -61,30 +62,42 @@ from app.services.email import (
     send_late_add_brand_email,
     send_late_add_org_email,
     send_org_approved_email,
+    send_org_connect_before_approval_email,
     send_org_denied_email,
     send_org_ig_switch_connect_email,
     send_org_undenied_email,
 )
+from app.services.email_tasks import schedule_email
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.lifecycle import ENDED_DECISIONS, drop_stage, require_drop, seat_is_live
 from app.services.org_apply import ig_bind_mismatch_open
-from app.services.org_connect import create_org_connect_token
+from app.services.org_connect import (
+    create_org_connect_token,
+    org_awaits_initial_connect,
+    org_connect_action,
+    org_connect_actions,
+    org_has_instagram_credentials,
+    org_owes_instagram_reconnect,
+)
+from app.services.seats import lock_drop, set_seat_decision
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
-
-_STAGE_ORDER = [
-    BrandTrackerStage.REQUEST_RECEIVED.value,
-    BrandTrackerStage.FINALIZING_AGREEMENTS.value,
-    BrandTrackerStage.AWAITING_PRODUCTS.value,
-    BrandTrackerStage.DROP_ACTIVE.value,
-    BrandTrackerStage.DROP_FINISHED.value,
-]
 
 _ORG_STATUSES = frozenset(member.value for member in OrgUserStatus)
 _BRAND_STATUSES = frozenset(member.value for member in BrandStatus)
 _ORG_ATTENTIONS = frozenset({"ig_bind_mismatch"})
+
+# Refusal copy for the pre-approval Connect action. It names the other action so
+# an admin who picked the wrong button for a switch holder is told where to go.
+_CONNECT_LINK_REFUSAL = (
+    "This organization is not waiting to connect Instagram for the first time. "
+    "It is either already connected, no longer in a pre-approval state, or waiting "
+    "on an approved account switch (use Resend connect email for that case)."
+)
 
 
 async def list_orgs(
@@ -99,7 +112,7 @@ async def list_orgs(
     filter on ``id``.
     """
 
-    if status is not None and status not in _ORG_STATUSES:
+    if status is not None and status not in _ORG_STATUSES and status != "awaiting_connect":
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
             f"Unknown organization status: {status}.",
@@ -118,7 +131,7 @@ async def list_orgs(
         .where(User.portal_role == PortalRole.ORG.value)
         .order_by(User.created_at.asc())
     )
-    if status is not None:
+    if status is not None and status != "awaiting_connect":
         stmt = stmt.where(User.status == status)
     else:
         # All filter excludes erased tombstones (PRODUCT §3.1.2); use ?status=erased.
@@ -130,8 +143,14 @@ async def list_orgs(
         )
 
     rows = list(await db.execute(stmt))
+    users = [user for user, _ in rows]
+    connect_actions = await org_connect_actions(db, users)
+
     listed = []
     for user, org in rows:
+        connect_action = connect_actions[user.id]
+        if status == "awaiting_connect" and connect_action != "switch":
+            continue
         erased = user.status == OrgUserStatus.ERASED.value
         listed.append(
             {
@@ -167,6 +186,8 @@ async def list_orgs(
                 "member_count": None if erased else (org.member_count if org is not None else None),
                 "category": None if erased else (org.category if org is not None else None),
                 "status": user.status,
+                "instagram_reconnect_required": connect_action == "switch",
+                "instagram_connect_required": connect_action == "initial",
                 "edu_email": None if erased else user.edu_email,
                 "email_verified_at": None if erased else user.email_verified_at,
                 "approved_at": None if erased else (org.approved_at if org is not None else None),
@@ -223,8 +244,9 @@ async def approve_org(
     org_id: UUID,
     *,
     tester_invite_confirmed: bool = False,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
-    """Approve a pending org → pending_instagram (or active if IG already bound)."""
+    """Approve a connected pending org into active."""
     org = await db.get(Organization, org_id)
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
@@ -241,54 +263,44 @@ async def approve_org(
             status_code=400,
         )
 
-    if not tester_invite_confirmed:
+    # Signup is Instagram-first. Approval must not resurrect the old unbound
+    # onboarding path; the org must reconnect before an admin can approve it.
+    if not (user.instagram_user_id and user.instagram_access_token):
         raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Confirm you added this organization as an Instagram Tester before approving.",
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization must reconnect Instagram before it can be approved.",
             status_code=400,
         )
 
-    now = datetime.now(timezone.utc)
-    org.approved_at = now
-
-    # Legacy mid-flight: Graph ids + token already on file → skip Connect.
-    already_bound = bool(user.instagram_user_id and user.instagram_access_token)
-    connect_token: str | None = None
-    if already_bound:
-        user.status = OrgUserStatus.ACTIVE.value
-        await db.flush()
-        await promote_drop_apply_intents(db, user)
-        await send_org_approved_email(
-            user.edu_email or "",
-            org_name=org.org_name,
-            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED_BOUND, org.id),
-        )
-    else:
-        user.status = OrgUserStatus.PENDING_INSTAGRAM.value
-        connect_token, connect_token_id = await create_org_connect_token(db, org, user)
-        await db.flush()
-        await send_org_approved_email(
-            user.edu_email or "",
-            org_name=org.org_name,
-            connect_token=connect_token,
-            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED, connect_token_id),
-        )
+    org.approved_at = datetime.now(timezone.utc)
+    user.status = OrgUserStatus.ACTIVE.value
+    await db.flush()
+    await promote_drop_apply_intents(db, user)
+    await schedule_email(
+        background_tasks,
+        send_org_approved_email,
+        user.edu_email or "",
+        org_name=org.org_name,
+        idempotency_key=build_idempotency_key(KIND_ORG_APPROVED_BOUND, org.id),
+    )
 
     return {"org_id": str(org.id), "status": user.status}
 
 
-async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
-    """Mint a fresh connect token and email it (pending_instagram only)."""
+async def resend_org_connect(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
+    """Mint a fresh connect token for an org still owing a reconnect."""
     org = await db.get(Organization, org_id)
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
-    user = await db.get(User, org.user_id)
+    user = await lock_user(db, org.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
     _refuse_erased_org(user)
-    if user.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+    if not await org_owes_instagram_reconnect(db, user):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Organization is not waiting to connect Instagram.",
@@ -298,68 +310,142 @@ async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     raw, connect_token_id = await create_org_connect_token(db, org, user)
     await db.flush()
     switch = await latest_approved_switch(db, org.id)
-    if switch is not None:
-        email_sent = await send_org_ig_switch_connect_email(
-            user.edu_email or "",
-            org_name=org.org_name,
-            connect_token=raw,
-            requested_handle=switch.requested_handle,
-            idempotency_key=build_idempotency_key(KIND_IG_SWITCH_CONNECT, connect_token_id),
+    if switch is None:
+        # org_owes_instagram_reconnect() reads the same rows, so this is a
+        # broken invariant, not an expected state. Raise rather than assert:
+        # an ``assert`` disappears under ``python -O``.
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization is not waiting to connect Instagram.",
+            status_code=400,
         )
-    else:
-        email_sent = await send_org_approved_email(
-            user.edu_email or "",
-            org_name=org.org_name,
-            connect_token=raw,
-            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED, connect_token_id),
-        )
-    return {"org_id": str(org.id), "status": user.status, "email_sent": email_sent}
+    email_queued = await schedule_email(
+        background_tasks,
+        send_org_ig_switch_connect_email,
+        user.edu_email or "",
+        org_name=org.org_name,
+        connect_token=raw,
+        requested_handle=switch.requested_handle,
+        idempotency_key=build_idempotency_key(KIND_IG_SWITCH_CONNECT, connect_token_id),
+    )
+    return {"org_id": str(org.id), "status": user.status, "email_queued": email_queued}
 
 
-async def resend_all_pending_instagram_connect(db: AsyncSession) -> dict[str, Any]:
-    """Email Connect Instagram to every org whose last step is that bind.
+async def send_org_connect_link(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
+    """Mint a Connect Instagram link for an unbound org in a pre-approval state.
 
-    Selects ``pending_instagram`` only — not unverified, awaiting-approval,
-    or active orgs. Reuses :func:`resend_org_connect` so switch vs first
-    approve keeps the right template.
+    Signup is Instagram-first and ``approve_org`` requires live credentials, so
+    an org that verified its ``.edu`` under the retired apply-first flow — and
+    never did the OAuth handshake — cannot be approved and cannot recover on its
+    own: a plain Instagram login collides with the handle already claimed on its
+    own row (409), its ``.edu`` is uniquely indexed, and ``bind-start`` needs a
+    reconnect ticket it does not have. This is the admin exit: the org connects,
+    then approval succeeds.
+
+    Deliberately *not* ``resend_org_connect``: that action describes an approved
+    account switch and says so in its email. This one keeps the credential gate
+    on approval and mints an ordinary ``org_connect_tokens`` row, which
+    ``redeem_org_connect_token`` accepts because the org is unbound and
+    pre-approval. Nothing here changes ``user.status``.
     """
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
+    user = await lock_user(db, org.user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    _refuse_erased_org(user)
+    if not org_awaits_initial_connect(user):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            _CONNECT_LINK_REFUSAL,
+            status_code=400,
+        )
+    if not (user.edu_email or "").strip():
+        # The token is emailed; without an address the link would be minted and
+        # then silently discarded. Refuse rather than claim success.
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This organization has no school email on file.",
+            status_code=400,
+        )
+
+    raw, connect_token_id = await create_org_connect_token(db, org, user)
+    await db.flush()
+    email_queued = await schedule_email(
+        background_tasks,
+        send_org_connect_before_approval_email,
+        user.edu_email or "",
+        org_name=org.org_name,
+        connect_token=raw,
+        claimed_handle=org.claimed_instagram_username or user.instagram_username or "",
+        idempotency_key=build_idempotency_key(KIND_ORG_CONNECT_BEFORE_APPROVAL, connect_token_id),
+    )
+    return {"org_id": str(org.id), "status": user.status, "email_queued": email_queued}
+
+
+async def resend_all_awaiting_instagram_connect(
+    db: AsyncSession, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
+    """Email every org that still has to connect Instagram, either cohort.
+
+    Two independent reasons to owe a Connect: an approved account switch on an
+    active org, and an unbound org that verified its ``.edu`` under the retired
+    apply-first flow and never connected. Both are emailed here, because both
+    are stuck without the link and the admin button says "awaiting Instagram".
+
+    Excludes orgs still verifying school email or awaiting a profile (no
+    Connect action applies), bound active orgs, and erased tombstones.
+    """
     rows = await db.execute(
-        select(Organization.id, User.edu_email)
+        select(Organization, User)
         .join(User, User.id == Organization.user_id)
         .where(
             User.portal_role == PortalRole.ORG.value,
-            User.status == OrgUserStatus.PENDING_INSTAGRAM.value,
+            User.status != OrgUserStatus.ERASED.value,
         )
     )
     targeted = 0
-    sent = 0
+    queued = 0
     failed = 0
     skipped = 0
-    for org_id, edu_email in rows.all():
+    for org, user in rows.all():
+        action = await org_connect_action(db, user)
+        if action is None:
+            continue
+        org_id, edu_email = org.id, user.edu_email
         targeted += 1
         if not (edu_email or "").strip():
             skipped += 1
             continue
         try:
-            out = await resend_org_connect(db, org_id)
+            if action == "switch":
+                out = await resend_org_connect(db, org_id, background_tasks=background_tasks)
+            else:
+                out = await send_org_connect_link(db, org_id, background_tasks=background_tasks)
         except BuzzAPIException:
             logger.warning("Bulk connect email skipped failed org %s", org_id)
             failed += 1
             continue
-        if out.get("email_sent"):
-            sent += 1
+        if out.get("email_queued"):
+            queued += 1
         else:
             failed += 1
     return {
         "targeted": targeted,
-        "sent": sent,
+        "queued": queued,
         "failed": failed,
         "skipped": skipped,
     }
 
 
-async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+async def deny_org(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Deny a pending org: set user.status=denied."""
     org = await db.get(Organization, org_id)
     if org is None:
@@ -383,7 +469,9 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     await db.flush()
     await commit_revocation(db)
 
-    await send_org_denied_email(user.edu_email or "", org_name=org.org_name)
+    await schedule_email(
+        background_tasks, send_org_denied_email, user.edu_email or "", org_name=org.org_name
+    )
 
     return {"org_id": str(org.id), "status": user.status}
 
@@ -412,12 +500,15 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
         stmt = stmt.where(Brand.status != BrandStatus.ERASED.value)
 
     rows = list(await db.execute(stmt))
+    pending_ig = await brands_with_pending_ig_change(db)
     return [
         {
             "id": brand.id,
             "user_id": brand.user_id,
             "brand_name": brand.brand_name,
             "company_email": brand.company_email,
+            "contact_name": brand.contact_name,
+            "marketing_budget": brand.marketing_budget,
             "intent_message": brand.intent_message,
             "instagram_handle": brand.instagram_handle,
             "status": brand.status,
@@ -426,6 +517,7 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
             "approved_at": brand.approved_at,
             "last_login_at": user.last_login_at,
             "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
+            "ig_change_pending": brand.id in pending_ig,
             "created_at": brand.created_at,
         }
         for brand, user in rows
@@ -440,6 +532,7 @@ async def create_brand(
     instagram_handle: str | None,
     intent_message: str | None,
     approve_now: bool = False,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Admin-provision a brand account; optionally approve and send the invite."""
     from app.services.brand_auth import apply_brand
@@ -453,11 +546,13 @@ async def create_brand(
     )
     brand_id = UUID(created["brand_id"])
     if approve_now:
-        return await approve_brand(db, brand_id)
+        return await approve_brand(db, brand_id, background_tasks=background_tasks)
     return created
 
 
-async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def approve_brand(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Approve a pending brand, create an invite token, and send the setup email."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -483,7 +578,9 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     from app.services.brand_auth import create_brand_invite
 
     token, invite_id = await create_brand_invite(db, brand, user)
-    email_sent = await send_brand_invite_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_invite_email,
         brand.company_email,
         token,
         brand_name=brand.brand_name,
@@ -493,11 +590,13 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     return {
         "brand_id": str(brand.id),
         "status": brand.status,
-        "email_sent": email_sent,
+        "email_queued": email_queued,
     }
 
 
-async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def deny_brand(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Deny a pending brand: set brand + user to denied, then email the brand."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -518,12 +617,16 @@ async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     await db.flush()
     await commit_revocation(db)
 
-    await send_brand_denied_email(brand.company_email, brand_name=brand.brand_name)
+    await schedule_email(
+        background_tasks, send_brand_denied_email, brand.company_email, brand_name=brand.brand_name
+    )
 
     return {"brand_id": str(brand.id), "status": brand.status}
 
 
-async def undeny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+async def undeny_org(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Return a denied org to pending_approval so approve_org can run again."""
     org = await db.get(Organization, org_id)
     if org is None:
@@ -543,11 +646,15 @@ async def undeny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
 
     user.status = OrgUserStatus.PENDING_APPROVAL.value
     await db.flush()
-    await send_org_undenied_email(user.edu_email or "", org_name=org.org_name)
+    await schedule_email(
+        background_tasks, send_org_undenied_email, user.edu_email or "", org_name=org.org_name
+    )
     return {"org_id": str(org.id), "status": user.status}
 
 
-async def undeny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def undeny_brand(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Return a denied brand to pending_review so approve_brand can run again."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -565,11 +672,18 @@ async def undeny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     if user is not None:
         user.status = OrgUserStatus.PENDING_APPROVAL.value
     await db.flush()
-    await send_brand_undenied_email(brand.company_email, brand_name=brand.brand_name)
+    await schedule_email(
+        background_tasks,
+        send_brand_undenied_email,
+        brand.company_email,
+        brand_name=brand.brand_name,
+    )
     return {"brand_id": str(brand.id), "status": brand.status}
 
 
-async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def resend_brand_invite(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Re-issue a setup invite for an approved brand that never set a password."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -596,13 +710,15 @@ async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any
     from app.services.brand_auth import create_brand_invite
 
     token, invite_id = await create_brand_invite(db, brand, user)
-    email_sent = await send_brand_invite_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_invite_email,
         brand.company_email,
         token,
         brand_name=brand.brand_name,
         idempotency_key=build_idempotency_key(KIND_BRAND_INVITE, invite_id),
     )
-    if not email_sent:
+    if not email_queued:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
             "We could not send the invite email. Please try again.",
@@ -611,7 +727,7 @@ async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any
     return {
         "brand_id": str(brand.id),
         "status": brand.status,
-        "email_sent": True,
+        "email_queued": True,
     }
 
 
@@ -628,7 +744,12 @@ def _require_compose_fields(subject: str, body: str) -> tuple[str, str]:
 
 
 async def compose_org_email(
-    db: AsyncSession, user_id: UUID, subject: str, body: str
+    db: AsyncSession,
+    user_id: UUID,
+    subject: str,
+    body: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Send a freeform email to an org's .edu (PRODUCT admin compose)."""
     subj, text = _require_compose_fields(subject, body)
@@ -642,7 +763,7 @@ async def compose_org_email(
             "This organization has no email on file.",
             status_code=400,
         )
-    sent = await send_admin_compose_email(to_email, subj, text)
+    sent = await schedule_email(background_tasks, send_admin_compose_email, to_email, subj, text)
     if not sent:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -653,7 +774,12 @@ async def compose_org_email(
 
 
 async def compose_brand_email(
-    db: AsyncSession, brand_id: UUID, subject: str, body: str
+    db: AsyncSession,
+    brand_id: UUID,
+    subject: str,
+    body: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Send a freeform email to a brand's company email (PRODUCT admin compose)."""
     subj, text = _require_compose_fields(subject, body)
@@ -668,7 +794,7 @@ async def compose_brand_email(
             "This brand has no email on file.",
             status_code=400,
         )
-    sent = await send_admin_compose_email(to_email, subj, text)
+    sent = await schedule_email(background_tasks, send_admin_compose_email, to_email, subj, text)
     if not sent:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -686,22 +812,17 @@ async def add_org_to_drop(
     allocated_units: int | None,
     email_org: bool,
     email_brand: bool,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
-    """Write an accepted seat without reopening apply or bumping capacity."""
+    """Write an accepted, already-sent seat without reopening apply or bumping capacity.
 
-    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    if (
-        drop.published_at is None
-        or drop.hidden_at is not None
-        or drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value
-    ):
-        raise BuzzAPIException(
-            errors.DROP_NOT_ELIGIBLE,
-            "This drop cannot accept a late-add (must be published, visible, and not finished).",
-            status_code=409,
-        )
+    Any stage once published, wrapped included (a retro add); never hidden or
+    canceled. A removed seat or an unsent denial comes back; a withdrawal or a sent
+    denial gets a new row.
+    """
+
+    drop = await lock_drop(db, drop_id)
+    require_drop(drop, published=True, visible=True)
 
     brand = await db.get(Brand, drop.brand_id)
     if brand is None:
@@ -725,52 +846,79 @@ async def add_org_to_drop(
         )
     )
     never_applied = len(existing_rows) == 0
+    # The seat to reuse is any row except a withdrawal or a denial the org was
+    # already told about; an unsent denial is still a draft, so it becomes the acceptance
+    # (else the next "Send decisions" would email "not selected").
     active = next(
-        (row for row in existing_rows if row.decision != ApplicationDecision.DENIED.value),
+        (
+            row
+            for row in existing_rows
+            if row.decision != ApplicationDecision.WITHDREW.value
+            and not (
+                row.decision == ApplicationDecision.DENIED.value
+                and row.decision_sent_at is not None
+            )
+        ),
         None,
     )
-    if active is not None and active.decision == ApplicationDecision.ACCEPTED.value:
+    if (
+        active is not None
+        and active.decision == ApplicationDecision.ACCEPTED.value
+        and active.decision_sent_at is not None
+    ):
         raise BuzzAPIException(
             errors.ALREADY_ACCEPTED,
             "This organization is already accepted on this drop.",
             status_code=409,
         )
 
-    now = datetime.now(timezone.utc)
     units: int | None
     if drop.total_product_units is None:
         units = None
     else:
         units = 0 if allocated_units is None else allocated_units
 
-    if active is not None:
-        application = active
-        application.decision = ApplicationDecision.ACCEPTED.value
-        application.decision_at = now
-        application.allocated_units = units
-    else:
-        application = DropApplication(
+    if active is None:
+        active = DropApplication(
             id=uuid4(),
             drop_id=drop.id,
             org_id=org.id,
-            decision=ApplicationDecision.ACCEPTED.value,
-            allocated_units=units,
-            applied_at=now,
-            decision_at=now,
+            decision=ApplicationDecision.APPLIED.value,
+            applied_at=utcnow(),
+            added_by="late_add",
         )
-        db.add(application)
-
+        db.add(active)
+        await db.flush()
+    elif active.decision in ENDED_DECISIONS:
+        # A removed seat comes back (a withdrawal got a new row above).
+        active.decision = ApplicationDecision.APPLIED.value
+    application = await set_seat_decision(
+        db,
+        drop,
+        active.id,
+        decision=ApplicationDecision.ACCEPTED.value,
+        allocated_units=units,
+        actor="admin",
+    )
+    # Sent at once: a late-add skips "Send decisions" (its emails are opt-in below).
+    application.decision_at = application.decision_sent_at = utcnow()
     await db.flush()
 
-    portal_ready = org_user.status == OrgUserStatus.ACTIVE.value
+    # An approved switch releases the org's credentials while leaving it active,
+    # so status alone would claim a portal that returns 403 on every request.
+    portal_ready = org_user.status == OrgUserStatus.ACTIVE.value and (
+        org_has_instagram_credentials(org_user)
+    )
     org_name = org.org_name or "an organization"
-    email_org_sent: bool | None = None
-    email_brand_sent: bool | None = None
+    email_org_queued: bool | None = None
+    email_brand_queued: bool | None = None
     if email_org:
         to_org = (org_user.edu_email or "").strip()
-        email_org_sent = bool(
+        email_org_queued = bool(
             to_org
-            and await send_late_add_org_email(
+            and await schedule_email(
+                background_tasks,
+                send_late_add_org_email,
                 to_org,
                 org_name=org_name,
                 drop_title=drop.title,
@@ -781,9 +929,11 @@ async def add_org_to_drop(
         )
     if email_brand:
         to_brand = (brand.company_email or "").strip()
-        email_brand_sent = bool(
+        email_brand_queued = bool(
             to_brand
-            and await send_late_add_brand_email(
+            and await schedule_email(
+                background_tasks,
+                send_late_add_brand_email,
                 to_brand,
                 org_name=org_name,
                 drop_title=drop.title,
@@ -798,8 +948,8 @@ async def add_org_to_drop(
         "org_id": org.id,
         "never_applied": never_applied,
         "portal_ready": portal_ready,
-        "email_org_sent": email_org_sent,
-        "email_brand_sent": email_brand_sent,
+        "email_org_queued": email_org_queued,
+        "email_brand_queued": email_brand_queued,
     }
 
 
@@ -810,27 +960,13 @@ async def sync_and_autolink_drop(
 ) -> dict[str, Any]:
     """Graph-sync accepted orgs, then autolink suggestions.
 
-    Published, unhidden drops in Awaiting Products or Active only.
+    Any published, visible drop (BUZZ may sync a wrapped drop for a retro).
     """
 
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    if (
-        drop.published_at is None
-        or drop.hidden_at is not None
-        or drop.brand_tracker_stage
-        not in (
-            BrandTrackerStage.AWAITING_PRODUCTS.value,
-            BrandTrackerStage.DROP_ACTIVE.value,
-        )
-    ):
-        raise BuzzAPIException(
-            errors.DROP_NOT_ELIGIBLE,
-            "Sync and autolink only run on a published, visible drop that is "
-            "Awaiting Products or Active.",
-            status_code=409,
-        )
+    require_drop(drop, published=True, visible=True)
     brand = await db.get(Brand, drop.brand_id)
     if brand is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
@@ -843,7 +979,7 @@ async def sync_and_autolink_drop(
             .join(User, User.id == Organization.user_id)
             .where(
                 DropApplication.drop_id == drop.id,
-                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                seat_is_live(),
                 User.status != OrgUserStatus.ERASED.value,
             )
             .distinct()
@@ -854,17 +990,6 @@ async def sync_and_autolink_drop(
     return {**media, **auto}
 
 
-async def clear_manual_reopen(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
-    """Clear the permanent reopen flag so drop_autoclose can run again."""
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-
-    drop.manual_reopen = False
-    await db.flush()
-    return {"drop_id": str(drop.id), "manual_reopen": False}
-
-
 async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
     """Null an org's IG token so get_current_user no longer raises INSTAGRAM_TOKEN_EXPIRED.
 
@@ -872,7 +997,7 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     requiring a matching Graph user_id. Status is left alone so a
     pending_email_verification org can reach resend again after reconnecting.
     """
-    user = await db.get(User, user_id)
+    user = await lock_user(db, user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 
@@ -883,150 +1008,101 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     return {"user_id": str(user.id), "instagram_token_cleared": True}
 
 
-async def finalize_drop_applicants(
-    db: AsyncSession,
-    drop_id: UUID,
-    allocations: list[dict[str, Any]],
-) -> dict[str, int]:
-    """Batch-finalize applicants with the same rules as the brand portal (§7.1)."""
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    brand = await db.get(Brand, drop.brand_id)
-    if brand is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
-    return await finalize_applicants(db, brand, drop_id, allocations)
-
-
-async def advance_tracker(
-    db: AsyncSession,
-    drop_id: UUID,
-    stage: str,
-    *,
-    note: str | None = None,
+async def wrap_drop(
+    db: AsyncSession, drop_id: UUID, *, background_tasks: BackgroundTasks | None = None
 ) -> dict[str, Any]:
-    """Advance a drop's tracker stage (forward-only state machine, §8.5)."""
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    """Wrap a published drop up: off the feed, reporting period over.
 
-    current = drop.brand_tracker_stage
-    requested = stage
-
-    if requested not in _STAGE_ORDER:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            f"Invalid tracker stage: {requested}.",
-            status_code=400,
-        )
-
-    current_idx = _STAGE_ORDER.index(current)
-    requested_idx = _STAGE_ORDER.index(requested)
-
-    if requested_idx <= current_idx:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            f"Cannot move tracker backwards (current: {current}, requested: {requested}).",
-            status_code=400,
-        )
-
-    # Applicant selection must happen before any fulfillment stage. Forbid
-    # skipping past finalizing_agreements while the drop is unfinalized — a
-    # multi-stage jump (e.g. request_received -> drop_active) would otherwise
-    # strand applied orgs that can never be decided (finalize requires the
-    # finalizing_agreements stage and there is no backward transition).
-    finalizing_idx = _STAGE_ORDER.index(BrandTrackerStage.FINALIZING_AGREEMENTS.value)
-    if requested_idx > finalizing_idx and drop.applicant_selection_finalized_at is None:
-        raise BuzzAPIException(
-            errors.DROP_NOT_IN_SELECTION_STAGE,
-            "Finalize applicant selection before advancing past the selection stage.",
-            status_code=400,
-        )
-
-    awaiting_idx = _STAGE_ORDER.index(BrandTrackerStage.AWAITING_PRODUCTS.value)
-    # Jumping over awaiting_products skips the fulfillment stage brands see.
-    if requested_idx > awaiting_idx and current_idx < awaiting_idx:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Advance to awaiting_products before drop_active.",
-            status_code=400,
-        )
-
-    drop.brand_tracker_stage = requested
-    event = DropTrackerEvent(
-        drop_id=drop.id,
-        stage=requested,
-        note=note,
-    )
-    db.add(event)
-
-    await db.flush()
-    return {"drop_id": str(drop.id), "stage": drop.brand_tracker_stage}
-
-
-async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
-    """Reopen a drop's apply window (§4.1, §8.5).
-
-    Sets ``manual_reopen=true``. For drops still in selection
-    (``request_received`` / ``finalizing_agreements`` / pre-live), also clears
-    ``applicant_selection_finalized_at`` and rewinds to ``finalizing_agreements``
-    when past it so a new selection round can run.
-
-    Live / finished drops (``drop_active`` / ``drop_finished``) with selection
-    already finalized cannot reopen apply — ``apply_to_drop`` / feed treat
-    ``applicant_selection_finalized_at`` as closed before ``manual_reopen``, and
-    clearing finalize here would risk implying a new selection round while org
-    campaigns stay live. Those requests get 409; stage and finalize stay put.
-    Unfinalized live / finished drops still get the apply-window flag only.
+    Not a lock: BUZZ can still late-add and link, orgs keep linking for
+    ``ORG_LINK_GRACE``, and metrics keep syncing for a while. Everyone still
+    waiting on a decision becomes "not selected" (D-7), and everyone hears
+    about it once (``notify_wrapped``). Drafted acceptances must be sent first.
     """
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
 
-    live_or_finished = {
-        BrandTrackerStage.DROP_ACTIVE.value,
-        BrandTrackerStage.DROP_FINISHED.value,
-    }
-    if (
-        drop.brand_tracker_stage in live_or_finished
-        and drop.applicant_selection_finalized_at is not None
-    ):
-        raise BuzzAPIException(
-            errors.ALREADY_FINALIZED,
-            "Apply cannot be reopened while applicant selection is finalized "
-            "on a live or finished drop.",
-            status_code=409,
+    drop = await lock_drop(db, drop_id)
+    # Wrap-up follows Selecting or Live: close applications and unhide first.
+    # Wrapping a wrapped drop again is a no-op.
+    first_wrap = drop.wrapped_at is None
+    require_drop(drop, published=True, visible=first_wrap, applications_closed=first_wrap)
+    if drop.wrapped_at is None:
+        drafted = await db.scalar(
+            select(func.count()).where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                DropApplication.decision_sent_at.is_(None),
+            )
         )
-
-    drop.manual_reopen = True
-
-    if drop.applicant_selection_finalized_at is not None:
-        drop.applicant_selection_finalized_at = None
-        finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
-        if _STAGE_ORDER.index(drop.brand_tracker_stage) > _STAGE_ORDER.index(finalizing):
-            drop.brand_tracker_stage = finalizing
-            db.add(
-                DropTrackerEvent(
-                    drop_id=drop.id,
-                    stage=finalizing,
-                    note="reopened for a new selection round",
+        if drafted:
+            # Never turn a chosen org into "not selected" behind anyone's back.
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                f"{drafted} acceptance(s) are drafted but not sent. Send decisions (or change"
+                " them) before wrapping up.",
+                status_code=409,
+            )
+        now = datetime.now(timezone.utc)
+        drop.wrapped_at = now
+        not_selected = list(
+            await db.scalars(
+                select(DropApplication).where(
+                    DropApplication.drop_id == drop.id, DropApplication.decision_sent_at.is_(None)
                 )
             )
+        )
+        for application in not_selected:
+            application.decision = ApplicationDecision.DENIED.value
+            application.allocated_units = None
+            application.decision_at = now
+            application.decision_sent_at = now
+        note = f"wrapped up; {len(not_selected)} not selected" if not_selected else "wrapped up"
+        db.add(DropTrackerEvent(drop_id=drop.id, stage="wrapped", note=note))
+        await db.flush()
+        await notify_wrapped(db, drop, not_selected, background_tasks=background_tasks)
+    stage = await drop_stage(db, drop)
+    return {"drop_id": drop.id, "stage": stage}
+
+
+async def unwrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
+    """Undo a wrap-up; the stage goes back to whatever the dates and seats say."""
+
+    drop = await lock_drop(db, drop_id)
+    require_drop(drop)
+    was_wrapped = drop.wrapped_at is not None
+    drop.wrapped_at = None
+    stage = await drop_stage(db, drop)
+    if was_wrapped:
+        db.add(DropTrackerEvent(drop_id=drop.id, stage=stage.value, note="unwrapped"))
+    return {"drop_id": drop.id, "stage": stage}
+
+
+async def cancel_drop(
+    db: AsyncSession,
+    drop_id: UUID,
+    *,
+    confirm: str,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, Any]:
+    """Cancel a published, unwrapped drop. Final (D-11): duplicate it instead.
+
+    Off the feed and frozen: no new seats, decisions, shipments or links, and
+    metric sync stops. Seats, shipments and posts stay for the brand report.
+    Orgs still in the running and the brand are emailed once.
+    """
+
+    drop = await lock_drop(db, drop_id)
+    if confirm.strip() != drop.title.strip():
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR, "Type the drop title to confirm.", status_code=400
+        )
+    require_drop(drop, published=True, unwrapped=True)
+    drop.canceled_at = datetime.now(timezone.utc)
+    db.add(DropTrackerEvent(drop_id=drop.id, stage=DropStage.CANCELED.value, note="canceled"))
     await db.flush()
-    return {"drop_id": str(drop.id), "manual_reopen": True}
+    await notify_canceled(db, drop, background_tasks=background_tasks)
+    return {"drop_id": drop.id, "stage": await drop_stage(db, drop)}
 
 
-_LOGISTICS_FIELDS = frozenset(
-    {"capacity_total", "apply_open_at", "apply_close_at", "total_product_units"}
-)
 _CREATIVE_FIELDS = frozenset({"title", "description", "image", "location"})
-_PRE_LIVE_STAGES = frozenset(
-    {
-        BrandTrackerStage.REQUEST_RECEIVED.value,
-        BrandTrackerStage.FINALIZING_AGREEMENTS.value,
-        BrandTrackerStage.AWAITING_PRODUCTS.value,
-    }
-)
 
 
 def _normalize_campaign_hashtag(raw: str | None) -> str | None:
@@ -1089,9 +1165,9 @@ async def create_admin_drop(
         capacity_total=payload.capacity_total,
         apply_open_at=payload.apply_open_at,
         apply_close_at=payload.apply_close_at,
-        brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
         total_product_units=payload.total_product_units,
         campaign_hashtag=_normalize_campaign_hashtag(payload.campaign_hashtag),
+        brand_can_edit_creative=payload.brand_can_edit_creative,
         published_at=None,
         drop_request_id=ticket.id if ticket else None,
     )
@@ -1106,8 +1182,10 @@ async def create_admin_drop(
     return drop
 
 
-async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
-    """Set published_at, seed awaiting_products tracker, email the brand."""
+async def publish_drop(
+    db: AsyncSession, drop_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> Drop:
+    """Set published_at, log it, email the brand."""
 
     drop = await db.get(Drop, drop_id)
     if drop is None:
@@ -1135,12 +1213,10 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
 
     now = datetime.now(timezone.utc)
     drop.published_at = now
-    if drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value:
-        drop.brand_tracker_stage = BrandTrackerStage.AWAITING_PRODUCTS.value
     db.add(
         DropTrackerEvent(
             drop_id=drop.id,
-            stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
+            stage=(await drop_stage(db, drop)).value,
             note="published",
         )
     )
@@ -1149,7 +1225,9 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
     brand = await db.get(Brand, drop.brand_id)
     if brand is not None and brand.company_email:
         drop_url = f"{settings.FRONTEND_URL}/brand/drops/{drop.id}"
-        await send_drop_published_email(
+        await schedule_email(
+            background_tasks,
+            send_drop_published_email,
             brand.company_email,
             brand_name=brand.brand_name,
             drop_title=drop.title,
@@ -1160,7 +1238,12 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
 
 
 async def hide_drop(
-    db: AsyncSession, drop_id: UUID, *, confirm: str, notify_brand: bool = False
+    db: AsyncSession,
+    drop_id: UUID,
+    *,
+    confirm: str,
+    notify_brand: bool = False,
+    background_tasks: BackgroundTasks | None = None,
 ) -> Drop:
     """Hide a published drop from consumer portals (PRODUCT §5.2.2)."""
 
@@ -1186,7 +1269,7 @@ async def hide_drop(
     db.add(
         DropTrackerEvent(
             drop_id=drop.id,
-            stage=drop.brand_tracker_stage,
+            stage=(await drop_stage(db, drop)).value,
             note="hidden",
         )
     )
@@ -1195,7 +1278,9 @@ async def hide_drop(
     if notify_brand:
         brand = await db.get(Brand, drop.brand_id)
         if brand is not None and brand.company_email:
-            await send_drop_hidden_email(
+            await schedule_email(
+                background_tasks,
+                send_drop_hidden_email,
                 brand.company_email,
                 brand_name=brand.brand_name,
                 drop_title=drop.title,
@@ -1216,98 +1301,12 @@ async def unhide_drop(db: AsyncSession, drop_id: UUID) -> Drop:
     db.add(
         DropTrackerEvent(
             drop_id=drop.id,
-            stage=drop.brand_tracker_stage,
+            stage=(await drop_stage(db, drop)).value,
             note="unhidden",
         )
     )
     await db.flush()
     return drop
-
-
-async def _unpublished_request_received_stubs(db: AsyncSession) -> list[Drop]:
-    """Unpublished drops still in the legacy request_received stage."""
-    return list(
-        await db.scalars(
-            select(Drop).where(
-                Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
-                Drop.published_at.is_(None),
-            )
-        )
-    )
-
-
-async def cleanup_request_received_stubs(
-    db: AsyncSession, *, force: bool = False, dry_run: bool = False
-) -> dict[str, Any]:
-    """Convert unpublished request_received stubs into closed tickets and delete them.
-
-    Idempotent. ``dry_run`` lists matching ids with no writes (allowed in
-    production). Writes refuse production unless ``force=True`` (script
-    ``--confirm``).
-    """
-
-    stubs = await _unpublished_request_received_stubs(db)
-    stub_ids = [drop.id for drop in stubs]
-    if dry_run:
-        logger.info("cleanup_request_received dry-run: %s stubs", len(stub_ids))
-        return {
-            "converted_count": len(stub_ids),
-            "deleted_drop_ids": stub_ids,
-            "dry_run": True,
-        }
-
-    if settings.ENVIRONMENT == "production" and not force:
-        raise BuzzAPIException(
-            errors.FORBIDDEN,
-            "Refusing stub cleanup in production. Re-run with --confirm after explicit ops OK.",
-            status_code=403,
-        )
-
-    deleted_ids: list[UUID] = []
-    for drop in stubs:
-        ticket = DropRequest(
-            id=uuid4(),
-            brand_id=drop.brand_id,
-            message=drop.description or drop.title,
-            notes=None,
-            status="closed",
-        )
-        db.add(ticket)
-        await db.flush()
-
-        prior_tickets = list(
-            await db.scalars(select(DropRequest).where(DropRequest.converted_drop_id == drop.id))
-        )
-        for prior in prior_tickets:
-            prior.converted_drop_id = None
-        drop.drop_request_id = None
-        await db.flush()
-
-        apps = list(
-            await db.scalars(select(DropApplication).where(DropApplication.drop_id == drop.id))
-        )
-        for app in apps:
-            await db.delete(app)
-        notifies = list(await db.scalars(select(NotifyMe).where(NotifyMe.drop_id == drop.id)))
-        for n in notifies:
-            await db.delete(n)
-        events = list(
-            await db.scalars(select(DropTrackerEvent).where(DropTrackerEvent.drop_id == drop.id))
-        )
-        for evt in events:
-            await db.delete(evt)
-
-        deleted_ids.append(drop.id)
-        logger.info(
-            "cleanup_request_received: drop %s → closed ticket %s",
-            drop.id,
-            ticket.id,
-        )
-        await db.delete(drop)
-        await db.flush()
-
-    logger.info("cleanup_request_received: converted %s stubs", len(deleted_ids))
-    return {"converted_count": len(deleted_ids), "deleted_drop_ids": deleted_ids}
 
 
 async def update_drop_config(
@@ -1320,17 +1319,17 @@ async def update_drop_config(
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    require_drop(drop)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         return
 
-    logistics_touched = bool(_LOGISTICS_FIELDS & updates.keys())
-    if logistics_touched and drop.brand_tracker_stage not in _PRE_LIVE_STAGES:
+    # After wrap-up only the copy can change (the matrix); unwrap to change more.
+    if drop.wrapped_at is not None and updates.keys() - _CREATIVE_FIELDS:
         raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Capacity, apply window, and unit budget cannot be changed while "
-            "the drop is live or finished.",
+            errors.DROP_WRAPPED,
+            "Only the copy of a wrapped-up drop can change. Unwrap it first.",
             status_code=409,
         )
 
@@ -1344,14 +1343,22 @@ async def update_drop_config(
         if key in updates and isinstance(updates[key], str):
             updates[key] = updates[key].strip()
 
-    if "total_product_units" in updates and drop.applicant_selection_finalized_at is not None:
-        current = drop.total_product_units
-        new = updates["total_product_units"]
-        if (current is None) != (new is None):
+    if "total_product_units" in updates and (drop.total_product_units is None) != (
+        updates["total_product_units"] is None
+    ):
+        has_accepted = await db.scalar(
+            select(DropApplication.id)
+            .where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            )
+            .limit(1)
+        )
+        if has_accepted is not None:
             raise BuzzAPIException(
                 errors.VALIDATION_ERROR,
-                "Cannot switch between spot-only and unit-allocated mode after "
-                "applicant selection is finalized.",
+                "Cannot switch between spot-only and unit-allocated mode once orgs "
+                "are accepted.",
                 status_code=409,
             )
 

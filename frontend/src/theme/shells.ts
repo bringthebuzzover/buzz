@@ -24,7 +24,7 @@ export const PAGE_WIDTH = {
   form: "max-w-2xl",
   reading: "max-w-3xl",
   portal: "max-w-4xl",
-  wide: "max-w-6xl",
+  wide: "max-w-6xl xl:max-w-[1216px]",
 } as const;
 
 export type PageWidth = keyof typeof PAGE_WIDTH;

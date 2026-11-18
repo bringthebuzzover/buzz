@@ -5,20 +5,16 @@
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { onboardingQuery } from "../../utils/oauthNext";
+import AuthPending from "../auth/AuthPending";
 import SessionRestorePanel from "./SessionRestorePanel";
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
   const { status } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   if (status === "authenticating" || status === "idle") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          Restoring your session…
-        </p>
-      </div>
-    );
+    return <AuthPending label="Loading…" />;
   }
 
   if (status === "restore_failed") {
@@ -32,7 +28,8 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
   if (status !== "authenticated") {
     // Admins can't sign in with Instagram, so /login would strand them.
     const target = pathname.startsWith("/admin") ? "/admin/login" : "/login";
-    return <Navigate to={target} replace />;
+    const params = new URLSearchParams(search);
+    return <Navigate to={target + onboardingQuery(params.get("next"), params.get("prefill"))} replace />;
   }
 
   return <>{children}</>;

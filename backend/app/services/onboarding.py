@@ -1,6 +1,10 @@
 """Org onboarding orchestration (architecture §3.3, §3.4).
 
-Pure service functions (no FastAPI types) the route layer calls.
+Service functions the route layer calls.
+
+School-email rotate is for approved orgs only. An org awaiting admin approval
+is locked and cannot start a new swap. A swap already latched can still be
+finished so the address is not stranded.
 """
 
 from __future__ import annotations
@@ -8,26 +12,30 @@ from __future__ import annotations
 import logging
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select, update
+from fastapi import BackgroundTasks
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.config import settings
+from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation  # META-REVIEWER-PATH
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.schemas.onboarding import OrgOnboardingRequest
 from app.security.one_shot_tokens import hash_token
+from app.security.session import lock_user
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.address import AddressClient, apply_to_org
+from app.services.drop_apply_intents import assert_intent_drop_public, record_drop_apply_intent
 from app.services.email import KIND_VERIFICATION, build_idempotency_key, send_verification_email
+from app.services.email_tasks import schedule_email
 from app.services.instagram import (
     InstagramClient,
     canonical_instagram_handle,
@@ -35,27 +43,31 @@ from app.services.instagram import (
     require_instagram_handle,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.org_apply_prefill import get_live_prefill, mark_prefill_used
+from app.timeutils import as_utc, utcnow
 
 logger = logging.getLogger(__name__)
 
 
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+# Who may *start* or *cancel* a school-email rotate. Active orgs only.
+# pending_approval is locked: an org waiting on review cannot change its
+# school email. Finishing a latched swap is separate — see _latched_rotate_may_finish.
+_ROTATE_ELIGIBLE_STATUSES = frozenset({OrgUserStatus.ACTIVE.value})
 
 
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value
+def _latched_rotate_may_finish(user: User) -> bool:
+    """Whether an already-latched swap may be redeemed or resent.
 
-
-_ROTATE_ELIGIBLE_STATUSES = frozenset(
-    {
-        OrgUserStatus.ACTIVE.value,
-        OrgUserStatus.PENDING_APPROVAL.value,
-        OrgUserStatus.PENDING_INSTAGRAM.value,
-    }
-)
+    Starting a rotate uses ``_ROTATE_ELIGIBLE_STATUSES``. ``pending_approval``
+    is not in that set, but a latch made while active (or before the lock)
+    must still complete if status later sits here. Key off the latch, not
+    status membership alone, or that swap is stranded.
+    """
+    if not user.pending_edu_email:
+        return False
+    return user.status in _ROTATE_ELIGIBLE_STATUSES or (
+        user.status == OrgUserStatus.PENDING_APPROVAL.value
+    )
 
 
 async def _assert_pending_edu_available(
@@ -108,8 +120,8 @@ async def _release_unverified_edu_claim(
         )
 
     org = await db.scalar(select(Organization).where(Organization.user_id == existing.id))
-    claim_at = _as_utc(org.created_at if org is not None else existing.created_at)
-    age = _now() - claim_at
+    claim_at = as_utc(org.created_at if org is not None else existing.created_at)
+    age = utcnow() - claim_at
     if age < timedelta(hours=settings.EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS):
         raise BuzzAPIException(
             errors.EDU_EMAIL_TAKEN,
@@ -125,13 +137,13 @@ async def _release_unverified_edu_claim(
             EmailVerificationToken.user_id == existing.id,
             EmailVerificationToken.used_at.is_(None),
         )
-        .values(expires_at=_now())
+        .values(expires_at=utcnow())
     )
     await db.flush()
 
 
 async def _count_active_verification_tokens(db: AsyncSession, user_id: uuid.UUID) -> int:
-    now = _now()
+    now = utcnow()
     unused = await db.scalars(
         select(EmailVerificationToken).where(
             EmailVerificationToken.user_id == user_id,
@@ -150,8 +162,28 @@ async def _invalidate_verification_tokens(db: AsyncSession, user_id: uuid.UUID) 
             EmailVerificationToken.user_id == user_id,
             EmailVerificationToken.used_at.is_(None),
         )
-        .values(expires_at=_now())
+        .values(expires_at=utcnow())
     )
+
+
+async def _send_verification_after_commit(
+    token_id: uuid.UUID, email: str, raw: str, *, org_name: str, kind: str
+) -> bool:
+    ok = await send_verification_email(
+        email,
+        raw,
+        org_name=org_name,
+        kind=kind,
+        idempotency_key=build_idempotency_key(KIND_VERIFICATION, token_id),
+    )
+    if not ok:
+        # Failed delivery must not consume one of the user's three live slots.
+        async with async_session_factory() as db:
+            await db.execute(
+                delete(EmailVerificationToken).where(EmailVerificationToken.id == token_id)
+            )
+            await db.commit()
+    return ok
 
 
 async def _mint_and_send_verification(
@@ -161,11 +193,12 @@ async def _mint_and_send_verification(
     *,
     org_name: str = "",
     kind: str = "signup",
+    background_tasks: BackgroundTasks | None = None,
 ) -> bool:
     """Mint a live verification token and attempt delivery.
 
-    Returns whether the provider accepted the send (or development console
-    success). On failure the just-minted token is deleted so it does not burn
+    Returns whether delivery was queued, or accepted for a direct send.
+    Failed delivery deletes the just-minted token so it does not burn
     a max-3 slot.
     """
     raw = secrets.token_urlsafe(48)
@@ -174,10 +207,20 @@ async def _mint_and_send_verification(
         user_id=user.id,
         token_hash=hash_token(raw),
         email=edu_email,
-        expires_at=_now() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
+        expires_at=utcnow() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
     )
     db.add(evt)
     await db.flush()
+    if background_tasks is not None:
+        return await schedule_email(
+            background_tasks,
+            _send_verification_after_commit,
+            evt.id,
+            edu_email,
+            raw,
+            org_name=org_name,
+            kind=kind,
+        )
     ok = await send_verification_email(
         edu_email,
         raw,
@@ -197,7 +240,7 @@ async def _seed_follower_count_from_graph(
     ig: InstagramClient,
 ) -> None:
     """Best-effort Graph followers write after org create. Never raises."""
-    now = _now()
+    now = utcnow()
     if not user.instagram_access_token:
         logger.warning(
             "onboarding followers_seed_failed org_id=%s user_id=%s reason=missing_token",
@@ -259,6 +302,7 @@ async def submit_org_onboarding(
     payload: OrgOnboardingRequest,
     ig: InstagramClient,
     addresses: AddressClient,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Phase 2: create org profile, advance to email verification.
 
@@ -267,6 +311,10 @@ async def submit_org_onboarding(
     - edu_email must not already be verified by another user (unverified
       claims older than the TTL may be taken over).
     """
+    locked_user = await lock_user(db, user.id)
+    if locked_user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
+    user = locked_user
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -279,6 +327,12 @@ async def submit_org_onboarding(
             "Profile has already been submitted.",
             status_code=400,
         )
+
+    if payload.drop_id is not None:
+        await assert_intent_drop_public(db, payload.drop_id)
+
+    if payload.prefill_token:
+        await get_live_prefill(db, payload.prefill_token, lock=True)
 
     await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=payload.edu_email)
 
@@ -306,6 +360,7 @@ async def submit_org_onboarding(
         state=payload.state,
         contact_name=payload.contact_name,
         claimed_instagram_username=canonical_instagram_handle(user.instagram_username),
+        instagram_handle_confirmed=True,
     )
     apply_to_org(org, addr)
     db.add(org)
@@ -334,93 +389,55 @@ async def submit_org_onboarding(
             status_code=400,
         ) from exc
 
+    if payload.drop_id is not None:
+        await record_drop_apply_intent(
+            db, org_id=org.id, drop_id=payload.drop_id, pitch=payload.pitch
+        )
+
     await _seed_follower_count_from_graph(org, user, ig)
     await db.flush()
 
-    email_sent = await _mint_and_send_verification(
-        db, user, payload.edu_email, org_name=payload.org_name
+    email_queued = await _mint_and_send_verification(
+        db, user, payload.edu_email, org_name=payload.org_name, background_tasks=background_tasks
     )
+
+    await mark_prefill_used(db, payload.prefill_token, user.id)
 
     return {
         "org_id": str(org.id),
         "status": user.status,
         "email_sent_to": payload.edu_email,
-        "email_sent": email_sent,
+        "email_queued": email_queued,
     }
-
-
-async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
-    """Correct the .edu address while still awaiting verification."""
-    # META-REVIEWER-PATH: do not let the seeded org replace the email purge keys on.
-    reject_reviewer_mutation(user)
-    if user.portal_role != PortalRole.ORG.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Only organization users verify a .edu email.",
-            status_code=400,
-        )
-    if user.status != OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Account is not awaiting email verification.",
-            status_code=400,
-        )
-
-    if user.edu_email == edu_email:
-        # Same address — behave like a resend rather than a no-op conflict.
-        return await resend_verification_email(db, user)
-
-    await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=edu_email)
-
-    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-    if org is None:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Organization profile is missing.",
-            status_code=400,
-        )
-
-    user.edu_email = edu_email
-    await _invalidate_verification_tokens(db, user.id)
-
-    try:
-        await db.flush()
-    except IntegrityError as exc:
-        raise BuzzAPIException(
-            errors.EDU_EMAIL_TAKEN,
-            "This .edu email is already associated with another account.",
-            status_code=409,
-        ) from exc
-
-    ok = await _mint_and_send_verification(
-        db, user, edu_email, org_name=org.org_name, kind="signup"
-    )
-    if not ok:
-        raise BuzzAPIException(
-            errors.EMAIL_SEND_FAILED,
-            "We could not send the verification email. Please try again.",
-            status_code=502,
-        )
-    return {"email_sent_to": edu_email, "status": user.status}
 
 
 async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     """Redeem a one-time .edu verification token.
 
     Onboarding (``pending_email_verification``): advance to ``pending_approval``.
-    Pending-swap (active / pending_approval with ``pending_edu_email``): swap the
-    live address, clear the latch, refresh ``email_verified_at``, keep status.
+    Pending-swap (latched ``pending_edu_email`` on an approved org, or on
+    ``pending_approval`` when the swap was already started): swap the live
+    address, clear the latch, refresh ``email_verified_at``, keep status.
 
     Returns ``session_minted: True`` on the onboarding branch so the route can
     issue a JWT + refresh cookie (apply-first has no prior IG session).
     """
-    now = _now()
-
-    # FOR UPDATE locks the token row so two concurrent redemptions (double-click)
-    # serialize: the second waits, then sees used_at already set and is rejected.
+    # Read ownership without a child lock, then serialize with erasure before
+    # locking/reloading the token. Never wait for a user while holding a token.
+    token_hash = hash_token(token)
+    user_id = await db.scalar(
+        select(EmailVerificationToken.user_id).where(
+            EmailVerificationToken.token_hash == token_hash
+        )
+    )
+    user = await lock_user(db, user_id) if user_id is not None else None
     evt = await db.scalar(
         select(EmailVerificationToken)
-        .where(EmailVerificationToken.token_hash == hash_token(token))
+        .where(
+            EmailVerificationToken.token_hash == token_hash,
+            EmailVerificationToken.user_id == user_id,
+        )
+        .execution_options(populate_existing=True)
         .with_for_update()
     )
     if evt is None:
@@ -435,6 +452,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
             "This email has already been verified.",
             status_code=400,
         )
+    now = utcnow()
     if evt.expires_at < now:
         raise BuzzAPIException(
             errors.VERIFICATION_TOKEN_EXPIRED,
@@ -442,7 +460,6 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
             status_code=400,
         )
 
-    user = await db.get(User, evt.user_id)
     if user is None:
         raise BuzzAPIException(
             errors.NOT_FOUND,
@@ -452,13 +469,9 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
 
     token_email = (evt.email or "").strip().lower()
 
-    if (
-        user.status in _ROTATE_ELIGIBLE_STATUSES
-        and user.pending_edu_email
-        and token_email == user.pending_edu_email
-    ):
-        # META-REVIEWER-PATH: finishing a rotate would detach the seeded org from purge.
-        reject_reviewer_mutation(user)
+    # Latch, not only rotate-eligible status: a pending_approval org must still
+    # redeem a swap that was started before the lock (or while active).
+    if _latched_rotate_may_finish(user) and token_email == user.pending_edu_email:
         evt.used_at = now
         user.edu_email = user.pending_edu_email
         user.pending_edu_email = None
@@ -482,8 +495,14 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     return {"status": user.status, "session_minted": True, "user": user}
 
 
-async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, Any]:
+async def resend_verification_email(
+    db: AsyncSession, user: User, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Re-send verification (onboarding inbox or pending-swap latch)."""
+    locked_user = await lock_user(db, user.id)
+    if locked_user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
+    user = locked_user
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -501,7 +520,9 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
     if user.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         target = user.edu_email
         kind = "signup"
-    elif user.status in _ROTATE_ELIGIBLE_STATUSES and user.pending_edu_email:
+    elif _latched_rotate_may_finish(user):
+        # Requires a latched pending_edu_email. pending_approval with no swap
+        # does not start resending.
         target = user.pending_edu_email
         kind = "rotate"
     else:
@@ -525,7 +546,9 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
             status_code=429,
         )
 
-    ok = await _mint_and_send_verification(db, user, target, org_name=org_name, kind=kind)
+    ok = await _mint_and_send_verification(
+        db, user, target, org_name=org_name, kind=kind, background_tasks=background_tasks
+    )
     if not ok:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -536,18 +559,28 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
     return {"email_sent_to": target}
 
 
-async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
-    """Start a pending-swap rotate for an active or pending_approval org.
+async def rotate_edu_email(
+    db: AsyncSession, user: User, edu_email: str, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
+    """Start a pending-swap rotate for an approved org.
 
     Keeps the live ``edu_email`` until the new address is verified. Does not
-    demote status or gate the portal.
+    demote status or gate the portal. An org awaiting approval is locked.
     """
-    # META-REVIEWER-PATH: do not let the seeded org replace the email purge keys on.
-    reject_reviewer_mutation(user)
+    locked_user = await lock_user(db, user.id)
+    if locked_user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
+    user = locked_user
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Only organization users verify a .edu email.",
+            status_code=400,
+        )
+    if user.status == OrgUserStatus.PENDING_APPROVAL.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Your school email is locked while we review your application.",
             status_code=400,
         )
     if user.status not in _ROTATE_ELIGIBLE_STATUSES:
@@ -573,7 +606,7 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
     if user.pending_edu_email == edu_email:
         # Same pending address — behave like a resend.
         return {
-            **(await resend_verification_email(db, user)),
+            **(await resend_verification_email(db, user, background_tasks=background_tasks)),
             "pending_edu_email": edu_email,
             "status": user.status,
         }
@@ -601,7 +634,7 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
         ) from exc
 
     ok = await _mint_and_send_verification(
-        db, user, edu_email, org_name=org.org_name, kind="rotate"
+        db, user, edu_email, org_name=org.org_name, kind="rotate", background_tasks=background_tasks
     )
     if not ok:
         raise BuzzAPIException(
@@ -619,12 +652,18 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
 
 async def cancel_pending_edu_email(db: AsyncSession, user: User) -> dict[str, Any]:
     """Clear a pending-swap latch and invalidate unused verification tokens."""
+    locked_user = await lock_user(db, user.id)
+    if locked_user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
+    user = locked_user
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Only organization users verify a .edu email.",
             status_code=400,
         )
+    # pending_approval is locked out of cancel too, even with a latch. They
+    # finish that swap through verify_email; they do not clear it here.
     if user.status not in _ROTATE_ELIGIBLE_STATUSES:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -644,18 +683,23 @@ async def cancel_pending_edu_email(db: AsyncSession, user: User) -> dict[str, An
     return {"ok": True, "status": user.status}
 
 
-async def resend_verification_public(db: AsyncSession, edu_email: str) -> dict[str, Any]:
+async def resend_verification_public(
+    db: AsyncSession, edu_email: str, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Public resend by .edu address (no session). Always returns a benign ack.
 
     Does not reveal whether the email exists. Only resends when the user is in
     ``pending_email_verification``.
     """
     user = await db.scalar(
-        select(User).where(
+        select(User)
+        .where(
             User.edu_email == edu_email,
             User.portal_role == PortalRole.ORG.value,
             User.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value,
         )
+        .execution_options(populate_existing=True)
+        .with_for_update()
     )
     if user is None:
         return {"email_sent_to": edu_email}
@@ -666,11 +710,15 @@ async def resend_verification_public(db: AsyncSession, edu_email: str) -> dict[s
     if await _count_active_verification_tokens(db, user.id) >= 3:
         return {"email_sent_to": edu_email}
 
-    await _mint_and_send_verification(db, user, edu_email, org_name=org_name, kind="signup")
+    await _mint_and_send_verification(
+        db, user, edu_email, org_name=org_name, kind="signup", background_tasks=background_tasks
+    )
     return {"email_sent_to": edu_email}
 
 
-async def resend_verification_from_token(db: AsyncSession, token: str) -> dict[str, Any]:
+async def resend_verification_from_token(
+    db: AsyncSession, token: str, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Mint a new .edu verify mail from an unused (usually expired) token.
 
     The caller already proved they received the original link (same raw token
@@ -692,7 +740,7 @@ async def resend_verification_from_token(db: AsyncSession, token: str) -> dict[s
             status_code=400,
         )
 
-    user = await db.get(User, evt.user_id)
+    user = await lock_user(db, evt.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.VERIFICATION_TOKEN_INVALID,
@@ -706,11 +754,9 @@ async def resend_verification_from_token(db: AsyncSession, token: str) -> dict[s
     if user.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         target = user.edu_email
         kind = "signup"
-    elif (
-        user.status in _ROTATE_ELIGIBLE_STATUSES
-        and user.pending_edu_email
-        and token_email == user.pending_edu_email
-    ):
+    elif _latched_rotate_may_finish(user) and token_email == user.pending_edu_email:
+        # Same latch rule as verify_email: an expired link for a swap started
+        # before pending_approval can still be re-sent. No latch, no resend.
         target = user.pending_edu_email
         kind = "rotate"
     else:
@@ -736,7 +782,9 @@ async def resend_verification_from_token(db: AsyncSession, token: str) -> dict[s
 
     org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
     org_name = org.org_name if org is not None else ""
-    ok = await _mint_and_send_verification(db, user, target, org_name=org_name, kind=kind)
+    ok = await _mint_and_send_verification(
+        db, user, target, org_name=org_name, kind=kind, background_tasks=background_tasks
+    )
     if not ok:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,

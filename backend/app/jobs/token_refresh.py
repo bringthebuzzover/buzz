@@ -1,4 +1,4 @@
-"""Instagram token refresh safety-net cron (architecture.md §10.5.2).
+"""Instagram token refresh safety-net cron (buzz-ops engineering/architecture.md §10.5.2).
 
 Daily. Catches *inactive* orgs the on-login refresh (§10.5.1) misses: refreshes
 long-lived tokens in the safe window (still valid, expiring within 14 days).
@@ -17,9 +17,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
-from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
+from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.instagram import InstagramClient
-from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.instagram_token import (
+    clear_stale_instagram_token,
+    store_refreshed_instagram_token,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,13 +63,15 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
             continue
         try:
             assert user.instagram_access_token is not None
+            previous_identity = (user.instagram_user_id, user.instagram_token_user_id)
+            previous_token = user.instagram_access_token
             new = await ig.refresh_long_lived(decrypt_token(user.instagram_access_token))
         except TokenDecryptionError:
             logger.warning(
                 "clearing undecryptable Instagram token for user %s",
                 user.id,
             )
-            clear_unusable_instagram_token(user)
+            await clear_stale_instagram_token(db, user)
             failed += 1
             continue
         except Exception:  # noqa: BLE001 — keep the old token, count, continue
@@ -77,16 +82,17 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
             )
             failed += 1
             continue
-        # Erase may have committed while Graph was in flight. Reload before
-        # writing so this refresh cannot restore a token the wipe just cleared.
-        await db.refresh(user)
-        if user.status == OrgUserStatus.ERASED.value or not user.instagram_access_token:
+        rotated = await store_refreshed_instagram_token(
+            db,
+            user_id=user.id,
+            expected_identity=previous_identity,
+            expected_token=previous_token,
+            token=new,
+            now=now,
+        )
+        if not rotated:
             skipped += 1
             continue
-        user.instagram_access_token = encrypt_token(new.access_token)
-        user.instagram_token_issued_at = now
-        user.instagram_token_expires_at = now + timedelta(seconds=new.expires_in)
-        user.instagram_token_refreshed_at = now
         refreshed += 1
 
     await db.flush()

@@ -1,73 +1,44 @@
 /**
- * Org-side campaign domain types.
+ * Visible org-facing campaign status. Ended seats (denied, withdrew, removed) are
+ * filtered out of My Campaigns entirely; a canceled drop keeps its seats visible.
  *
- * - `DropApplication` is the persisted application record (decision + timestamps).
- * - `OrgCampaignStatus` is the derived org-facing status shown in My Campaigns.
- *   `Denied` exists in `ApplicationDecision` but is intentionally absent from the visible
- *   surface (PRODUCT.md §6.4: denials are email-only).
+ * A live seat shows its own progress (plan §3.3), computed by the API:
+ * Accepted → Shipped → Delivered → Posted.
  */
+import type { SeatProgress } from "../utils/dropStage";
 
-/** Decision recorded against an application. PRODUCT.md §7.1: no waitlist —
- * each applicant is pending (`applied`), `accepted`, or `denied`. */
-export type ApplicationDecision = "applied" | "accepted" | "denied";
-
-/**
- * Visible org-facing campaign status. Note the absence of `denied`: denied applications
- * are filtered out of My Campaigns entirely.
- */
 export type OrgCampaignStatus =
   | "applied"
-  | "accepted"
-  | "active"
-  | "finished";
+  | "under_review"
+  | SeatProgress
+  | "wrapped"
+  | "canceled";
 
-/** Display order used by My Campaigns when sorting non-active campaigns. */
-export const ORG_CAMPAIGN_STATUS_ORDER: readonly OrgCampaignStatus[] = [
-  "active",
+/** Seated statuses: the org is in and its product and posts are under way. */
+export const SEATED_STATUSES: readonly OrgCampaignStatus[] = [
   "accepted",
+  "shipped",
+  "delivered",
+  "posted",
+] as const;
+
+/** Display order used by My Campaigns: seats in flight first, finished last. */
+export const ORG_CAMPAIGN_STATUS_ORDER: readonly OrgCampaignStatus[] = [
+  ...SEATED_STATUSES,
+  "under_review",
   "applied",
-  "finished",
+  "wrapped",
+  "canceled",
 ] as const;
 
 /** Human-readable labels for status badges. */
 export const ORG_CAMPAIGN_STATUS_LABELS: Record<OrgCampaignStatus, string> = {
   applied: "Applied",
+  under_review: "Under review",
   accepted: "Accepted",
-  active: "Active",
-  finished: "Finished",
-};
-
-/** A row in the applications store. */
-export type DropApplication = {
-  id: string;
-  dropId: string;
-  orgId: string;
-  /** Decision recorded by Buzz (or `applied` initial state). */
-  decision: ApplicationDecision;
-  /** When the org applied. */
-  appliedAt: number;
-  /** When the brand made a decision (accept/deny). */
-  decisionAt?: number;
-  /** Optional pitch text submitted by the org with the application. */
-  pitch?: string;
-  /** Optional tracking number from the parent drop once products ship. */
-  trackingNumber?: string;
-
-  /** Units allocated to this org when the brand finalizes Applicant Selection. */
-  allocatedUnits?: number;
-};
-
-/**
- * Derived view object combining a participation record with its source drop, used by
- * UI components rendering My Campaigns rows and detail pages.
- */
-export type OrgCampaignParticipation = {
-  applicationId: string;
-  dropId: string;
-  orgId: string;
-  status: OrgCampaignStatus;
-  /** Application row's `appliedAt` (used for recency sort). */
-  appliedAt: number;
-  /** Optional tracking number to display on Accepted/Active. */
-  trackingNumber?: string;
+  shipped: "Shipped",
+  delivered: "Delivered",
+  posted: "Posted",
+  wrapped: "Wrapped",
+  canceled: "Canceled",
 };

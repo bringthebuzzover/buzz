@@ -25,34 +25,33 @@ import { authUserFromWire, setAccessToken } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
-import AuthShell from "../../components/site/AuthShell";
+import AuthPending from "../../components/auth/AuthPending";
+import StatusHero from "../../components/site/StatusHero";
 import { Button, ErrorBanner, SuccessBanner } from "../../components/forms/controls";
-import { TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import type { components } from "../../api/generated/schema";
 
 type UserWire = components["schemas"]["UserResponse"];
 
 const JUNK_HINT =
-  "Campus inboxes often put first-time Buzz mail in Junk.";
+  "Campus inboxes often put first-time BUZZ mail in Junk.";
 
 function ListedEduEmail({ email }: { email: string }) {
   return (
     <p
       data-testid="verify-edu-email"
-      className="mb-2 break-all text-base font-semibold text-buzz-ink"
+      className="break-all text-base font-medium text-primary"
     >
       {email}
     </p>
   );
 }
 
-function readEmailSentFlag(locationState: unknown): boolean {
+function readEmailQueuedFlag(locationState: unknown): boolean {
   const fromState =
     locationState &&
     typeof locationState === "object" &&
-    "emailSent" in locationState
-      ? (locationState as { emailSent?: boolean }).emailSent
+    "emailQueued" in locationState
+      ? (locationState as { emailQueued?: boolean }).emailQueued
       : undefined;
   if (typeof fromState === "boolean") {
     return fromState;
@@ -73,7 +72,7 @@ function readEduEmail(locationState: unknown): string {
   return (sessionStorage.getItem(VERIFY_EDU_EMAIL_KEY) ?? "").trim().toLowerCase();
 }
 
-function markEmailSent(ok: boolean) {
+function markEmailQueued(ok: boolean) {
   sessionStorage.setItem(VERIFY_EMAIL_SENT_KEY, ok ? "1" : "0");
 }
 
@@ -106,11 +105,7 @@ export default function VerifyEmailPage() {
   // fresh tab. That means on reload we must wait for the auth bootstrap before
   // deciding — otherwise the redirect fires while user is still null.
   if (status === "idle" || status === "authenticating") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
-      </div>
-    );
+    return <AuthPending />;
   }
 
   if (user?.status === "pending_email_verification") {
@@ -121,7 +116,7 @@ export default function VerifyEmailPage() {
     return <PublicAwaitVerification />;
   }
 
-  return <Navigate to={pathForUser(user)} replace />;
+  return <Navigate to={pathForUser(user, searchParams.get("next"))} replace />;
 }
 
 type VerifyState =
@@ -135,13 +130,14 @@ type VerifyState =
 function VerifyWithToken({ token }: { token: string }) {
   const { acceptSession, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const verify = useVerifyEmail();
   const resendFromToken = useResendVerificationFromToken();
   const [state, setState] = useState<VerifyState>({ kind: "idle" });
   const inFlightRef = useRef(false);
 
   const finishSuccess = async (sessionUser: AuthUser | null) => {
-    stripTokenFromUrl();
+    stripTokenFromUrl(params.get("next"));
     setState({ kind: "success", user: sessionUser });
   };
 
@@ -203,8 +199,8 @@ function VerifyWithToken({ token }: { token: string }) {
       if (sentTo) {
         markEduEmail(sentTo);
       }
-      markEmailSent(true);
-      stripTokenFromUrl();
+      markEmailQueued(true);
+      stripTokenFromUrl(params.get("next"));
       setState({ kind: "resent", email: sentTo });
     } catch (err) {
       setState({
@@ -222,63 +218,49 @@ function VerifyWithToken({ token }: { token: string }) {
 
   if (state.kind === "idle") {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          Verify Your <span className="text-buzz-coral">Email</span>
-        </h1>
-        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-          Confirm this is you to finish verifying your school email.
-        </p>
-        <Button
-          type="button"
-          onClick={() => void onConfirm()}
-          disabled={verify.isPending}
-          fullWidth
-        >
-          Verify email
-        </Button>
-      </AuthShell>
+      <StatusHero
+        title="Verify Your Email"
+        action={
+          <Button
+            type="button"
+            size="field"
+            onClick={() => void onConfirm()}
+            disabled={verify.isPending}
+          >
+            Verify email
+          </Button>
+        }
+      >
+        Confirm this is you to finish verifying your school email.
+      </StatusHero>
     );
   }
 
   if (state.kind === "verifying") {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          Verifying Your <span className="text-buzz-coral">Email</span>…
-        </h1>
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          One moment while we confirm your address.
-        </p>
-      </AuthShell>
+      <StatusHero title="Verifying Your Email…">
+        One moment while we confirm your address.
+      </StatusHero>
     );
   }
 
   if (state.kind === "resending") {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          Sending a <span className="text-buzz-coral">New Link</span>…
-        </h1>
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          One moment while we email a fresh verification link.
-        </p>
-      </AuthShell>
+      <StatusHero title="Sending a New Link…">
+        One moment while we email a fresh verification link.
+      </StatusHero>
     );
   }
 
   if (state.kind === "resent") {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          New Link <span className="text-buzz-coral">Sent</span>
-        </h1>
-        <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
-          Check this school inbox (and Junk) for a fresh verification link.
-        </p>
+      <StatusHero
+        title="New Link Queued"
+        notice={<SuccessBanner>{JUNK_HINT}</SuccessBanner>}
+      >
+        <p>Check this school inbox (and Junk) for a fresh verification link.</p>
         {state.email ? <ListedEduEmail email={state.email} /> : null}
-        <p className="mt-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
-      </AuthShell>
+      </StatusHero>
     );
   }
 
@@ -287,24 +269,23 @@ function VerifyWithToken({ token }: { token: string }) {
       state.code === "VERIFICATION_TOKEN_EXPIRED" ||
       state.code === "EMAIL_SEND_FAILED";
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-semibold text-buzz-danger">
-          Verification Failed
-        </h1>
-        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-          {state.message}
-        </p>
-        {canResendFromToken ? (
-          <Button
-            type="button"
-            onClick={() => void onRequestNewLink()}
-            disabled={resendFromToken.isPending}
-            fullWidth
-          >
-            Request a new link
-          </Button>
-        ) : null}
-      </AuthShell>
+      <StatusHero
+        title="Verification Failed"
+        action={
+          canResendFromToken ? (
+            <Button
+              type="button"
+              size="field"
+              onClick={() => void onRequestNewLink()}
+              disabled={resendFromToken.isPending}
+            >
+              Request a new link
+            </Button>
+          ) : null
+        }
+      >
+        {state.message}
+      </StatusHero>
     );
   }
 
@@ -317,22 +298,23 @@ function VerifyWithToken({ token }: { token: string }) {
       : state.user?.status === "pending_approval"
         ? "Your school email is confirmed. Your account is awaiting admin approval."
         : "Thanks! Your account is now pending admin approval. We'll let you in as soon as a Buzz admin reviews it.";
-  const continueTo = state.user ? pathForUser(state.user) : "/login";
+  const continueTo = state.user ? pathForUser(state.user, params.get("next")) : "/login";
 
   return (
-    <AuthShell align="center" className="text-center">
-      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-        Email <span className="text-buzz-coral">Verified</span>
-      </h1>
-      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{successCopy}</p>
-      <Button
-        type="button"
-        onClick={() => navigate(continueTo, { replace: true })}
-          fullWidth
-      >
-        Continue
-      </Button>
-    </AuthShell>
+    <StatusHero
+      title="Email Verified"
+      action={
+        <Button
+          type="button"
+          size="field"
+          onClick={() => navigate(continueTo, { replace: true })}
+        >
+          Continue
+        </Button>
+      }
+    >
+      {successCopy}
+    </StatusHero>
   );
 }
 
@@ -343,12 +325,12 @@ function AwaitVerification() {
   const location = useLocation();
   const resend = useResendVerification();
   const listedEmail = (user?.email ?? "").trim().toLowerCase();
-  const [emailSent, setEmailSent] = useState(() =>
-    readEmailSentFlag(location.state),
+  const [emailQueued, setEmailQueued] = useState(() =>
+    readEmailQueuedFlag(location.state),
   );
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
-    emailSent
+    emailQueued
       ? null
       : "We could not send the verification email. Use Resend below to try again.",
   );
@@ -368,12 +350,12 @@ function AwaitVerification() {
     setError(null);
     try {
       await resend.mutateAsync();
-      markEmailSent(true);
-      setEmailSent(true);
-      setNotice("Verification email re-sent. Check your inbox.");
+      markEmailQueued(true);
+      setEmailQueued(true);
+      setNotice("Verification email queued. Check your inbox.");
     } catch (err) {
-      markEmailSent(false);
-      setEmailSent(false);
+      markEmailQueued(false);
+      setEmailQueued(false);
       setError(
         err instanceof ApiError
           ? err.message
@@ -383,42 +365,41 @@ function AwaitVerification() {
   };
 
   return (
-    <AuthShell align="center" className="text-center">
-      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-        Verify Your <span className="text-buzz-coral">Email</span>
-      </h1>
-      <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
-        {emailSent
+    <StatusHero
+      title="Verify Your Email"
+      notice={
+        <>
+          <SuccessBanner>{JUNK_HINT}</SuccessBanner>
+          {notice ? (
+            <div className="mt-3">
+              <SuccessBanner>{notice}</SuccessBanner>
+            </div>
+          ) : null}
+        </>
+      }
+      action={
+        <div className="flex w-full flex-col items-center gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void onResend()}
+            disabled={resend.isPending}
+          >
+            {resend.isPending ? "Sending…" : "Resend email"}
+          </Button>
+          {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+        </div>
+      }
+    >
+      <p>
+        {emailQueued
           ? listedEmail
-            ? "We sent a verification link to this school email. Click it to continue."
-            : "We sent a verification link to your school email. Click it to continue."
+            ? "We queued a verification email for this school email. Click it to continue."
+            : "We queued a verification email for your school email. Click it to continue."
           : "Your profile is saved, but we could not send the verification email yet. Use Resend below when you are ready."}
       </p>
       {listedEmail ? <ListedEduEmail email={listedEmail} /> : null}
-      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
-
-      {notice && (
-        <div className="mb-4">
-          <SuccessBanner>{notice}</SuccessBanner>
-        </div>
-      )}
-
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => void onResend()}
-        disabled={resend.isPending}
-          fullWidth
-      >
-        {resend.isPending ? "Sending…" : "Resend email"}
-      </Button>
-
-      {error && (
-        <div className="mt-4">
-          <ErrorBanner>{error}</ErrorBanner>
-        </div>
-      )}
-    </AuthShell>
+    </StatusHero>
   );
 }
 
@@ -427,13 +408,13 @@ function PublicAwaitVerification() {
   const location = useLocation();
   const publicResend = usePublicResendVerification();
   const dropIntent = readDropIntent(location.state);
-  const [emailSent, setEmailSent] = useState(() =>
-    readEmailSentFlag(location.state),
+  const [emailQueued, setEmailQueued] = useState(() =>
+    readEmailQueuedFlag(location.state),
   );
   const [eduEmail] = useState(() => readEduEmail(location.state));
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
-    emailSent
+    emailQueued
       ? null
       : "We could not send the verification email. Use Resend below to try again.",
   );
@@ -451,12 +432,12 @@ function PublicAwaitVerification() {
     try {
       await publicResend.mutateAsync(trimmed);
       markEduEmail(trimmed);
-      markEmailSent(true);
-      setEmailSent(true);
-      setNotice("Verification email re-sent. Check your inbox (and Junk).");
+      markEmailQueued(true);
+      setEmailQueued(true);
+      setNotice("Verification email queued. Check your inbox (and Junk).");
     } catch (err) {
-      markEmailSent(false);
-      setEmailSent(false);
+      markEmailQueued(false);
+      setEmailQueued(false);
       setError(
         err instanceof ApiError
           ? err.message
@@ -466,50 +447,51 @@ function PublicAwaitVerification() {
   };
 
   return (
-    <AuthShell align="center" className="text-center">
-      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-        Verify Your <span className="text-buzz-coral">Email</span>
-      </h1>
-      <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
+    <StatusHero
+      title="Verify Your Email"
+      notice={
+        <>
+          {dropIntent ? (
+            <SuccessBanner>
+              We&apos;ll submit when your organization is approved and connected.
+            </SuccessBanner>
+          ) : null}
+          <div className={dropIntent ? "mt-3" : undefined}>
+            <SuccessBanner>{JUNK_HINT}</SuccessBanner>
+          </div>
+          {notice ? (
+            <div className="mt-3">
+              <SuccessBanner>{notice}</SuccessBanner>
+            </div>
+          ) : null}
+        </>
+      }
+      action={
+        eduEmail || error ? (
+          <div className="flex w-full flex-col items-center gap-4">
+            {eduEmail ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void onResend()}
+                disabled={publicResend.isPending}
+              >
+                {publicResend.isPending ? "Sending…" : "Resend email"}
+              </Button>
+            ) : null}
+            {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+          </div>
+        ) : undefined
+      }
+    >
+      <p>
         {eduEmail
-          ? emailSent
-            ? "We sent a verification link to this school email. Click it to continue."
+          ? emailQueued
+            ? "We queued a verification email for this school email. Click it to continue."
             : "Use Resend below to send the verification link to this school email."
-          : "We sent a verification link to the school email on your application. Click it to continue."}
+          : "We queued a verification email for the school email on your application. Click it to continue."}
       </p>
       {eduEmail ? <ListedEduEmail email={eduEmail} /> : null}
-      {dropIntent ? (
-        <div className="mb-4">
-          <SuccessBanner>
-            We&apos;ll submit when your organization is approved and connected.
-          </SuccessBanner>
-        </div>
-      ) : null}
-      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
-
-      {notice && (
-        <div className="mb-4">
-          <SuccessBanner>{notice}</SuccessBanner>
-        </div>
-      )}
-
-      {eduEmail ? (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void onResend()}
-          disabled={publicResend.isPending}
-          fullWidth
-        >
-          {publicResend.isPending ? "Sending…" : "Resend email"}
-        </Button>
-      ) : null}
-
-      {error && (
-        <div className="mt-4">
-          <ErrorBanner>{error}</ErrorBanner>
-        </div>
-      )}
-    </AuthShell>
+    </StatusHero>
   );
 }

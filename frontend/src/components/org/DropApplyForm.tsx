@@ -21,7 +21,10 @@ export default function DropApplyForm({
   const [pitch, setPitch] = useState("");
 
   const handleSubmit = () => {
-    void mutation.mutateAsync(pitch || undefined).then(() => onSuccess?.());
+    void mutation.mutateAsync(pitch || undefined).then(
+      () => onSuccess?.(),
+      () => {},
+    );
   };
 
   return (
@@ -29,7 +32,8 @@ export default function DropApplyForm({
       <h2 className={cn(TEXT.h2, "mb-4")}>Apply to Drop</h2>
       <div className={STACK.default}>
         <TextArea
-          placeholder="Optional pitch message..."
+          label="Pitch (optional)"
+          placeholder="e.g. We host weekly mixers and can staff a table at the student center"
           value={pitch}
           onChange={(e) => setPitch(e.target.value)}
           rows={4}

@@ -1,18 +1,20 @@
-"""Password reset for brand and admin accounts."""
+"""Password reset for brand accounts."""
 
 from __future__ import annotations
 
 import logging
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Literal
+from datetime import timedelta
+from typing import Any
 
+from fastapi import BackgroundTasks
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.config import settings
+from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
 from app.models.enums import OrgUserStatus, PortalRole
@@ -22,40 +24,21 @@ from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
 from app.security.session import bump_token_version, commit_revocation
 from app.services.email import KIND_PASSWORD_RESET, build_idempotency_key, send_password_reset_email
+from app.services.email_tasks import schedule_email
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
-Portal = Literal["brand", "admin"]
 
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-async def _find_user_for_reset(db: AsyncSession, portal: Portal, email: str) -> User | None:
+async def _find_user_for_reset(db: AsyncSession, email: str) -> User | None:
     normalized = email.strip().lower()
-    if portal == "brand":
-        brand = await db.scalar(select(Brand).where(func.lower(Brand.company_email) == normalized))
-        if brand is None:
-            return None
-        user = await db.get(User, brand.user_id)
-        if (
-            user is None
-            or user.portal_role != PortalRole.BRAND.value
-            or user.status != OrgUserStatus.ACTIVE.value
-            or not user.password_hash
-        ):
-            return None
-        return user
-
-    user = await db.scalar(
-        select(User).where(
-            func.lower(User.edu_email) == normalized,
-            User.portal_role == PortalRole.ADMIN.value,
-        )
-    )
+    brand = await db.scalar(select(Brand).where(func.lower(Brand.company_email) == normalized))
+    if brand is None:
+        return None
+    user = await db.get(User, brand.user_id)
     if (
-        not isinstance(user, User)
+        user is None
+        or user.portal_role != PortalRole.BRAND.value
         or user.status != OrgUserStatus.ACTIVE.value
         or not user.password_hash
     ):
@@ -63,19 +46,37 @@ async def _find_user_for_reset(db: AsyncSession, portal: Portal, email: str) -> 
     return user
 
 
+async def _send_reset_after_commit(token_id: uuid.UUID, email: str, raw: str) -> bool:
+    ok = await send_password_reset_email(
+        email,
+        raw,
+        idempotency_key=build_idempotency_key(KIND_PASSWORD_RESET, token_id),
+    )
+    if not ok:
+        async with async_session_factory() as db:
+            await db.execute(
+                update(PasswordResetToken)
+                .where(PasswordResetToken.id == token_id)
+                .values(used_at=utcnow())
+            )
+            await db.commit()
+        logger.warning("Password reset email failed; token invalidated: to=%s", email)
+    return ok
+
+
 async def request_password_reset(
     db: AsyncSession,
     *,
-    portal: Portal,
     email: str,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Enumerate-safe forgot-password: always returns the same success shape."""
     normalized = email.strip().lower()
-    user = await _find_user_for_reset(db, portal, normalized)
+    user = await _find_user_for_reset(db, normalized)
     if user is None:
         return {"ok": True}
 
-    now = _now()
+    now = utcnow()
     await db.execute(
         update(PasswordResetToken)
         .where(
@@ -96,10 +97,12 @@ async def request_password_reset(
     db.add(row)
     await db.flush()
 
+    if background_tasks is not None:
+        await schedule_email(background_tasks, _send_reset_after_commit, row.id, normalized, raw)
+        return {"ok": True}
     ok = await send_password_reset_email(
         normalized,
         raw,
-        portal=portal,
         idempotency_key=build_idempotency_key(KIND_PASSWORD_RESET, row.id),
     )
     if not ok:
@@ -108,8 +111,7 @@ async def request_password_reset(
         row.used_at = now
         await db.flush()
         logger.warning(
-            "Password reset email failed; token invalidated: portal=%s to=%s",
-            portal,
+            "Password reset email failed; token invalidated: to=%s",
             normalized,
         )
     return {"ok": True}
@@ -118,12 +120,11 @@ async def request_password_reset(
 async def reset_password(
     db: AsyncSession,
     *,
-    portal: Portal,
     token: str,
     password: str,
 ) -> dict[str, Any]:
     """Consume a reset token, set the new password, and bump token_version."""
-    now = _now()
+    now = utcnow()
     token_hash = hash_token(token)
     row = await db.scalar(
         select(PasswordResetToken)
@@ -150,8 +151,12 @@ async def reset_password(
         )
 
     user = await db.get(User, row.user_id)
-    expected_role = PortalRole.BRAND.value if portal == "brand" else PortalRole.ADMIN.value
-    if user is None or user.portal_role != expected_role:
+    if (
+        user is None
+        or user.portal_role != PortalRole.BRAND.value
+        or user.status != OrgUserStatus.ACTIVE.value
+        or not user.password_hash
+    ):
         raise BuzzAPIException(
             errors.PASSWORD_RESET_TOKEN_INVALID,
             "Invalid or expired reset link.",

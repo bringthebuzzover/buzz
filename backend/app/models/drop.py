@@ -1,11 +1,10 @@
 """``drops`` table — a single brand campaign offered to student orgs.
 
 Brand display name lives on ``brands.brand_name`` (join via ``brand_id``).
-``tracking_number`` is a leftover column — product paths read/write
-``drop_application_shipments`` instead (PRODUCT §3.1.1).
+Shipping is tracked per seat in ``drop_application_shipments`` (PRODUCT §3.1.1).
 
 ``total_product_units`` is nullable to distinguish two campaign modes
-(architecture §3.2 + PRODUCT.md §4.1):
+(architecture §3.2 + buzz-ops product/PRODUCT.md §4.1):
 
 * ``NULL`` — **spot-only** selection. Brand just accepts/denies orgs.
 * ``>= 1`` — **unit-allocated**. Brand must split units across accepted
@@ -21,7 +20,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
-from app.models.enums import BrandTrackerStageEnum
 
 
 class Drop(Base):
@@ -50,24 +48,25 @@ class Drop(Base):
     capacity_total: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     apply_open_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
     apply_close_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
-    manual_reopen: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=False, server_default=sa.text("false")
-    )
-
-    brand_tracker_stage: Mapped[str] = mapped_column(BrandTrackerStageEnum, nullable=False)
-    tracking_number: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
-
     total_product_units: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     campaign_hashtag: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     brand_can_edit_creative: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, server_default=sa.text("false")
     )
 
-    applicant_selection_finalized_at: Mapped[datetime | None] = mapped_column(
-        sa.DateTime(timezone=True), nullable=True
-    )
     published_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     hidden_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # BUZZ wrapped the drop up (reporting period over). Not a lock: BUZZ can
+    # still late-add, and orgs can link for ``ORG_LINK_GRACE`` after this.
+    wrapped_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # BUZZ canceled the drop (final; D-11). New seats, links and shipments
+    # stop; what exists stays for the brand report.
+    canceled_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # How many "Choose your orgs" emails the brand got after close (0–3,
+    # ``drop_notices.CHOOSE_ORGS_AFTER_CLOSE``).
+    choose_orgs_emails_sent: Mapped[int] = mapped_column(
+        sa.SmallInteger, nullable=False, server_default=sa.text("0"), default=0
+    )
     drop_request_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.Uuid,
         sa.ForeignKey("drop_requests.id", use_alter=True, name="fk_drops_drop_request_id"),

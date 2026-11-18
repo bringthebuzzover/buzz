@@ -12,7 +12,7 @@ fixtures so failures stay self-contained and easy to read.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import select
@@ -35,8 +35,8 @@ from app.models import (
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     DropApplyIntentStatus,
+    DropStage,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -46,10 +46,7 @@ from app.models.enums import (
     SuggestionMatchReason,
 )
 from app.security.one_shot_tokens import hash_token
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.timeutils import utcnow
 
 
 async def _make_org_user(session: AsyncSession, ig_id: str = "ig_x") -> User:
@@ -59,7 +56,7 @@ async def _make_org_user(session: AsyncSession, ig_id: str = "ig_x") -> User:
         instagram_user_id=ig_id,
         instagram_username=ig_id,
         edu_email=f"{ig_id}@uni.edu",
-        email_verified_at=_now(),
+        email_verified_at=utcnow(),
     )
     session.add(user)
     await session.flush()
@@ -105,7 +102,7 @@ async def _make_brand(session: AsyncSession) -> Brand:
 
 async def _make_drop(session: AsyncSession) -> Drop:
     brand = await _make_brand(session)
-    now = _now()
+    now = utcnow()
     drop = Drop(
         brand_id=brand.id,
         title="Test Drop",
@@ -115,8 +112,6 @@ async def _make_drop(session: AsyncSession) -> Drop:
         capacity_total=5,
         apply_open_at=now - timedelta(days=1),
         apply_close_at=now + timedelta(days=1),
-        manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
     )
     session.add(drop)
     await session.flush()
@@ -168,7 +163,7 @@ async def test_drop_roundtrip(db_session: AsyncSession) -> None:
     fetched = await db_session.scalar(select(Drop).where(Drop.id == drop.id))
     assert fetched is not None
     assert fetched.title == "Test Drop"
-    assert fetched.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
+    assert fetched.wrapped_at is None
     assert fetched.total_product_units is None  # nullable for spot-only drops
 
 
@@ -203,7 +198,7 @@ async def test_social_post_roundtrip(db_session: AsyncSession) -> None:
         caption="caption",
         media_type=SocialMediaType.VIDEO.value,
         media_product_type=SocialMediaProductType.REELS.value,
-        posted_at=_now(),
+        posted_at=utcnow(),
         likes=10,
         comments=2,
         reels_skip_rate=62.8,
@@ -238,7 +233,7 @@ async def test_post_campaign_link_roundtrip(db_session: AsyncSession) -> None:
         caption="x",
         media_type=SocialMediaType.IMAGE.value,
         media_product_type=SocialMediaProductType.FEED.value,
-        posted_at=_now(),
+        posted_at=utcnow(),
     )
     db_session.add_all([app, post])
     await db_session.flush()
@@ -273,7 +268,7 @@ async def test_post_campaign_suggestion_roundtrip(db_session: AsyncSession) -> N
         caption="@testbrand looks great",
         media_type=SocialMediaType.IMAGE.value,
         media_product_type=SocialMediaProductType.FEED.value,
-        posted_at=_now(),
+        posted_at=utcnow(),
     )
     db_session.add_all([app, post])
     await db_session.flush()
@@ -300,7 +295,7 @@ async def test_drop_tracker_event_roundtrip(db_session: AsyncSession) -> None:
     drop = await _make_drop(db_session)
     event_row = DropTrackerEvent(
         drop_id=drop.id,
-        stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
+        stage=DropStage.LIVE.value,
         note="handed to courier",
     )
     db_session.add(event_row)
@@ -310,7 +305,7 @@ async def test_drop_tracker_event_roundtrip(db_session: AsyncSession) -> None:
         select(DropTrackerEvent).where(DropTrackerEvent.id == event_row.id)
     )
     assert fetched is not None
-    assert fetched.stage == BrandTrackerStage.AWAITING_PRODUCTS.value
+    assert fetched.stage == DropStage.LIVE.value
 
 
 @pytest.mark.asyncio
@@ -360,7 +355,7 @@ async def test_email_verification_token_roundtrip(db_session: AsyncSession) -> N
         user_id=user.id,
         token_hash=hash_token(uuid.uuid4().hex),
         email=user.edu_email or "x@uni.edu",
-        expires_at=_now() + timedelta(hours=1),
+        expires_at=utcnow() + timedelta(hours=1),
     )
     db_session.add(token)
     await db_session.flush()

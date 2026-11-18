@@ -1,72 +1,91 @@
 /**
- * /org/apply — public org apply-first signup (LAUNCH.md Phase A / PRODUCT §6.1).
+ * /org/apply — public Instagram-first org onboarding entry point.
  *
- * Collects the full org profile plus a claimed Instagram handle (§6.1.1).
- * The handle is typed and stored unconfirmed until Connect. On success the
- * org waits for .edu verification with no session yet.
+ * Connects the organization's Instagram Business or Creator account first, or
+ * displays the personal-account recovery state when redirected with
+ * `?error=personal_account`.
  */
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useOrgApplyPrefill } from "../../api/hooks/useOnboardingHooks";
-import { WarningBanner } from "../../components/forms/controls";
-import PageShell from "../../components/site/PageShell";
-import { SURFACE, TEXT } from "../../theme/tokens";
+import { useState } from "react";
+import { Navigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import {
+  AuthArrowLink,
+  AuthHeading,
+  AuthLinkRow,
+  AuthSplit,
+} from "../../components/auth/AuthFrame";
+import { Button } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
-import OrgApplyForm, {
-  goToVerifyEmailWait,
-} from "../../components/org/OrgApplyForm";
+import { pathForUser } from "../../utils/landing";
+import { allowlistedOAuthNext, allowlistedPrefill } from "../../utils/oauthNext";
 
 export default function OrgApplyPage() {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [prefillToken] = useState(() => searchParams.get("prefill"));
-  const prefill = useOrgApplyPrefill(prefillToken);
-  const hydratedNotice = useRef(false);
-  const [prefillError, setPrefillError] = useState<string | null>(null);
+  const { login, user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const next = allowlistedOAuthNext(searchParams.get("next"));
+  const prefill = allowlistedPrefill(searchParams.get("prefill"));
+  const isPersonalAccountError =
+    searchParams.get("error") === "personal_account";
+  const [connecting, setConnecting] = useState(false);
 
-  useEffect(() => {
-    if (!prefillToken) return;
-    setSearchParams({}, { replace: true });
-  }, [prefillToken, setSearchParams]);
-
-  useEffect(() => {
-    if (prefill.isError && prefillToken && !hydratedNotice.current) {
-      hydratedNotice.current = true;
-      setPrefillError(
-        "This apply link is invalid or expired. You can still fill out the form.",
-      );
-    }
-  }, [prefill.isError, prefillToken]);
+  if (user) return <Navigate to={pathForUser(user, next, prefill)} replace />;
 
   return (
-    <PageShell width="form">
-      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
-        Apply as a <span className="text-buzz-coral">Student Organization</span>
-      </h1>
-      <p className="mb-4 text-center text-sm font-medium text-buzz-inkMuted">
-        Tell us about your organization. We&apos;ll verify your school email,
-        review your application, then invite you to connect Instagram.
-      </p>
-      {prefillError && (
-        <div className="mb-4" data-testid="org-apply-prefill-error">
-          <WarningBanner>{prefillError}</WarningBanner>
+    <AuthSplit asideStatement="Join as a student organization and work with brands on real campus campaigns.">
+      {isPersonalAccountError ? (
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-buzz-danger">
+            Professional Account Required
+          </p>
+          <h1 className={cn(TEXT.h1, "text-primary")}>Account Type Error</h1>
+          <p className={cn(TEXT.bodyLong, "text-muted")}>
+            Your Instagram account is set to Personal. Switch to a free Business
+            or Creator account in Instagram Settings, then retry below.
+          </p>
         </div>
+      ) : (
+        <AuthHeading kicker="Apply as a" title="Student Organization">
+          Connect your organization&apos;s Instagram to get started. BUZZ
+          verifies your handle and audience metrics directly with Meta.
+        </AuthHeading>
       )}
-      <p className={cn(SURFACE.inset, "mb-8 px-3 py-3 text-xs font-medium text-buzz-inkMuted")}>
-        Your Instagram must be the organization&apos;s{" "}
-        <span className="font-semibold text-buzz-ink">Business or Creator</span>{" "}
-        account — not a personal member profile. Personal accounts cannot be
-        used on Buzz.
-      </p>
 
-      <OrgApplyForm
-        prefillToken={prefillToken}
-        prefill={prefill.data}
-        submitLabel="Submit application"
-        onSuccess={(result, eduEmail) => {
-          goToVerifyEmailWait(navigate, result, eduEmail);
+      <Button
+        type="button"
+        size="field"
+        fullWidth
+        loading={connecting}
+        loadingLabel="Connecting…"
+        onClick={() => {
+          setConnecting(true);
+          login(next, prefill);
         }}
-      />
-    </PageShell>
+      >
+        {isPersonalAccountError
+          ? "Try Again with Instagram"
+          : "Continue with Instagram"}
+      </Button>
+
+      <div className="space-y-3">
+        {isPersonalAccountError ? (
+          <AuthLinkRow quiet="Need help?">
+            <AuthArrowLink to="/for-orgs#instagram-guide">
+              View Instagram guide
+            </AuthArrowLink>
+          </AuthLinkRow>
+        ) : (
+          <AuthLinkRow quiet="Already applied?">
+            <AuthArrowLink to="/login">Log in with Instagram</AuthArrowLink>
+          </AuthLinkRow>
+        )}
+        <p>
+          <AuthArrowLink to="/for-orgs">See how it works</AuthArrowLink>
+        </p>
+        <AuthLinkRow quiet="Are you a brand?">
+          <AuthArrowLink to="/brand/login">Brand login</AuthArrowLink>
+        </AuthLinkRow>
+      </div>
+    </AuthSplit>
   );
 }

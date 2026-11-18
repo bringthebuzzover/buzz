@@ -1,10 +1,7 @@
-import { useMemo, useState } from "react";
-import { CalendarPlus, Check } from "lucide-react";
+import { useId, useState } from "react";
 import { REMINDER_CHOICES } from "../../../api/hooks/useDropHooks";
-import { Modal } from "../../ui/Modal";
-import { Button } from "../../forms/controls";
-import { STACK, TEXT } from "../../../theme/tokens";
-import { cn } from "../../../theme/cn";
+import { Modal, ModalActions } from "../../ui/Modal";
+import { Button, Radio } from "../../forms/controls";
 
 type NotifyMeModalProps = {
   dropTitle: string;
@@ -21,10 +18,13 @@ const REMINDER_LABELS: Record<(typeof REMINDER_CHOICES)[number], string> = {
   5: "5 minutes before",
 };
 
-/** UI order: longest lead time first. */
-const REMINDER_OPTIONS = ([...REMINDER_CHOICES] as Array<(typeof REMINDER_CHOICES)[number]>)
-  .sort((a, b) => b - a)
-  .map((minutes) => ({ minutes, label: REMINDER_LABELS[minutes] }));
+/** UI order: longest lead time first, then the explicit opt-out. */
+const REMINDER_OPTIONS: Array<{ minutes: number | null; label: string }> = [
+  ...([...REMINDER_CHOICES] as Array<(typeof REMINDER_CHOICES)[number]>)
+    .sort((a, b) => b - a)
+    .map((minutes) => ({ minutes, label: REMINDER_LABELS[minutes] })),
+  { minutes: null, label: "No reminder — Confirm to opt out" },
+];
 
 export default function NotifyMeModal({
   dropTitle,
@@ -32,74 +32,41 @@ export default function NotifyMeModal({
   onClose,
   onConfirm,
 }: NotifyMeModalProps) {
+  const name = useId();
   const [selectedMinutes, setSelectedMinutes] = useState<number | null>(
     initialSelection[0] ?? null,
   );
-
-  const summary = useMemo(() => {
-    if (selectedMinutes == null) return "No reminder — Confirm to opt out";
-    const option = REMINDER_OPTIONS.find((o) => o.minutes === selectedMinutes);
-    return option ? option.label : "1 reminder selected";
-  }, [selectedMinutes]);
-
-  const handleConfirm = () => {
-    onConfirm(selectedMinutes);
-    onClose();
-  };
 
   return (
     <Modal
       onClose={onClose}
       title={dropTitle}
       description="Pick one reminder before the drop opens, or confirm with none to opt out."
-      size="wide"
     >
-      <div className={cn("px-6 pb-6 pt-4", STACK.default)}>
-        <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Reminder timing</p>
-
-        <div className={STACK.tight} role="radiogroup" aria-label="Reminder timing">
-          {REMINDER_OPTIONS.map((option) => {
-            const selected = selectedMinutes === option.minutes;
-            return (
-              <button
-                key={option.minutes}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() =>
-                  setSelectedMinutes((prev) =>
-                    prev === option.minutes ? null : option.minutes,
-                  )
-                }
-                className={cn(
-                  "flex w-full items-center justify-between rounded-buzzControl border px-4 py-3 text-left transition",
-                  selected
-                    ? "border-buzz-coral bg-buzz-paper text-buzz-ink"
-                    : "border-buzz-lineMid bg-buzz-paper text-buzz-ink hover:bg-buzz-cream",
-                )}
-              >
-                <span className={cn(TEXT.body, "font-semibold")}>{option.label}</span>
-                {selected ? (
-                  <span className="rounded-full bg-buzz-coral p-1 text-buzz-paper">
-                    <Check size={14} />
-                  </span>
-                ) : (
-                  <span className="h-5 w-5 rounded-full border border-buzz-inkFaint" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <Button type="button" fullWidth onClick={handleConfirm}>
-          {selectedMinutes == null ? "Confirm — no reminder" : "Confirm reminder"}
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-xs text-quiet">Reminder timing</legend>
+        {REMINDER_OPTIONS.map((option) => (
+          <Radio
+            key={option.minutes ?? "none"}
+            name={name}
+            value={option.minutes ?? ""}
+            checked={selectedMinutes === option.minutes}
+            onChange={() => setSelectedMinutes(option.minutes)}
+            label={option.label}
+          />
+        ))}
+      </fieldset>
+      <ModalActions onCancel={onClose}>
+        <Button
+          type="button"
+          onClick={() => {
+            onConfirm(selectedMinutes);
+            onClose();
+          }}
+        >
+          Confirm
         </Button>
-
-        <div className={cn(TEXT.meta, "flex items-center justify-center gap-2")}>
-          <CalendarPlus size={14} />
-          <span>{summary}</span>
-        </div>
-      </div>
+      </ModalActions>
     </Modal>
   );
 }

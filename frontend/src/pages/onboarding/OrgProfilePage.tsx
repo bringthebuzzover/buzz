@@ -8,21 +8,25 @@
  *
  * Followers are Graph-seeded server-side — not collected here.
  */
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
+import { useOrgApplyPrefill, useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
+import { allowlistedOAuthNext, allowlistedPrefill, onboardingQuery } from "../../utils/oauthNext";
+import { clearDropPitch, readDropPitch } from "../../utils/dropSignup";
 import { pathForUser } from "../../utils/landing";
-import FieldError from "../../components/forms/FieldError";
 import {
   Button,
   ErrorBanner,
+  Notice,
   Select,
   TextField,
   fieldClass,
 } from "../../components/forms/controls";
-import AuthShell from "../../components/site/AuthShell";
+import AuthPending from "../../components/auth/AuthPending";
+import { AuthHeading, AuthSplit } from "../../components/auth/AuthFrame";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -43,6 +47,11 @@ export default function OrgProfilePage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const submit = useSubmitOnboarding();
+  const [params] = useSearchParams();
+  const nextPath = allowlistedOAuthNext(params.get("next"));
+  const prefillToken = allowlistedPrefill(params.get("prefill"));
+  const draft = useOrgApplyPrefill(user?.status === "pending_org_profile" ? prefillToken : null);
+  const hydrated = useRef<string | null>(null);
 
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
@@ -54,9 +63,26 @@ export default function OrgProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (!draft.data || hydrated.current === prefillToken) return;
+    hydrated.current = prefillToken;
+    const d = draft.data;
+    setOrgName(d.orgName ?? "");
+    setUniversity(d.university ?? "");
+    setEduEmail(d.eduEmail ?? "");
+    setMemberCount(d.memberCount == null ? "" : String(d.memberCount));
+    setCategory((d.category as OrgCategory) ?? "");
+    setContactName(d.contactName ?? "");
+    setShipping({ line1: d.shippingLine1 ?? "", line2: d.shippingLine2 ?? "",
+      city: d.shippingCity ?? "", state: d.shippingState ?? "",
+      postalCode: d.shippingPostalCode ?? "", placeId: "" });
+  }, [draft.data, prefillToken]);
+
   if (!user || user.status !== "pending_org_profile") {
-    return <Navigate to={pathForUser(user)} replace />;
+    return <Navigate to={pathForUser(user, nextPath)} replace />;
   }
+
+  if (prefillToken && draft.isPending) return <AuthPending />;
 
   const signedInAs = user.instagramUsername
     ? `@${user.instagramUsername.replace(/^@/, "")}`
@@ -64,6 +90,7 @@ export default function OrgProfilePage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (prefillToken && (draft.isPending || draft.isError)) return;
     setError(null);
     setFieldErrors({});
     if (!category) {
@@ -99,6 +126,9 @@ export default function OrgProfilePage() {
     }
     try {
       const result = await submit.mutateAsync({
+        prefillToken: prefillToken ?? undefined,
+        dropId: nextPath?.slice(3),
+        pitch: nextPath ? readDropPitch(nextPath).trim() || undefined : undefined,
         orgName: unwrapParsed(name),
         university: unwrapParsed(uni),
         eduEmail: unwrapParsed(edu),
@@ -107,15 +137,16 @@ export default function OrgProfilePage() {
         contactName: unwrapParsed(contact),
         ...shippingToApi(shipping),
       });
+      clearDropPitch();
       await refreshUser();
       // Durable across hard refresh of the verify-await screen.
       sessionStorage.setItem(
         "buzz.verifyEmailSent",
-        result.emailSent === false ? "0" : "1",
+        result.emailQueued === false ? "0" : "1",
       );
-      navigate("/onboarding/verify-email", {
+      navigate("/onboarding/verify-email" + onboardingQuery(nextPath), {
         replace: true,
-        state: { emailSent: result.emailSent !== false },
+        state: { emailQueued: result.emailQueued !== false },
       });
     } catch (err) {
       const mapped = userFacingApiError(
@@ -128,128 +159,99 @@ export default function OrgProfilePage() {
   };
 
   return (
-    <AuthShell align="stack">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        Set Up Your <span className="text-buzz-coral">Organization Profile</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
-        Tell us about your organization to continue. Sign in with the
-        organization&apos;s Instagram Business or Creator account — not a
-        personal member account.
-      </p>
+    <AuthSplit
+      wide
+      asideStatement="Join as a student organization and work with brands on real campus campaigns."
+    >
+      <AuthHeading kicker="Step 2 of 3 · Connected" title="Campus Profile">
+        Instagram connected. Tell us about your campus community and where to
+        ship campaign drop kits.
+      </AuthHeading>
 
-      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+      <form onSubmit={(e) => void onSubmit(e)} className="mt-8 space-y-4">
         {error && <ErrorBanner>{error}</ErrorBanner>}
-        {signedInAs && (
-          <div className="rounded-buzzControl border border-buzz-lineMid bg-buzz-paper px-3 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-              Signed in as
-            </p>
-            <p className="mt-1 text-sm font-semibold text-buzz-ink">{signedInAs}</p>
-            <p className="mt-1 text-xs text-buzz-inkMuted">
-              This Instagram account is your organization identity on Buzz.
-            </p>
-          </div>
-        )}
+        {draft.isError && <ErrorBanner>{userFacingApiError(draft.error, "Could not load this application draft. Please reopen your invitation link.").banner}</ErrorBanner>}
+        {draft.data?.shippingRaw && <p className="text-xs text-quiet">You wrote: {draft.data.shippingRaw}</p>}
+        <Notice
+          tone="success"
+          icon={<Check className="h-4 w-4" aria-hidden />}
+        >
+          {`Connected as ${signedInAs ?? "@org"} · Professional Account`}
+        </Notice>
+
+        <TextField
+          id="org-onboarding-contact-name"
+          label="Contact name"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+          placeholder="First Last"
+          required
+          error={fieldErrors.contactName}
+        />
 
         <div>
           <TextField
-            label="Organization name"
-            value={orgName}
-            onChange={(e) => setOrgName(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.orgName)}
-            aria-describedby={fieldErrors.orgName ? "org-onboarding-org-name-error" : undefined}
-          />
-          <FieldError id="org-onboarding-org-name-error" message={fieldErrors.orgName} />
-        </div>
-
-        <div>
-          <TextField
-            label="University"
-            value={university}
-            onChange={(e) => setUniversity(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.university)}
-            aria-describedby={
-              fieldErrors.university ? "org-onboarding-university-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-onboarding-university-error"
-            message={fieldErrors.university}
-          />
-        </div>
-
-        <div>
-          <TextField
+            id="org-onboarding-edu-email"
             type="email"
             label="School (.edu) email"
             value={eduEmail}
             onChange={(e) => setEduEmail(e.target.value)}
             placeholder="you@university.edu"
             required
-            aria-invalid={Boolean(fieldErrors.eduEmail)}
-            aria-describedby={
-              fieldErrors.eduEmail ? "org-onboarding-edu-email-error" : undefined
-            }
+            error={fieldErrors.eduEmail}
           />
-          <FieldError
-            id="org-onboarding-edu-email-error"
-            message={fieldErrors.eduEmail}
-          />
-          <p className="mt-1 text-xs text-buzz-inkMuted">
-            We&apos;ll send a verification link here.
+          <p className="mt-1 text-xs text-quiet">
+            Must be a university .edu address for campus verification.
           </p>
         </div>
 
-        <div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField
-            type="number"
-            min="0"
-            label="Number of members"
-            value={memberCount}
-            onChange={(e) => setMemberCount(e.target.value)}
+            id="org-onboarding-org-name"
+            label="Organization name"
+            value={orgName}
+            onChange={(e) => setOrgName(e.target.value)}
+            placeholder="Your Organization"
             required
-            aria-invalid={Boolean(fieldErrors.memberCount)}
-            aria-describedby={
-              fieldErrors.memberCount ? "org-onboarding-member-count-error" : undefined
-            }
+            error={fieldErrors.orgName}
           />
-          <FieldError
-            id="org-onboarding-member-count-error"
-            message={fieldErrors.memberCount}
+
+          <TextField
+            id="org-onboarding-university"
+            label="University"
+            value={university}
+            onChange={(e) => setUniversity(e.target.value)}
+            placeholder="Your University"
+            required
+            error={fieldErrors.university}
           />
         </div>
 
-        <Select
-          label="Organization type"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-          required
-        >
-          <option value="">Select a type…</option>
-          {ORG_CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
-
-        <div>
-          <TextField
-            label="Contact name"
-            value={contactName}
-            onChange={(e) => setContactName(e.target.value)}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Select
+            label="Organization type"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
             required
-            aria-invalid={Boolean(fieldErrors.contactName)}
-            aria-describedby={
-              fieldErrors.contactName ? "org-onboarding-contact-name-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-onboarding-contact-name-error"
-            message={fieldErrors.contactName}
+          >
+            <option value="">Select a type…</option>
+            {ORG_CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+
+          <TextField
+            id="org-onboarding-member-count"
+            type="number"
+            min="0"
+            label="Active members"
+            value={memberCount}
+            onChange={(e) => setMemberCount(e.target.value)}
+            placeholder="24"
+            required
+            error={fieldErrors.memberCount}
           />
         </div>
 
@@ -259,16 +261,28 @@ export default function OrgProfilePage() {
           inputClass={fieldClass.default}
           testIdPrefix="org-onboarding"
           error={fieldErrors.shipping}
+          layout="split"
         />
 
         <Button
           type="submit"
-          disabled={submit.isPending}
+          disabled={submit.isPending || Boolean(prefillToken && (draft.isPending || draft.isError))}
+          size="field"
           fullWidth
         >
-          {submit.isPending ? "Submitting…" : "Continue"}
+          {submit.isPending ? "Submitting…" : "Complete Application"}
         </Button>
+
+        <div className="flex items-center gap-2 pt-2 text-sm text-quiet">
+          <span>Already connected Instagram?</span>
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1 font-medium text-primary hover:text-accent"
+          >
+            Organization login &rarr;
+          </Link>
+        </div>
       </form>
-    </AuthShell>
+    </AuthSplit>
   );
 }

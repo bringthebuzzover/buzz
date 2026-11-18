@@ -30,6 +30,7 @@ import OrgPortalProfilePage from "./pages/org/OrgPortalProfilePage";
 import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPage";
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
+import BrandSettingsPage from "./pages/brand/BrandSettingsPage";
 import LoginPage from "./pages/auth/LoginPage";
 import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
 import ReconnectInstagramPage from "./pages/auth/ReconnectInstagramPage";
@@ -54,6 +55,7 @@ import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
 import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
 import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
+import AdminShippingChangeRequestDetailPage from "./pages/admin/AdminShippingChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
@@ -67,6 +69,7 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["BrandAggregateDashboardPage", BrandAggregateDashboardPage],
   ["BrandDropDetailPage", BrandDropDetailPage],
   ["BrandRequestDropPage", BrandRequestDropPage],
+  ["BrandSettingsPage", BrandSettingsPage],
   ["LoginPage", LoginPage],
   ["ReconnectInstagramPage", ReconnectInstagramPage],
   ["InstagramCallbackPage", InstagramCallbackPage],
@@ -91,6 +94,7 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["AdminDropRequestDetailPage", AdminDropRequestDetailPage],
   ["AdminIgChangeRequestsPage", AdminIgChangeRequestsPage],
   ["AdminIgChangeRequestDetailPage", AdminIgChangeRequestDetailPage],
+  ["AdminShippingChangeRequestDetailPage", AdminShippingChangeRequestDetailPage],
   ["AdminHealthPage", AdminHealthPage],
 ];
 

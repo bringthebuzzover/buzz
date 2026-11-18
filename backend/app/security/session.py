@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -28,3 +31,17 @@ async def commit_revocation(db: AsyncSession) -> None:
     """
 
     await db.commit()
+
+
+async def lock_user(db: AsyncSession, user_id: UUID) -> User | None:
+    """Refresh and lock the account before mutating its dependent rows.
+
+    The caller retains the lock until its transaction ends.
+    """
+    user: User | None = await db.scalar(
+        select(User)
+        .where(User.id == user_id)
+        .execution_options(populate_existing=True)
+        .with_for_update()
+    )
+    return user

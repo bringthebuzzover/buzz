@@ -1,9 +1,10 @@
-"""Drop feed orchestration (architecture.md §5.1 ``GET /api/drops``, §7.1).
+"""Drop feed orchestration (buzz-ops engineering/architecture.md §5.1 ``GET /api/drops``, §7.1).
 
 Pure service functions (no FastAPI types) the route layer calls. The org feed
 returns a page of drops enriched with two server-computed fields:
 
-* ``accepted_count`` — number of ``accepted`` applications on the drop.
+* ``accepted_count`` — number of live seats (accepted and sent) on the drop;
+  draft acceptances don't fill spots until they go out.
 * ``already_applied`` — whether the *calling* org has a non-denied application.
 
 Both are computed with set/grouped queries keyed by the page's drop ids, so the
@@ -16,29 +17,29 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import errors
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
+from app.models.enums import ApplicationDecision, BrandStatus
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
-from app.schemas import drops as schemas
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
-
-
-def _as_utc(value: datetime) -> datetime:
-    """Coerce a (possibly naive) datetime to UTC for safe comparison."""
-
-    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+from app.services.lifecycle import (
+    drop_running,
+    drop_stage,
+    drop_stage_expr,
+    seat_frees_reapply,
+    seat_is_live,
+)
+from app.timeutils import as_utc, utcnow
 
 
 def is_drop_hidden(drop: Drop) -> bool:
@@ -50,16 +51,11 @@ def is_drop_hidden(drop: Drop) -> bool:
 def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
     """Predicate for drops an org may see in the feed (requires the Brand join).
 
-    Published only (LAUNCH.md Phase B): unpublished drafts and legacy
-    ``request_received`` stubs never appear on the org feed.
+    Published, not hidden, not wrapped up or canceled: drafts never appear,
+    and a wrapped drop lives on in My Campaigns only.
     """
 
-    return (
-        Brand.status == BrandStatus.APPROVED.value,
-        Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
-        Drop.published_at.isnot(None),
-        Drop.hidden_at.is_(None),
-    )
+    return (Brand.status == BrandStatus.APPROVED.value, drop_running(), Drop.hidden_at.is_(None))
 
 
 async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
@@ -72,9 +68,12 @@ async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
     brand = await db.get(Brand, drop.brand_id)
     if brand is None or brand.status != BrandStatus.APPROVED.value:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
-    if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
-        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
-    if drop.published_at is None or is_drop_hidden(drop):
+    if (
+        drop.published_at is None
+        or drop.wrapped_at is not None
+        or drop.canceled_at is not None
+        or is_drop_hidden(drop)
+    ):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     return brand
 
@@ -85,6 +84,7 @@ async def list_org_drop_feed(
     *,
     page: int,
     per_page: int,
+    feed_filter: str = "all",
 ) -> tuple[list[DropFeedItem], int]:
     """Return one page of the org drop feed plus the count of *visible* drops.
 
@@ -101,12 +101,29 @@ async def list_org_drop_feed(
 
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
 
+    now = utcnow()
+    stage_expr = drop_stage_expr(now)
+    accepted_count_expr = (
+        select(func.count(DropApplication.id))
+        .where(DropApplication.drop_id == Drop.id, seat_is_live())
+        .correlate(Drop)
+        .scalar_subquery()
+    )
+    current_filters: list[ColumnElement[bool]] = [
+        stage_expr.in_(("upcoming", "applying")),
+        (stage_expr != "applying") | (accepted_count_expr < Drop.capacity_total),
+    ]
+    if feed_filter == "upcoming":
+        current_filters.append(stage_expr == "upcoming")
+    elif feed_filter == "open":
+        current_filters.append(stage_expr == "applying")
+
     total = (
         await db.scalar(
             select(func.count())
             .select_from(Drop)
             .join(Brand, Brand.id == Drop.brand_id)
-            .where(*_browsable_drop_filters())
+            .where(*_browsable_drop_filters(), *current_filters)
         )
         or 0
     )
@@ -117,17 +134,21 @@ async def list_org_drop_feed(
     rows = list(
         (
             await db.execute(
-                select(Drop, Brand)
+                select(Drop, Brand, stage_expr)
                 .join(Brand, Brand.id == Drop.brand_id)
-                .where(*_browsable_drop_filters())
-                .order_by(Drop.created_at.desc(), Drop.id.desc())
+                .where(*_browsable_drop_filters(), *current_filters)
+                .order_by(
+                    case((stage_expr == "applying", 0), else_=1),
+                    Drop.created_at.desc(),
+                    Drop.id.desc(),
+                )
                 .limit(per_page)
                 .offset((page - 1) * per_page)
             )
         ).all()
     )
 
-    page_ids = [drop.id for drop, _brand in rows]
+    page_ids = [drop.id for drop, _brand, _stage in rows]
     accepted_counts = await _accepted_counts(db, page_ids)
     applied_ids = await _applied_drop_ids(db, org_id, page_ids)
     notify_state = await _notify_state(db, org_id, page_ids)
@@ -143,29 +164,72 @@ async def list_org_drop_feed(
             capacity_total=drop.capacity_total,
             apply_open_at=drop.apply_open_at,
             apply_close_at=drop.apply_close_at,
-            manual_reopen=drop.manual_reopen,
-            applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+            stage=stage,
             accepted_count=accepted_counts.get(drop.id, 0),
             already_applied=drop.id in applied_ids,
             notify_requested=drop.id in notify_state,
             reminder_minutes=notify_state.get(drop.id),
         )
-        for drop, brand in rows
+        for drop, brand, stage in rows
     ]
     return items, total
 
 
+async def list_public_drop_catalog(
+    db: AsyncSession, *, page: int, per_page: int
+) -> tuple[list[dict[str, object]], int]:
+    """Return only public card fields for visible Upcoming/Applying drops."""
+
+    now = utcnow()
+    stage_expr = drop_stage_expr(now)
+    filters = (
+        *_browsable_drop_filters(),
+        stage_expr.in_(("upcoming", "applying")),
+    )
+    total = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Drop)
+            .join(Brand, Brand.id == Drop.brand_id)
+            .where(*filters)
+        )
+        or 0
+    )
+    rows = (
+        await db.execute(
+            select(Drop, Brand, stage_expr)
+            .join(Brand, Brand.id == Drop.brand_id)
+            .where(*filters)
+            .order_by(Drop.created_at.desc(), Drop.id.desc())
+            .limit(per_page)
+            .offset((page - 1) * per_page)
+        )
+    ).all()
+    return [
+        {
+            "id": drop.id,
+            "brand_name": brand.brand_name,
+            "title": drop.title,
+            "description": drop.description,
+            "image": drop.image,
+            "location": drop.location,
+            "capacity_total": drop.capacity_total,
+            "apply_open_at": drop.apply_open_at,
+            "apply_close_at": drop.apply_close_at,
+            "stage": stage,
+        }
+        for drop, brand, stage in rows
+    ], int(total)
+
+
 async def _accepted_counts(db: AsyncSession, drop_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
-    """Map drop_id -> count of ``accepted`` applications for the page's drops."""
+    """Map drop_id -> live (accepted and sent) seats for the page's drops."""
 
     if not drop_ids:
         return {}
     rows = await db.execute(
         select(DropApplication.drop_id, func.count())
-        .where(
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            DropApplication.drop_id.in_(drop_ids),
-        )
+        .where(seat_is_live(), DropApplication.drop_id.in_(drop_ids))
         .group_by(DropApplication.drop_id)
     )
     return {drop_id: count for drop_id, count in rows.all()}
@@ -176,14 +240,14 @@ async def _applied_drop_ids(
     org_id: uuid.UUID | None,
     drop_ids: list[uuid.UUID],
 ) -> set[uuid.UUID]:
-    """Drop ids the calling org has a non-denied application on (the page's set)."""
+    """Drop ids the calling org holds a place on (it cannot apply again)."""
 
     if org_id is None or not drop_ids:
         return set()
     rows = await db.scalars(
         select(DropApplication.drop_id).where(
             DropApplication.org_id == org_id,
-            DropApplication.decision != ApplicationDecision.DENIED.value,
+            ~seat_frees_reapply(),
             DropApplication.drop_id.in_(drop_ids),
         )
     )
@@ -257,19 +321,14 @@ def drop_apply_eligibility(
 ) -> None:
     """Raise if an org may not apply right now (architecture §7.1 / §11.3).
 
-    Single Python SOT for open / full / finalized / close⊕reopen. Callers still
-    enforce browsability and already-applied separately. Finalize's "window must
-    be closed" rule is the inverse and stays in the finalize path.
+    Single Python SOT for "inside the dates, spots left". Callers still enforce
+    browsability (published, not hidden, not wrapped) and already-applied.
+    Reopening is just moving ``apply_close_at`` later.
     """
 
-    if now < _as_utc(drop.apply_open_at):
+    if now < as_utc(drop.apply_open_at):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications yet.")
-    if drop.applicant_selection_finalized_at is not None:
-        raise BuzzAPIException(
-            errors.DROP_NOT_OPEN,
-            "Applicant selection for this drop is already finalized.",
-        )
-    if now > _as_utc(drop.apply_close_at) and not drop.manual_reopen:
+    if now > as_utc(drop.apply_close_at):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
     if accepted_count >= drop.capacity_total:
         raise BuzzAPIException(errors.CAPACITY_EXCEEDED, "This drop has no remaining spots.")
@@ -298,8 +357,7 @@ async def build_drop_detail(
         capacity_total=drop.capacity_total,
         apply_open_at=drop.apply_open_at,
         apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        stage=await drop_stage(db, drop),
         total_product_units=drop.total_product_units,
         created_at=drop.created_at,
         accepted_count=accepted,
@@ -317,14 +375,12 @@ async def apply_to_drop(
 ) -> DropApplication:
     """Create an ``applied`` application, enforcing the §7.1/§11.3 rules.
 
-    Order: lock drop row (``FOR UPDATE``, serializes vs finalize) → drop
-    exists → drop is browsable (approved brand, not finished) → not already
-    applied (a prior ``denied`` does NOT block) → apply window open /
+    Order: lock drop row (``FOR UPDATE``, serializes vs decisions) → drop
+    exists → drop is browsable (approved brand, not wrapped) → not already
+    applied (a prior *sent* denial or a withdrawal does NOT block) → apply window open /
     capacity remains (``drop_apply_eligibility``, mirrors feed UX).
     """
 
-    # META-REVIEWER-PATH: reviewer org cannot apply (pre-accepted on one drop).
-    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
     if drop is None:
@@ -337,7 +393,7 @@ async def apply_to_drop(
         select(DropApplication.id).where(
             DropApplication.org_id == org.id,
             DropApplication.drop_id == drop.id,
-            DropApplication.decision != ApplicationDecision.DENIED.value,
+            ~seat_frees_reapply(),
         )
     )
     if existing is not None:
@@ -395,8 +451,6 @@ async def set_notify(
 ) -> NotifyMe:
     """Upsert the caller org's reminder for a drop (one row per org+drop)."""
 
-    # META-REVIEWER-PATH: reviewer org cannot subscribe to other drops.
-    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
     await _require_browsable_drop(db, drop)
@@ -422,8 +476,6 @@ async def set_notify(
 async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> None:
     """Remove the caller org's reminder for a drop (idempotent)."""
 
-    # META-REVIEWER-PATH: reviewer org cannot change notify rows.
-    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
     await _require_browsable_drop(db, drop)
@@ -433,30 +485,3 @@ async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> 
     if notify is not None:
         await db.delete(notify)
         await db.flush()
-
-
-# --- Brand drop creation removed (LAUNCH.md Phase B) ---------------------------
-# Brand intake now creates ``drop_requests`` via ``app.services.drop_requests``.
-
-
-def build_brand_drop_response(drop: Drop, brand: Brand) -> schemas.BrandDropResponse:
-    """Serialize a ``Drop`` into the brand-facing wire shape."""
-    return schemas.BrandDropResponse(
-        id=drop.id,
-        brand_id=drop.brand_id,
-        brand_name=brand.brand_name,
-        title=drop.title,
-        description=drop.description,
-        image=drop.image,
-        location=drop.location,
-        capacity_total=drop.capacity_total,
-        apply_open_at=drop.apply_open_at,
-        apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        brand_tracker_stage=drop.brand_tracker_stage,
-        total_product_units=drop.total_product_units,
-        campaign_hashtag=drop.campaign_hashtag,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
-        published_at=drop.published_at,
-        created_at=drop.created_at,
-    )

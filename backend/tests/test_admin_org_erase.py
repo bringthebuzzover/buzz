@@ -19,7 +19,6 @@ from app.models.application import DropApplication
 from app.models.drop_apply_intent import DropApplyIntent
 from app.models.enums import (
     ApplicationDecision,
-    BrandTrackerStage,
     DropApplyIntentStatus,
     OrgCategory,
     OrgUserStatus,
@@ -42,6 +41,7 @@ from app.services.erased_org_participation import freeze_statements
 from app.services.posts import link_post, unlink_post
 from tests.conftest import (
     FakeInstagramClient,
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -55,11 +55,6 @@ from tests.conftest import (
     persist,
     set_request_cookies,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _seed_erasable_org(db_session, *, with_email: bool = True):
@@ -83,7 +78,7 @@ async def _seed_erasable_org(db_session, *, with_email: bool = True):
     org.category = OrgCategory.FRATERNITY.value
     await db_session.flush()
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     accepted = await make_application(
         db_session,
         drop,
@@ -197,7 +192,7 @@ class TestAdminOrgErase:
         user.instagram_granted_permissions = "instagram_business_basic"
         await _seed_identity_leftovers(db_session, user, org)
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -207,7 +202,7 @@ class TestAdminOrgErase:
         assert res.status_code == 200
         body = res.json()["data"]
         assert body["status"] == "erased"
-        assert body["emailSent"] is True
+        assert body["emailQueued"] is True
         assert body["emailToDomain"] == "school.edu"
         send.assert_awaited_once()
 
@@ -325,7 +320,7 @@ class TestAdminOrgErase:
         db_session.add(other_owned)
         db_session.add(blank)
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -367,7 +362,7 @@ class TestAdminOrgErase:
         user, _org, *_rest = await _seed_erasable_org(db_session)
         user.pending_edu_email = "new-officer@school.edu"
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -386,7 +381,7 @@ class TestAdminOrgErase:
         send = AsyncMock(return_value=True)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         bad = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -410,7 +405,7 @@ class TestAdminOrgErase:
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         user.instagram_username = None
         await make_org(db_session, user)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
@@ -425,35 +420,35 @@ class TestAdminOrgErase:
         send = AsyncMock(return_value=True)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         first = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
             json={"confirm": "campusgreeks"},
         )
         assert first.status_code == 200
-        assert first.json()["data"]["emailSent"] is True
+        assert first.json()["data"]["emailQueued"] is True
         second = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
             json={"confirm": "campusgreeks"},
         )
         assert second.status_code == 200
-        assert second.json()["data"]["emailSent"] is False
+        assert second.json()["data"]["emailQueued"] is False
         assert send.await_count == 1
 
     async def test_no_email_on_file(self, app_client: AsyncClient, db_session, monkeypatch):
         send = AsyncMock(return_value=True)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session, with_email=False)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
             json={"confirm": "CampusGreeks"},
         )
         assert res.status_code == 200
-        assert res.json()["data"]["emailSent"] is False
+        assert res.json()["data"]["emailQueued"] is False
         send.assert_not_called()
 
     async def test_email_helper_false_keeps_erase(
@@ -462,14 +457,14 @@ class TestAdminOrgErase:
         send = AsyncMock(return_value=False)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
             json={"confirm": "CampusGreeks"},
         )
         assert res.status_code == 200
-        assert res.json()["data"]["emailSent"] is False
+        assert res.json()["data"]["emailQueued"] is True
         await db_session.refresh(user)
         assert user.status == OrgUserStatus.ERASED.value
 
@@ -482,7 +477,7 @@ class TestAdminOrgErase:
         )
         erased.instagram_username = None
         await make_org(db_session, erased, org_name="Deleted organization")
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         all_res = await app_client.get("/api/admin/orgs", headers=headers)
         ids = {row["userId"] for row in all_res.json()["data"]}
@@ -498,7 +493,7 @@ class TestAdminOrgErase:
         user = await persist(
             db_session, make_user(role=PortalRole.ORG, status=OrgUserStatus.ERASED)
         )
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/clear-instagram-token", headers=headers
         )
@@ -530,7 +525,6 @@ class TestAdminOrgErase:
         drop = await make_drop(
             db_session,
             brand,
-            stage=BrandTrackerStage.DROP_ACTIVE,
             total_product_units=20,
         )
         ghost_app = await make_application(
@@ -566,7 +560,7 @@ class TestAdminOrgErase:
         ghost_id = ghost.id
         live_id = live.id
 
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         erased = await app_client.post(
             f"/api/admin/orgs/{erased_user.id}/erase",
             headers=headers,
@@ -703,7 +697,7 @@ class TestAdminOrgErase:
         live.follower_count = 40
 
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        drop = await make_drop(db_session, brand)
         ghost_app = await make_application(
             db_session, drop, ghost, decision=ApplicationDecision.ACCEPTED
         )
@@ -942,7 +936,7 @@ class TestAdminOrgErase:
         assert ig.media_fetches == 0
         assert post.likes == likes_before
 
-    async def test_admin_remove_participant_drops_that_seat_only(
+    async def test_admin_delete_seat_drops_that_seat_only(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):
         monkeypatch.setattr(
@@ -956,7 +950,7 @@ class TestAdminOrgErase:
         live_user.instagram_username = "LiveOrg"
         live = await make_org(db_session, live_user, org_name="Live Club")
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        drop = await make_drop(db_session, brand)
         ghost_app = await make_application(
             db_session, drop, ghost, decision=ApplicationDecision.ACCEPTED
         )
@@ -975,7 +969,7 @@ class TestAdminOrgErase:
             )
         )
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         erased = await app_client.post(
             f"/api/admin/orgs/{erased_user.id}/erase",
             headers=headers,
@@ -983,18 +977,18 @@ class TestAdminOrgErase:
         )
         assert erased.status_code == 200, erased.text
 
-        url = f"/api/admin/drops/{drop.id}/applications/{ghost_app.id}/remove"
+        url = f"/api/admin/drops/{drop.id}/applications/{ghost_app.id}/delete"
         brand_owner = await db_session.get(User, brand.user_id)
         assert brand_owner is not None
         brand_headers = {"Authorization": f"Bearer {mint_access_token(brand_owner)}"}
-        forbidden = await app_client.post(url, headers=brand_headers, json={"confirm": "remove"})
+        forbidden = await app_client.post(url, headers=brand_headers, json={"confirm": "delete"})
         assert forbidden.status_code == 403
 
         other = await make_drop(db_session, brand, title="Other drop")
         idor = await app_client.post(
-            f"/api/admin/drops/{other.id}/applications/{ghost_app.id}/remove",
+            f"/api/admin/drops/{other.id}/applications/{ghost_app.id}/delete",
             headers=headers,
-            json={"confirm": "remove"},
+            json={"confirm": "delete"},
         )
         assert idor.status_code == 404
         assert (
@@ -1009,7 +1003,7 @@ class TestAdminOrgErase:
         refused = await app_client.post(url, headers=headers, json={"confirm": "nope"})
         assert refused.status_code == 400
 
-        removed = await app_client.post(url, headers=headers, json={"confirm": "remove"})
+        removed = await app_client.post(url, headers=headers, json={"confirm": "delete"})
         assert removed.status_code == 200, removed.text
         body = removed.json()["data"]
         assert body["postsRemoved"] == 1
@@ -1063,7 +1057,7 @@ class TestAdminOrgErase:
             select(AdminAuditEvent).where(AdminAuditEvent.application_id == ghost_app.id)
         )
         assert audit is not None
-        assert audit.action == "participant_removed"
+        assert audit.action == "seat_deleted"
         assert audit.drop_id == drop.id
         assert audit.org_id == ghost.id
         assert audit.detail is not None
@@ -1077,7 +1071,7 @@ class TestAdminOrgErase:
         assert "1Z999" not in str(audit.detail)
         assert "GhostOrg" not in str(audit.detail)
 
-        again = await app_client.post(url, headers=headers, json={"confirm": "remove"})
+        again = await app_client.post(url, headers=headers, json={"confirm": "delete"})
         assert again.status_code == 404
 
     async def test_frozen_post_cannot_be_relinked(self, db_session):

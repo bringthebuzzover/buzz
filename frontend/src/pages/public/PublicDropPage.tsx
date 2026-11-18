@@ -1,12 +1,11 @@
 /**
- * Public `/d/:dropId` — same-page signup or Apply (PRODUCT §6.3.4).
+ * Public `/d/:dropId` — Instagram-first signup or Apply (PRODUCT §6.3.4).
  *
- * No PortalGuard: pending orgs must open the brand link. Form mode follows
+ * No PortalGuard: pending orgs must open the brand link. Entry mode follows
  * `useAuth()`. Notify Me stays feed-only.
  */
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { Calendar, MapPin } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   useDropDetail,
@@ -14,27 +13,27 @@ import {
   type DropDetail,
 } from "../../api/hooks/useDropHooks";
 import { ApiError } from "../../api/errors";
-import { getDropFeedStatus } from "../../utils/dropStatus";
-import { useWallClockNow } from "../../utils/wallClock";
+import { closedChipLabel, getDropFeedStatus, isDropFull } from "../../utils/dropStatus";
 import { allowlistedOAuthNext, publicDropPath } from "../../utils/oauthNext";
-import OrgApplyForm, {
-  goToVerifyEmailWait,
-} from "../../components/org/OrgApplyForm";
+import { pathForUser } from "../../utils/landing";
+import { DROP_PITCH_MAX_LENGTH, readDropPitch, saveDropPitch } from "../../utils/dropSignup";
 import DropApplyForm from "../../components/org/DropApplyForm";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
-import PageShell from "../../components/site/PageShell";
-import { Card } from "../../components/ui/Card";
+import StatusHero, { HomeLoginActions } from "../../components/site/StatusHero";
 import { Chip } from "../../components/ui/Chip";
 import { RemoteImage } from "../../components/ui/RemoteImage";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
 import {
   Button,
   ErrorBanner,
+  LinkButton,
   SuccessBanner,
   TextArea,
 } from "../../components/forms/controls";
-import { PAD, STACK, TEXT } from "../../theme/tokens";
+import { PAD, STACK, SURFACE, TEXT } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
+import { MOTION } from "../../theme/motion";
 
 function dropNotAvailable(error: unknown): boolean {
   return error instanceof ApiError && error.code === "DROP_NOT_OPEN";
@@ -44,69 +43,65 @@ export default function PublicDropPage() {
   const { dropId } = useParams<{ dropId: string }>();
   const { status, user, login } = useAuth();
   const drop = useDropDetail(dropId);
-  const now = useWallClockNow();
-  const navigate = useNavigate();
 
   if (drop.isLoading || status === "authenticating" || status === "idle") {
     return (
-      <PageShell width="form">
+      <div className="px-4 py-16 text-primary">
         <QueryStatePanel isPending isError={false} label="this drop" />
-      </PageShell>
+      </div>
     );
   }
 
   if (dropNotAvailable(drop.error)) {
     return (
-      <PageShell width="form">
-        <StatePanel tone="danger" title="Drop unavailable">
+      <div>
+        <StatusHero title="Drop unavailable" action={<HomeLoginActions />}>
           This drop isn&apos;t available.
-        </StatePanel>
-      </PageShell>
+        </StatusHero>
+      </div>
     );
   }
 
   if (drop.isError || !drop.data || !dropId) {
     return (
-      <PageShell width="form">
-        <QueryStatePanel
-          isPending={false}
-          isError
-          label="this drop"
-        />
-      </PageShell>
+      <div className="px-4 py-16 text-primary">
+        <QueryStatePanel isPending={false} isError label="this drop" />
+      </div>
     );
   }
 
   const data = drop.data;
-  const feedStatus = getDropFeedStatus(data, data.acceptedCount, now);
+  const feedStatus = getDropFeedStatus(data.stage, isDropFull(data, data.acceptedCount));
   const loginHref = `/login?next=${encodeURIComponent(publicDropPath(dropId))}`;
   const nextPath = allowlistedOAuthNext(publicDropPath(dropId));
 
   if (status === "restore_failed") {
     return (
-      <PageShell width="form">
-        <PublicDropHero drop={data} feedStatus={feedStatus} />
-        <SessionRestorePanel embedded />
-      </PageShell>
+      <div className="text-primary">
+        <PublicDropLayout drop={data} feedStatus={feedStatus}>
+          <SessionRestorePanel embedded />
+        </PublicDropLayout>
+      </div>
     );
   }
 
   const anonymous = status === "error";
   const orgUser = status === "authenticated" && user?.portalRole === "org";
-  const activeOrg = orgUser && user.status === "active";
+  const reconnectRequired = orgUser && user.instagramReconnectRequired;
+  const activeOrg = orgUser && user.status === "active" && !reconnectRequired;
   const pendingOrg =
     orgUser &&
+    user.status !== "pending_org_profile" &&
     user.status !== "active" &&
     user.status !== "denied" &&
     user.status !== "erased";
 
   return (
-    <PageShell width="form">
-      <PublicDropHero drop={data} feedStatus={feedStatus} />
-
+    <div className="text-primary">
+      <PublicDropLayout drop={data} feedStatus={feedStatus}>
       {status === "needs_instagram_reconnect" ? (
         <>
-          <StatePanel>
+          <StatePanel className="mb-4">
             Reconnect Instagram to apply from your organization account.
           </StatePanel>
           <div className="mb-6 flex justify-center">
@@ -118,11 +113,22 @@ export default function PublicDropPage() {
       ) : null}
 
       {feedStatus !== "open" ? (
-        <p className={cn(TEXT.body, "mb-6 text-center text-buzz-inkMuted")}>
+        <p className={cn(TEXT.body, "mb-6 text-center text-muted")}>
           {feedStatus === "upcoming"
             ? "Applications aren't open yet."
             : "Applications are closed."}
         </p>
+      ) : null}
+
+      {reconnectRequired ? (
+        <>
+          <StatePanel className="mb-4">
+            Reconnect Instagram to apply from your organization account.
+          </StatePanel>
+          <div className="mb-6 flex justify-center">
+            <LinkButton to={pathForUser(user, nextPath)}>Connect Instagram</LinkButton>
+          </div>
+        </>
       ) : null}
 
       {activeOrg ? (
@@ -138,46 +144,83 @@ export default function PublicDropPage() {
       ) : null}
 
       {status === "authenticated" && user?.portalRole !== "org" && feedStatus === "open" ? (
-        <p className={cn(TEXT.body, "mb-6 text-center text-buzz-inkMuted")}>
+        <p className={cn(TEXT.body, "mb-6 text-center text-muted")}>
           Sign in as a student organization to apply.
         </p>
       ) : null}
 
-      {anonymous && feedStatus === "open" ? (
-        <>
-          <h2 className={cn(TEXT.h2, "mb-2 text-center")}>
-            Request to join Buzz and apply
-          </h2>
-          <p className={cn(TEXT.body, "mb-6 text-center text-buzz-inkMuted")}>
-            Same application as joining Buzz. We&apos;ll submit this drop when
-            your organization is approved and connected — you&apos;re not applied yet.
-          </p>
-          <OrgApplyForm
-            dropId={dropId}
-            submitLabel="Request to join Buzz and apply"
-            loginHref={loginHref}
-            onSuccess={(result, eduEmail) => {
-              goToVerifyEmailWait(navigate, result, eduEmail, {
-                dropIntent: true,
-              });
-            }}
-          />
-        </>
+      {(anonymous || (orgUser && user.status === "pending_org_profile")) && feedStatus === "open" ? (
+        <DropSignupEntry key={dropId} nextPath={nextPath!} />
       ) : null}
 
       {anonymous && feedStatus !== "open" ? (
-        <p className="text-center text-sm font-medium text-buzz-inkMuted">
+        <p className="text-sm text-muted">
           Already on Buzz?{" "}
-          <Link
-            to={loginHref}
-            className="font-semibold text-buzz-coral hover:underline"
-          >
+          <Link to={loginHref} className={cn("text-accent hover:underline hover:text-buzz-yellowHover inline-block", MOTION.press, focusRingClass)}>
             Organization login
           </Link>
         </p>
       ) : null}
-    </PageShell>
+      </PublicDropLayout>
+    </div>
   );
+}
+
+function DropSignupEntry({ nextPath }: { nextPath: string }) {
+  const { user, login } = useAuth();
+  const [pitch, setPitch] = useState(() => readDropPitch(nextPath));
+  const [error, setError] = useState<string | null>(null);
+  const save = () => {
+    try {
+      saveDropPitch(nextPath, pitch);
+      return true;
+    } catch {
+      setError("Could not save your pitch. Enable session storage and try again.");
+      return false;
+    }
+  };
+  return (
+    <div className={cn(SURFACE.card, PAD.card, "flex flex-col gap-5")}>
+      <h2 className={TEXT.h3}>Join BUZZ and apply</h2>
+      <p className={cn(TEXT.body, "text-muted")}>
+        Connect an Instagram Business or Creator account, then complete your campus profile.
+        We&apos;ll submit this drop when your organization is approved. You&apos;re not applied yet.
+      </p>
+      <TextArea
+        label="Pitch (optional)"
+        data-testid="public-drop-pitch"
+        placeholder="e.g. We host weekly mixers and can staff a table at the student center"
+        value={pitch}
+        onChange={(e) => setPitch(e.target.value)}
+        maxLength={DROP_PITCH_MAX_LENGTH}
+        rows={4}
+      />
+      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {user?.status === "pending_org_profile" ? (
+        <LinkButton to={pathForUser(user, nextPath)} onClick={(e) => { if (!save()) e.preventDefault(); }}>
+          Continue onboarding
+        </LinkButton>
+      ) : (
+        <Button type="button" onClick={() => { if (save()) login(nextPath); }}>
+          Continue with Instagram
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Spots line and status chip for the hero and the facts list. */
+function statusCopy(drop: DropDetail, feedStatus: "upcoming" | "open" | "closed") {
+  const remaining = Math.max(0, drop.capacityTotal - drop.acceptedCount);
+  if (feedStatus === "upcoming") return { spots: "Opens soon", tone: "Upcoming" };
+  if (feedStatus === "open") {
+    const spots =
+      drop.acceptedCount === 0
+        ? `Up to ${drop.capacityTotal} spots`
+        : `${remaining} of ${drop.capacityTotal} spots remaining`;
+    return { spots, tone: "Open" };
+  }
+  return { spots: "Applications closed", tone: closedChipLabel(drop.stage) };
 }
 
 function PublicDropHero({
@@ -187,55 +230,80 @@ function PublicDropHero({
   drop: DropDetail;
   feedStatus: "upcoming" | "open" | "closed";
 }) {
-  const remaining = Math.max(0, drop.capacityTotal - drop.acceptedCount);
-  const spots =
-    feedStatus === "upcoming"
-      ? "Opens soon"
-      : feedStatus === "open"
-        ? drop.acceptedCount === 0
-          ? `Up to ${drop.capacityTotal} spots`
-          : `${remaining} of ${drop.capacityTotal} spots remaining`
-        : "Closed";
+  const { spots, tone } = statusCopy(drop, feedStatus);
 
   return (
-    <Card kind="cardWarm" pad="none" className="mb-8 overflow-hidden">
-      <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">
-        <RemoteImage
-          src={drop.image}
-          label={drop.brandName}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-        <div className="absolute left-3 top-3 flex items-center gap-2">
-          <Chip accent>{drop.brandName}</Chip>
-          <Chip tone={feedStatus === "open" ? "success" : "neutral"}>
-            {feedStatus === "upcoming"
-              ? "Upcoming"
-              : feedStatus === "open"
-                ? "Open"
-                : "Closed"}
-          </Chip>
-        </div>
+    <div className="relative aspect-square overflow-hidden rounded-buzzBoard bg-buzz-greyMedia">
+      <RemoteImage
+        src={drop.image}
+        label={drop.brandName}
+        alt=""
+        fallback="blank"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Top subtle vignette for chip & spots readability on light backgrounds */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 via-black/40 to-transparent"
+        aria-hidden
+      />
+      {/* Anchored bottom vignette for guaranteed AAA text contrast on any brand packaging */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 via-45% to-transparent to-75%"
+        aria-hidden
+      />
+      <div className="absolute inset-x-0 top-0 flex items-center gap-3 p-8">
+        <Chip accent>{tone}</Chip>
+        <span className="ml-auto text-sm font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+          {spots}
+        </span>
       </div>
-      <div className={PAD.card}>
-        <h1 className={cn(TEXT.h1, "mb-2 leading-tight text-buzz-coral")}>
-          {drop.title}
-        </h1>
-        <p className={cn(TEXT.body, "mb-4 text-buzz-inkMuted")}>
-          {drop.description}
+      <div className="absolute inset-x-0 bottom-0 p-8">
+        <p className="text-sm font-medium uppercase tracking-[0.05em] text-white/75 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+          {drop.brandName}
         </p>
-        <div className={cn(TEXT.meta, "flex flex-wrap items-center gap-4 font-semibold")}>
-          <span className="flex items-center gap-1">
-            <MapPin size={14} className="text-buzz-coral" />
-            {drop.location}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar size={14} className="text-buzz-coral" />
-            {spots}
-          </span>
-        </div>
+        <p className="mt-1 text-[36px] font-medium leading-none text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] md:text-buzzTitle">
+          {drop.title}
+        </p>
       </div>
-    </Card>
+    </div>
+  );
+}
+
+function PublicDropLayout({
+  drop,
+  feedStatus,
+  children,
+}: {
+  drop: DropDetail;
+  feedStatus: "upcoming" | "open" | "closed";
+  children: ReactNode;
+}) {
+  const { spots, tone } = statusCopy(drop, feedStatus);
+
+  return (
+    <div className="mx-auto grid max-w-[1440px] items-start gap-10 px-4 py-12 md:grid-cols-2 md:gap-14 md:px-12 md:py-16">
+      <PublicDropHero drop={drop} feedStatus={feedStatus} />
+      <div>
+        <p className="text-xs font-medium text-accent">Drop</p>
+        <h1 className="mt-2 text-[28px] font-medium leading-tight md:text-buzzH2">{drop.title}</h1>
+        <p className="mt-4 text-base leading-relaxed text-muted">{drop.description}</p>
+        <dl className="mt-6 divide-y divide-line border-y border-line">
+          <Fact label="Where" value={drop.location} />
+          <Fact label="Spots" value={spots} />
+          <Fact label="Status" value={tone === "Open" ? "Accepting applications" : tone} />
+        </dl>
+        <div className="mt-8">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 text-sm">
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-right text-primary">{value}</dd>
+    </div>
   );
 }
 
@@ -249,14 +317,31 @@ function ActiveOrgActions({
   alreadyApplied: boolean;
 }) {
   const [applying, setApplying] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   if (feedStatus !== "open") return null;
 
+  if (submitted) {
+    return (
+      <div className={cn(STACK.default, "w-full")}>
+        <SuccessBanner>Application submitted. You can follow it in My Campaigns.</SuccessBanner>
+        <LinkButton to="/org/campaigns" fullWidth>
+          My Campaigns
+        </LinkButton>
+      </div>
+    );
+  }
+
   if (alreadyApplied) {
     return (
-      <Button type="button" fullWidth disabled data-testid="apply-button">
-        Already applied
-      </Button>
+      <div className={cn(STACK.default, "w-full")}>
+        <Button type="button" fullWidth disabled data-testid="apply-button">
+          Already applied
+        </Button>
+        <LinkButton to="/org/campaigns" fullWidth>
+          My Campaigns
+        </LinkButton>
+      </div>
     );
   }
 
@@ -265,7 +350,10 @@ function ActiveOrgActions({
       <DropApplyForm
         dropId={dropId}
         onCancel={() => setApplying(false)}
-        onSuccess={() => setApplying(false)}
+        onSuccess={() => {
+          setApplying(false);
+          setSubmitted(true);
+        }}
       />
     );
   }
@@ -293,7 +381,8 @@ function PendingOrgActions({
   const [pitch, setPitch] = useState(drop.intentPitch ?? "");
   const [notice, setNotice] = useState<string | null>(null);
   const expired = drop.intentStatus === "expired";
-  const connectHref = `/onboarding/connect-instagram?next=${encodeURIComponent(publicDropPath(dropId))}`;
+  const { user } = useAuth();
+  const connectHref = pathForUser(user, publicDropPath(dropId));
 
   const onSave = async () => {
     setNotice(null);
@@ -321,9 +410,11 @@ function PendingOrgActions({
       <TextArea
         data-testid="intent-pitch"
         label="Pitch (optional)"
+        placeholder="e.g. We host weekly mixers and can staff a table at the student center"
         value={pitch}
         onChange={(e) => setPitch(e.target.value)}
         rows={4}
+        maxLength={DROP_PITCH_MAX_LENGTH}
       />
       <Button
         type="button"
@@ -345,7 +436,7 @@ function PendingOrgActions({
           Still finishing setup?{" "}
           <Link
             to={connectHref}
-            className="font-semibold text-buzz-coral hover:underline"
+            className={cn("font-semibold text-accent hover:underline", focusRingClass)}
           >
             Continue onboarding
           </Link>

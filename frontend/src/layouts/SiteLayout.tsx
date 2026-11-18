@@ -1,18 +1,52 @@
 /**
  * Default marketing shell: `SiteChromeProvider`, `SiteHeader`, animated `<Outlet />`, `SiteFooter`.
+ *
+ * Marketing routes keep the overlay header and the mobile join dock.
+ * Bare auth routes draw their own frame: admin auth gets `AuthAdminHeader`,
+ * the rest show no header or footer. Signed-in orgs and brands off the
+ * marketing pages get their portal top bar, and so does `/onboarding/denied`.
  */
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { SiteChromeProvider } from "../contexts/SiteChromeContext";
 import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
 import ImpersonationBanner from "../components/site/ImpersonationBanner";
+import AuthAdminHeader from "../components/auth/AuthAdminHeader";
+import PortalHeader, { type Portal } from "../components/site/PortalHeader";
+import { useAuth } from "../contexts/AuthContext";
+import { isAdminAuthPath, isBareAuthPath } from "../components/auth/authPaths";
+import { LinkButton } from "../components/forms/controls";
+
+function isMarketingPath(pathname: string): boolean {
+  return pathname === "/" || pathname === "/for-orgs" || pathname === "/for-brands";
+}
 
 export default function SiteLayout() {
+  const { pathname } = useLocation();
+  const marketing = isMarketingPath(pathname);
+  const bare = isBareAuthPath(pathname);
+  const { user, status } = useAuth();
+  const role = user?.portalRole;
+  const portal: Portal | null =
+    pathname === "/onboarding/denied"
+      ? "org"
+      : !marketing && status === "authenticated" && (role === "org" || role === "brand")
+        ? role
+        : null;
+
   return (
     <SiteChromeProvider>
-      <div className="flex min-h-screen flex-col bg-buzz-cream selection:bg-buzz-butter selection:text-buzz-coral">
+      <div className="buzz-app-atmosphere flex min-h-screen flex-col bg-page">
         <ImpersonationBanner />
-        <SiteHeader />
+        {bare ? (
+          isAdminAuthPath(pathname) ? (
+            <AuthAdminHeader />
+          ) : null
+        ) : portal ? (
+          <PortalHeader portal={portal} />
+        ) : (
+          <SiteHeader />
+        )}
         {/* Flex column all the way to the outlet so `AUTH_SHELL.center` can
             claim the space between header and footer with `flex-1` and center
             in it for real, instead of a guessed min-height on the page. */}
@@ -25,8 +59,25 @@ export default function SiteLayout() {
             <Outlet />
           </div>
         </main>
-        <SiteFooter />
+        {bare ? null : marketing ? <MobileJoinDock /> : <SiteFooter mode={portal ? "signed-in" : "public"} />}
       </div>
     </SiteChromeProvider>
+  );
+}
+
+/** Pen mobile dock: yellow apply pill, fixed, under 768px. */
+function MobileJoinDock() {
+  const { pathname } = useLocation();
+  const forBrands = pathname === "/for-brands";
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 md:hidden">
+      <LinkButton
+        to={forBrands ? "/brand/apply" : "/org/apply"}
+        fullWidth
+        className="pointer-events-auto mx-auto flex h-11 max-w-md px-5 shadow-buzz"
+      >
+        {forBrands ? "Apply as a brand" : "Join as a student organization"}
+      </LinkButton>
+    </div>
   );
 }

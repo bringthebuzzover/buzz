@@ -223,6 +223,137 @@ export function useDenyIgChangeRequest() {
   });
 }
 
+export function useRetargetIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { requestId: string; requestedHandle: string }) => {
+      const { data } = await apiFetch<AdminIgChangeRequest>(
+        `/api/admin/ig-change-requests/${input.requestId}/retarget`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ requestedHandle: input.requestedHandle }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
+export type AdminBrandIgChangeRequest =
+  components["schemas"]["AdminBrandIgChangeRequestItem"];
+
+export type AdminShippingChangeRequest =
+  components["schemas"]["AdminShippingChangeRequestItem"];
+
+export function useAdminShippingChangeRequests(status?: string): AdminQuery<AdminShippingChangeRequest[]> {
+  return useQuery({
+    queryKey: ["admin", "shipping-changes", status ?? "all"],
+    queryFn: async () => {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const { data } = await apiFetch<AdminShippingChangeRequest[]>(
+        `/api/admin/shipping-change-requests${query}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useAdminShippingChangeRequest(requestId: string | undefined): AdminQuery<AdminShippingChangeRequest> {
+  return useQuery({
+    queryKey: ["admin", "shipping-change", requestId],
+    enabled: Boolean(requestId),
+    queryFn: async () => {
+      const { data } = await apiFetch<AdminShippingChangeRequest>(
+        `/api/admin/shipping-change-requests/${requestId}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useApproveShippingChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await apiFetch<AdminShippingChangeRequest>(
+        `/api/admin/shipping-change-requests/${requestId}/approve`,
+        { method: "POST" },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
+export function useDenyShippingChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { requestId: string; decisionReason?: string }) => {
+      const { data } = await apiFetch<AdminShippingChangeRequest>(
+        `/api/admin/shipping-change-requests/${input.requestId}/deny`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decisionReason: input.decisionReason ?? null }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
+export function useAdminBrandIgChangeRequests(
+  status?: string,
+): AdminQuery<AdminBrandIgChangeRequest[]> {
+  return useQuery({
+    queryKey: ["admin", "brand-ig-changes", status ?? "all"],
+    queryFn: async () => {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const { data } = await apiFetch<AdminBrandIgChangeRequest[]>(
+        `/api/admin/brand-ig-change-requests${query}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useApproveBrandIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await apiFetch<AdminBrandIgChangeRequest>(
+        `/api/admin/brand-ig-change-requests/${requestId}/approve`,
+        { method: "POST" },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
+export function useDenyBrandIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await apiFetch<AdminBrandIgChangeRequest>(
+        `/api/admin/brand-ig-change-requests/${requestId}/deny`,
+        { method: "POST" },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
 // ── Brands ──────────────────────────────────────────────────────────────────
 
 /** `brands.status` disagrees with `userStatus` by design. */
@@ -364,7 +495,7 @@ function useAdminMutation<TInput>(
       // Fire-and-forget. `mutateAsync` awaits onSuccess; awaiting this would
       // block until every active ["admin"] query refetches (sidebar overview
       // plus the page). That kept Publish disabled after Save draft and
-      // wiped a second tracking number after Add tracking once the drop
+      // wiped a second tracking number after Add once the drop
       // detail refetch landed first. Same pattern as useCreateAdminDrop.
       void invalidateAdmin(queryClient);
     },
@@ -391,6 +522,16 @@ export function useResendOrgConnect() {
   );
 }
 
+/**
+ * Connect link for an org that has never connected Instagram (pre-approval).
+ * Distinct from {@link useResendOrgConnect}, which targets switch holders.
+ */
+export function useSendOrgConnectLink() {
+  return useAdminMutation((orgId: string) =>
+    apiFetch(`/api/admin/orgs/${orgId}/send-connect-link`, { method: "POST" }),
+  );
+}
+
 export function useAckIgBindMismatch() {
   return useAdminMutation((orgId: string) =>
     apiFetch(`/api/admin/orgs/${orgId}/ig-bind-mismatch/ack`, {
@@ -402,8 +543,11 @@ export function useAckIgBindMismatch() {
 export type ResendConnectAllResult =
   components["schemas"]["AdminResendConnectAllResponse"];
 
-/** Emails every pending_instagram org; never unverified or awaiting-approval. */
-export function useResendAllPendingInstagramConnect() {
+/**
+ * Emails every org that still has to connect Instagram — switch holders and
+ * orgs that never connected before approval. Not unverified / profileless orgs.
+ */
+export function useResendAllAwaitingInstagramConnect() {
   return useAdminMutation(async (_: void) => {
     const { data } = await apiFetch<ResendConnectAllResult>(
       "/api/admin/orgs/resend-connect-all",
@@ -424,7 +568,7 @@ export type BrandInviteActionResult =
 
 /** Admin copy when approve/create succeeded but the invite mail did not. */
 export const INVITE_EMAIL_FAILED_COPY =
-  "Brand approved, but the invite email failed to send. Open the brand and use Resend invite.";
+  "Brand approved, but the invite email could not be queued. Open the brand and use Resend invite.";
 
 export function useApproveBrand() {
   return useAdminMutation(async (brandId: string) => {
@@ -590,12 +734,6 @@ export function useSendBrandEmail() {
   });
 }
 
-export function useClearReopen(dropId: string) {
-  return useAdminMutation((_: void) =>
-    apiFetch(`/api/admin/drops/${dropId}/clear-reopen`, { method: "POST" }),
-  );
-}
-
 export type AdminSyncAutolinkResult =
   components["schemas"]["AdminSyncAutolinkResponse"];
 
@@ -722,6 +860,7 @@ export type AdminDropCreateInput = {
   totalProductUnits?: number | null;
   campaignHashtag?: string | null;
   dropRequestId?: string;
+  brandCanEditCreative?: boolean;
 };
 
 export function useCreateAdminDrop() {
@@ -767,10 +906,11 @@ export function usePublishDrop(dropId: string) {
   );
 }
 
-export function useRemoveParticipant(dropId: string) {
+/** Hard-delete a seat (test data, mistakes). Ending a real seat is a decision. */
+export function useDeleteSeat(dropId: string) {
   return useAdminMutation((input: { applicationId: string; confirm: string }) =>
     apiFetch(
-      `/api/admin/drops/${dropId}/applications/${input.applicationId}/remove`,
+      `/api/admin/drops/${dropId}/applications/${input.applicationId}/delete`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -809,39 +949,74 @@ export function usePatchAdminDropConfig(dropId: string) {
   );
 }
 
-export function useFinalizeAdminApplicants(dropId: string) {
-  return useAdminMutation((allocations: { orgId: string; units: number }[]) =>
-    apiFetch(`/api/admin/drops/${dropId}/finalize-applicants`, {
+export type AdminSeatDecision =
+  components["schemas"]["AdminSeatDecisionRequest"]["decision"];
+
+/**
+ * Draft one seat (BUZZ may decide at any stage and overbook), or end it:
+ * `withdrew` / `removed` take effect at once; `removed` needs a reason.
+ */
+export function useSetAdminSeatDecision(dropId: string) {
+  return useAdminMutation(
+    (input: {
+      applicationId: string;
+      decision: AdminSeatDecision;
+      allocatedUnits?: number | null;
+      reason?: string;
+    }) =>
+      apiFetch(
+        `/api/admin/drops/${dropId}/applications/${input.applicationId}/decision`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision: input.decision,
+            allocatedUnits: input.allocatedUnits ?? null,
+            reason: input.reason ?? null,
+          }),
+        },
+      ),
+  );
+}
+
+export function useSendAdminDecisions(dropId: string) {
+  return useAdminMutation((_: void) =>
+    apiFetch(`/api/admin/drops/${dropId}/send-decisions`, { method: "POST" }),
+  );
+}
+
+/** Wrap (`true`) or unwrap (`false`) a drop. */
+export function useSetDropWrapped(dropId: string) {
+  return useAdminMutation((wrapped: boolean) =>
+    apiFetch(`/api/admin/drops/${dropId}/${wrapped ? "wrap" : "unwrap"}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ allocations }),
     }),
   );
 }
 
-export function useAdvanceTracker(dropId: string) {
-  return useAdminMutation(
-    (input: { stage: string; note?: string }) =>
-      apiFetch(`/api/admin/drops/${dropId}/tracker`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stage: input.stage,
-          note: input.note || null,
-        }),
-      }),
+/** Cancel a running drop. Final; the API re-checks the typed title. */
+export function useCancelDrop(dropId: string) {
+  return useAdminMutation((confirm: string) =>
+    apiFetch(`/api/admin/drops/${dropId}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm }),
+    }),
   );
 }
 
-export function useReopenDrop(dropId: string) {
-  return useAdminMutation((_: void) =>
-    apiFetch(`/api/admin/drops/${dropId}/reopen`, { method: "POST" }),
+/** Mark a seat's package delivered (or undo). Per seat, never a gate. */
+export function useSetApplicantDelivered(applicationId: string) {
+  return useAdminMutation((delivered: boolean) =>
+    apiFetch(`/api/admin/applications/${applicationId}/delivered`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delivered }),
+    }),
   );
 }
 
 // ── Impersonation ───────────────────────────────────────────────────────────
-
-export type AdminUserRow = components["schemas"]["AdminUserItem"];
 
 export function useImpersonate(): AdminMutation<string> {
   return useMutation({

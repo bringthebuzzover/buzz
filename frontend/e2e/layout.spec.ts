@@ -15,8 +15,8 @@ import { waitForAuthSettled } from "./authSettled";
 const MOBILE = { width: 375, height: 812 };
 const DESKTOP = { width: 1440, height: 900 };
 
-/** Radii the design system allows: buzzCheck 6px, buzzControl 8px, buzzCard 16px, buzzModal 24px, plus pills and square. */
-const ALLOWED_RADII = new Set(["0px", "6px", "8px", "16px", "24px", "9999px"]);
+/** Radii the design system allows. Pen: check 5, control/media 8, field 10, board/modal 16, phone 32, plus the previous 6/24 and pills. */
+const ALLOWED_RADII = new Set(["0px", "5px", "6px", "8px", "10px", "16px", "24px", "32px", "9999px"]);
 
 /** Public routes: reachable with no session, so these stay fast and stable. */
 const PUBLIC_ROUTES = [
@@ -45,7 +45,7 @@ async function gotoAnonymous(page: Page, route: string) {
   );
   await page.goto(route, { waitUntil: "domcontentloaded" });
   await page
-    .getByText(/restoring your session/i)
+    .getByTestId("auth-pending")
     .waitFor({ state: "hidden", timeout: 8_000 })
     .catch(() => undefined);
 }
@@ -79,46 +79,50 @@ test.describe("no horizontal overflow", () => {
   }
 });
 
-test("centered auth pages are centered between header and footer", async ({ page }) => {
+test("org login is a photo split without the marketing header or footer", async ({
+  page,
+}) => {
   await page.setViewportSize(DESKTOP);
   await gotoAnonymous(page, "/login");
 
-  const shell = page.getByTestId("auth-shell");
-  await expect(shell).toBeVisible();
-
-  // Measured against the chrome, not the shell: centering inside a box that
-  // itself stops short of the footer is exactly the bug this guards.
-  const { above, below } = await shell.evaluate((el) => {
-    const kids = Array.from(el.children).map((c) => c.getBoundingClientRect());
-    const contentTop = Math.min(...kids.map((b) => b.top));
-    const contentBottom = Math.max(...kids.map((b) => b.bottom));
-    const header = document.querySelector("header")!.getBoundingClientRect();
-    const footer = document.querySelector("footer")!.getBoundingClientRect();
-    return { above: contentTop - header.bottom, below: footer.top - contentBottom };
-  });
-
-  // With `min-h-[60vh]` this gap was hundreds of pixels apart, because the
-  // shell ignored the header and footer entirely.
-  expect(
-    Math.abs(above - below),
-    `auth content is off-center: ${Math.round(above)}px above vs ${Math.round(below)}px below`,
-  ).toBeLessThanOrEqual(8);
+  await expect(page.getByTestId("auth-aside")).toBeVisible();
+  await expect(page.getByTestId("auth-form")).toBeVisible();
+  await expect(page.locator("header")).toHaveCount(0);
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: /join or sign in to buzz/i }),
+  ).toBeVisible();
 });
 
-test("the auth shell spans the space between header and footer", async ({ page }) => {
+test("org apply keeps the photo pane pinned while the form scrolls", async ({
+  page,
+}) => {
   await page.setViewportSize(DESKTOP);
-  await gotoAnonymous(page, "/login");
+  await gotoAnonymous(page, "/org/apply");
 
-  const shell = await page.getByTestId("auth-shell").boundingBox();
-  const header = await page.locator("header").first().boundingBox();
-  const footer = await page.getByRole("contentinfo").boundingBox();
-  expect(shell && header && footer).toBeTruthy();
-  if (!shell || !header || !footer) return;
+  const aside = page.getByTestId("auth-aside");
+  await expect(aside).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 
-  // Claiming the leftover space is what makes centering meaningful.
-  expect(shell.y).toBeGreaterThanOrEqual(header.y + header.height - 1);
-  expect(shell.y + shell.height).toBeLessThanOrEqual(footer.y + 1);
-  expect(shell.height).toBeGreaterThan(100);
+  const box = await aside.boundingBox();
+  expect(box).not.toBeNull();
+  expect(Math.abs(box!.y)).toBeLessThanOrEqual(2);
+  await expect(aside.locator('a[aria-label="BUZZ Home"]')).toBeVisible();
+});
+
+test("admin login uses the minimal auth header", async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await gotoAnonymous(page, "/admin/login");
+
+  const header = page.locator("header");
+  await expect(header).toBeVisible();
+  await expect(header.getByText("admin", { exact: true })).toBeVisible();
+  await expect(
+    header.getByRole("link", { name: /back to bringthebuzzover\.com/i }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /join us/i })).toHaveCount(0);
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
+  await expect(page.getByTestId("auth-form")).toBeVisible();
 });
 
 test("controls on one row share a height", async ({ page }) => {
@@ -170,6 +174,24 @@ test("the checkbox is drawn by us, not the OS", async ({ page }) => {
   expect(size?.height).toBeGreaterThanOrEqual(18);
 });
 
+test("closed mobile nav does not dim the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAnonymous(page, "/");
+
+  const drawer = page.locator("#mobile-nav-menu").locator("..");
+  const panel = page.locator("#mobile-nav-menu");
+  await expect(drawer).toHaveCSS("opacity", "0");
+  const closedOffscreen = await panel.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return box.right <= 1;
+  });
+  expect(closedOffscreen).toBe(true);
+
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(drawer).toHaveCSS("opacity", "1");
+  await expect(panel.getByRole("link", { name: "Home" })).toBeVisible();
+});
+
 test("the modal traps focus, closes on Escape, and locks the page", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await gotoUiKit(page);
@@ -192,4 +214,6 @@ test("the modal traps focus, closes on Escape, and locks the page", async ({ pag
 
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+  // Focus goes back to the control that opened it.
+  await expect(page.getByRole("button", { name: "Open modal" })).toBeFocused();
 });

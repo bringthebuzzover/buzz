@@ -1,9 +1,9 @@
-"""Admin routes — ``/api/admin`` (architecture.md §5.1, §8.5).
+"""Admin routes — ``/api/admin`` (buzz-ops engineering/architecture.md §5.1, §8.5).
 
 Reads are all ``GET`` and back the admin panel's sidebar sections. Mutations cover
-account approve/deny/recovery, drop tracker/reopen, per-org shipments,
+account approve/deny/recovery, drop seat decisions + wrap-up, per-org shipments,
 allowlisted table inspect/patch, and impersonation. Remaining stuck states
-without a product path stay in ``gaps/``.
+without a product path stay in buzz-ops ``engineering/gaps/``.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,8 @@ from app.config import settings
 from app.deps.auth import CurrentAdmin
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
-from app.models.enums import BrandStatus, OrgUserStatus
+from app.models.brand import Brand
+from app.models.drop_request import DropRequest
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
     AdminAddOrgRequest,
@@ -30,26 +31,27 @@ from app.schemas.acks import (
     AdminBrandEraseResponse,
     AdminBrandInviteResponse,
     AdminBrandStatusResponse,
+    AdminCancelDropRequest,
     AdminComposeEmailRequest,
     AdminComposeEmailResponse,
+    AdminDeleteSeatRequest,
+    AdminDeleteSeatResponse,
     AdminDropHideRequest,
     AdminOrgEraseRequest,
     AdminOrgEraseResponse,
     AdminOrgStatusResponse,
-    AdminRemoveParticipantRequest,
-    AdminRemoveParticipantResponse,
     AdminResendConnectAllResponse,
     AdminSyncAutolinkResponse,
     ClearInstagramTokenResponse,
-    DropReopenResponse,
-    FinalizeApplicantsResponse,
+    DeliveredRequest,
+    DropStageResponse,
     OkResponse,
-    TrackerAdvanceResponse,
+    SendDecisionsResponse,
 )
 from app.schemas.admin import (
     AdminBrandDetail,
+    AdminBrandIgChangeRequestItem,
     AdminBrandItem,
-    AdminCleanupStubsResponse,
     AdminCreateBrandRequest,
     AdminDropConfigPatch,
     AdminDropCreateRequest,
@@ -59,16 +61,15 @@ from app.schemas.admin import (
     AdminHealthResponse,
     AdminIgChangeApproveRequest,
     AdminIgChangeRequestItem,
+    AdminIgChangeRetargetRequest,
     AdminOrgApproveRequest,
     AdminOrgDetail,
     AdminOrgItem,
     AdminOverviewResponse,
-    AdminPendingBrandItem,
-    AdminPendingOrgItem,
-    AdminUserItem,
+    AdminShippingChangeDecision,
+    AdminShippingChangeRequestItem,
     ImpersonateRequest,
     ImpersonateResponse,
-    TrackerAdvanceRequest,
     ViewAsResumeRequest,
 )
 from app.schemas.admin_tables import (
@@ -79,7 +80,7 @@ from app.schemas.admin_tables import (
     AdminTableRowResponse,
 )
 from app.schemas.auth import UserResponse
-from app.schemas.brands import FinalizeApplicantsRequest
+from app.schemas.brands import AdminSeatDecisionRequest
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.security import jwt
 from app.security.view_as import clear_view_as_cookie, set_view_as_cookie
@@ -87,11 +88,9 @@ from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
     ack_ig_bind_mismatch,
     add_org_to_drop,
-    advance_tracker,
     approve_brand,
     approve_org,
-    cleanup_request_received_stubs,
-    clear_manual_reopen,
+    cancel_drop,
     clear_org_instagram_token,
     compose_brand_email,
     compose_org_email,
@@ -99,22 +98,23 @@ from app.services.admin import (
     create_brand,
     deny_brand,
     deny_org,
-    finalize_drop_applicants,
     hide_drop,
     list_brands,
     list_orgs,
     publish_drop,
-    reopen_drop,
-    resend_all_pending_instagram_connect,
+    resend_all_awaiting_instagram_connect,
     resend_brand_invite,
     resend_org_connect,
+    send_org_connect_link,
     sync_and_autolink_drop,
     undeny_brand,
     undeny_org,
     unhide_drop,
+    unwrap_drop,
     update_drop_config,
+    wrap_drop,
 )
-from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
+from app.services.admin_auth import mint_impersonation_token
 from app.services.admin_erase import erase_brand, erase_org_user
 from app.services.admin_read import (
     get_brand_detail,
@@ -130,6 +130,16 @@ from app.services.admin_tables import (
     patch_table_row,
     query_table,
 )
+from app.services.brand_ig_change_requests import (
+    approve_request as approve_brand_ig_change_request,
+)
+from app.services.brand_ig_change_requests import (
+    deny_request as deny_brand_ig_change_request,
+)
+from app.services.brand_ig_change_requests import (
+    list_requests as list_brand_ig_change_requests,
+)
+from app.services.delete_seat import delete_seat
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 from app.services.ig_change_requests import (
     approve_request as approve_ig_change_request,
@@ -143,9 +153,24 @@ from app.services.ig_change_requests import (
 from app.services.ig_change_requests import (
     list_requests as list_ig_change_requests,
 )
+from app.services.ig_change_requests import (
+    retarget_awaiting_connect as retarget_ig_change_request,
+)
 from app.services.instagram import InstagramClient, get_instagram_client
-from app.services.remove_participant import remove_participant_from_drop
-from app.services.shipments import add_shipment, delete_shipment
+from app.services.seats import lock_drop, send_decisions, set_seat_decision
+from app.services.shipments import add_shipment, delete_shipment, set_delivered
+from app.services.shipping_change_requests import (
+    approve_request as approve_shipping_change_request,
+)
+from app.services.shipping_change_requests import (
+    deny_request as deny_shipping_change_request,
+)
+from app.services.shipping_change_requests import (
+    get_request as get_shipping_change_request,
+)
+from app.services.shipping_change_requests import (
+    list_requests as list_shipping_change_requests,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +195,7 @@ async def get_health_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Inferred pipeline freshness, Instagram token buckets, and standing
-    integrity / silent-loss counts. See ``gaps/`` for why the pipeline
+    integrity / silent-loss counts. See buzz-ops ``engineering/gaps/`` for why the pipeline
     block is inferred rather than measured."""
     return api_response(data=AdminHealthResponse(**await get_health(db)))
 
@@ -187,17 +212,6 @@ async def list_orgs_endpoint(
 ) -> APIResponse:
     rows = await list_orgs(db, status=status, attention=attention)
     return api_response(data=[AdminOrgItem(**r) for r in rows])
-
-
-@router.get("/orgs/pending", response_model=DataResponse[list[AdminPendingOrgItem]])
-async def get_pending_orgs(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    rows = await list_orgs(db, status=OrgUserStatus.PENDING_APPROVAL.value)
-    # A pending-approval user always has a profile; the guard is a safety net so
-    # the narrow schema's non-null fields can't blow up on bad data.
-    return api_response(data=[AdminPendingOrgItem(**r) for r in rows if r["id"] is not None])
 
 
 @router.get("/orgs/{user_id}", response_model=DataResponse[AdminOrgDetail])
@@ -231,10 +245,11 @@ async def erase_org_endpoint(
     user_id: uuid.UUID,
     body: AdminOrgEraseRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Erase an org: scrub identity and freeze its campaign metrics."""
-    result = await erase_org_user(db, user_id, body.confirm)
+    result = await erase_org_user(db, user_id, body.confirm, background_tasks=background_tasks)
     return api_response(data=AdminOrgEraseResponse.model_validate(result))
 
 
@@ -246,10 +261,13 @@ async def compose_org_email_endpoint(
     user_id: uuid.UUID,
     body: AdminComposeEmailRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Freeform Resend to the org .edu. To is the profile email, not the body."""
-    result = await compose_org_email(db, user_id, body.subject, body.body)
+    result = await compose_org_email(
+        db, user_id, body.subject, body.body, background_tasks=background_tasks
+    )
     return api_response(data=AdminComposeEmailResponse.model_validate(result))
 
 
@@ -272,9 +290,15 @@ async def approve_org_endpoint(
     org_id: uuid.UUID,
     payload: AdminOrgApproveRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await approve_org(db, org_id, tester_invite_confirmed=payload.tester_invite_confirmed)
+    result = await approve_org(
+        db,
+        org_id,
+        tester_invite_confirmed=payload.tester_invite_confirmed,
+        background_tasks=background_tasks,
+    )
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -282,15 +306,19 @@ async def approve_org_endpoint(
     "/orgs/resend-connect-all",
     response_model=DataResponse[AdminResendConnectAllResponse],
 )
-async def resend_all_pending_instagram_connect_endpoint(
+async def resend_all_awaiting_instagram_connect_endpoint(
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Email Connect Instagram to every ``pending_instagram`` org.
+    """Email Connect Instagram to every org that still has to connect.
 
-    Does not email orgs still verifying school email or awaiting approval.
+    Covers both cohorts: an approved account switch awaiting its bind, and an
+    org that verified its ``.edu`` but never connected Instagram (it must connect
+    before an admin can approve it). Does not email orgs still verifying school
+    email, orgs without a profile, already-connected orgs, or erased accounts.
     """
-    result = await resend_all_pending_instagram_connect(db)
+    result = await resend_all_awaiting_instagram_connect(db, background_tasks=background_tasks)
     return api_response(data=AdminResendConnectAllResponse.model_validate(result))
 
 
@@ -301,9 +329,36 @@ async def resend_all_pending_instagram_connect_endpoint(
 async def resend_org_connect_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await resend_org_connect(db, org_id)
+    """Re-send the Connect link for an **approved account switch**.
+
+    Switch holders only. For an org that has never connected Instagram, use
+    ``send-connect-link`` instead.
+    """
+    result = await resend_org_connect(db, org_id, background_tasks=background_tasks)
+    return api_response(data=AdminOrgStatusResponse.model_validate(result))
+
+
+@router.post(
+    "/orgs/{org_id}/send-connect-link",
+    response_model=DataResponse[AdminOrgStatusResponse],
+)
+async def send_org_connect_link_endpoint(
+    org_id: uuid.UUID,
+    _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Email a Connect Instagram link to an unbound org that has never connected.
+
+    For orgs that verified their ``.edu`` under the apply-first flow and were
+    never approved: they have no credentials, so approval refuses and
+    ``resend-connect`` (switch holders) refuses too. The link lets them bind
+    first; they stay ``pending_approval`` until an admin approves them.
+    """
+    result = await send_org_connect_link(db, org_id, background_tasks=background_tasks)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -311,9 +366,10 @@ async def resend_org_connect_endpoint(
 async def deny_org_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await deny_org(db, org_id)
+    result = await deny_org(db, org_id, background_tasks=background_tasks)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -321,9 +377,10 @@ async def deny_org_endpoint(
 async def undeny_org_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await undeny_org(db, org_id)
+    result = await undeny_org(db, org_id, background_tasks=background_tasks)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -362,6 +419,7 @@ async def approve_ig_change_request_endpoint(
     request_id: uuid.UUID,
     body: AdminIgChangeApproveRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await approve_ig_change_request(
@@ -369,6 +427,7 @@ async def approve_ig_change_request_endpoint(
         request_id,
         kind=body.kind,
         tester_invite_confirmed=body.tester_invite_confirmed,
+        background_tasks=background_tasks,
     )
     return api_response(data=AdminIgChangeRequestItem.model_validate(result))
 
@@ -380,11 +439,127 @@ async def approve_ig_change_request_endpoint(
 async def deny_ig_change_request_endpoint(
     request_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     return api_response(
-        data=AdminIgChangeRequestItem.model_validate(await deny_ig_change_request(db, request_id))
+        data=AdminIgChangeRequestItem.model_validate(
+            await deny_ig_change_request(db, request_id, background_tasks=background_tasks)
+        )
     )
+
+
+@router.post(
+    "/ig-change-requests/{request_id}/retarget",
+    response_model=DataResponse[AdminIgChangeRequestItem],
+)
+async def retarget_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    body: AdminIgChangeRetargetRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Point a stuck reconnect ticket at the handle the org can actually bind."""
+    result = await retarget_ig_change_request(db, request_id, body.requested_handle)
+    return api_response(data=AdminIgChangeRequestItem.model_validate(result))
+
+
+@router.get(
+    "/shipping-change-requests",
+    response_model=DataResponse[list[AdminShippingChangeRequestItem]],
+)
+async def list_shipping_change_requests_endpoint(
+    _user: CurrentAdmin,
+    status: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    rows = await list_shipping_change_requests(db, status=status)
+    return api_response(data=[AdminShippingChangeRequestItem.model_validate(row) for row in rows])
+
+
+@router.get(
+    "/shipping-change-requests/{request_id}",
+    response_model=DataResponse[AdminShippingChangeRequestItem],
+)
+async def get_shipping_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(
+        data=AdminShippingChangeRequestItem.model_validate(
+            await get_shipping_change_request(db, request_id)
+        )
+    )
+
+
+@router.post(
+    "/shipping-change-requests/{request_id}/approve",
+    response_model=DataResponse[AdminShippingChangeRequestItem],
+)
+async def approve_shipping_change_request_endpoint(
+    request_id: uuid.UUID,
+    user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+    addresses: AddressClient = Depends(get_address_client),
+) -> APIResponse:
+    result = await approve_shipping_change_request(db, request_id, user, addresses=addresses)
+    return api_response(data=AdminShippingChangeRequestItem.model_validate(result))
+
+
+@router.post(
+    "/shipping-change-requests/{request_id}/deny",
+    response_model=DataResponse[AdminShippingChangeRequestItem],
+)
+async def deny_shipping_change_request_endpoint(
+    request_id: uuid.UUID,
+    body: AdminShippingChangeDecision,
+    user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await deny_shipping_change_request(
+        db, request_id, user, decision_reason=body.decision_reason
+    )
+    return api_response(data=AdminShippingChangeRequestItem.model_validate(result))
+
+
+@router.get(
+    "/brand-ig-change-requests",
+    response_model=DataResponse[list[AdminBrandIgChangeRequestItem]],
+)
+async def list_brand_ig_change_requests_endpoint(
+    _user: CurrentAdmin,
+    status: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    rows = await list_brand_ig_change_requests(db, status=status)
+    return api_response(data=[AdminBrandIgChangeRequestItem.model_validate(row) for row in rows])
+
+
+@router.post(
+    "/brand-ig-change-requests/{request_id}/approve",
+    response_model=DataResponse[AdminBrandIgChangeRequestItem],
+)
+async def approve_brand_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await approve_brand_ig_change_request(db, request_id)
+    return api_response(data=AdminBrandIgChangeRequestItem.model_validate(result))
+
+
+@router.post(
+    "/brand-ig-change-requests/{request_id}/deny",
+    response_model=DataResponse[AdminBrandIgChangeRequestItem],
+)
+async def deny_brand_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await deny_brand_ig_change_request(db, request_id)
+    return api_response(data=AdminBrandIgChangeRequestItem.model_validate(result))
 
 
 # ── Brands ──────────────────────────────────────────────────────────────────
@@ -400,15 +575,6 @@ async def list_brands_endpoint(
     return api_response(data=[AdminBrandItem(**r) for r in rows])
 
 
-@router.get("/brands/pending", response_model=DataResponse[list[AdminPendingBrandItem]])
-async def get_pending_brands(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    rows = await list_brands(db, status=BrandStatus.PENDING_REVIEW.value)
-    return api_response(data=[AdminPendingBrandItem(**r) for r in rows])
-
-
 @router.get("/brands/{brand_id}", response_model=DataResponse[AdminBrandDetail])
 async def get_brand_detail_endpoint(
     brand_id: uuid.UUID,
@@ -422,6 +588,7 @@ async def get_brand_detail_endpoint(
 async def create_brand_endpoint(
     payload: AdminCreateBrandRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Provision a brand (and optionally approve + invite) when self-reg is off."""
@@ -432,6 +599,7 @@ async def create_brand_endpoint(
         instagram_handle=payload.instagram_handle,
         intent_message=payload.intent_message,
         approve_now=payload.approve_now,
+        background_tasks=background_tasks,
     )
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
@@ -440,9 +608,10 @@ async def create_brand_endpoint(
 async def approve_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await approve_brand(db, brand_id)
+    result = await approve_brand(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
@@ -450,9 +619,10 @@ async def approve_brand_endpoint(
 async def deny_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await deny_brand(db, brand_id)
+    result = await deny_brand(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandStatusResponse.model_validate(result))
 
 
@@ -460,9 +630,10 @@ async def deny_brand_endpoint(
 async def undeny_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await undeny_brand(db, brand_id)
+    result = await undeny_brand(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandStatusResponse.model_validate(result))
 
 
@@ -472,9 +643,10 @@ async def undeny_brand_endpoint(
 async def resend_brand_invite_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await resend_brand_invite(db, brand_id)
+    result = await resend_brand_invite(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
@@ -486,10 +658,11 @@ async def erase_brand_endpoint(
     brand_id: uuid.UUID,
     body: AdminBrandEraseRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Hybrid erase: scrub brand login/PII; keep drops and org campaign history."""
-    result = await erase_brand(db, brand_id, body.confirm)
+    result = await erase_brand(db, brand_id, body.confirm, background_tasks=background_tasks)
     return api_response(data=AdminBrandEraseResponse.model_validate(result))
 
 
@@ -501,14 +674,38 @@ async def compose_brand_email_endpoint(
     brand_id: uuid.UUID,
     body: AdminComposeEmailRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Freeform Resend to the brand company email. To is not client-supplied."""
-    result = await compose_brand_email(db, brand_id, body.subject, body.body)
+    result = await compose_brand_email(
+        db, brand_id, body.subject, body.body, background_tasks=background_tasks
+    )
     return api_response(data=AdminComposeEmailResponse.model_validate(result))
 
 
 # ── Drop requests (intake tickets) ───────────────────────────────────────────
+
+
+def _admin_drop_request_item(ticket: DropRequest, brand: Brand) -> AdminDropRequestItem:
+    return AdminDropRequestItem(
+        id=ticket.id,
+        brand_id=ticket.brand_id,
+        brand_name=brand.brand_name,
+        message=ticket.message,
+        product=ticket.product,
+        title=ticket.title,
+        location=ticket.location,
+        target_date=ticket.target_date,
+        org_count=ticket.org_count,
+        units_per_org=ticket.units_per_org,
+        campaign_hashtag=ticket.campaign_hashtag,
+        notes=ticket.notes,
+        status=ticket.status,
+        converted_drop_id=ticket.converted_drop_id,
+        created_at=ticket.created_at,
+        updated_at=ticket.updated_at,
+    )
 
 
 @router.get(
@@ -522,22 +719,7 @@ async def list_drop_requests_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     rows = await list_admin_drop_requests(db, status=status, brand_id=brand_id)
-    return api_response(
-        data=[
-            AdminDropRequestItem(
-                id=ticket.id,
-                brand_id=ticket.brand_id,
-                brand_name=brand.brand_name,
-                message=ticket.message,
-                notes=ticket.notes,
-                status=ticket.status,
-                converted_drop_id=ticket.converted_drop_id,
-                created_at=ticket.created_at,
-                updated_at=ticket.updated_at,
-            )
-            for ticket, brand in rows
-        ]
-    )
+    return api_response(data=[_admin_drop_request_item(ticket, brand) for ticket, brand in rows])
 
 
 @router.get(
@@ -550,19 +732,7 @@ async def get_drop_request_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     ticket, brand = await get_admin_drop_request(db, request_id)
-    return api_response(
-        data=AdminDropRequestItem(
-            id=ticket.id,
-            brand_id=ticket.brand_id,
-            brand_name=brand.brand_name,
-            message=ticket.message,
-            notes=ticket.notes,
-            status=ticket.status,
-            converted_drop_id=ticket.converted_drop_id,
-            created_at=ticket.created_at,
-            updated_at=ticket.updated_at,
-        )
-    )
+    return api_response(data=_admin_drop_request_item(ticket, brand))
 
 
 # ── Drops ───────────────────────────────────────────────────────────────────
@@ -613,9 +783,10 @@ async def create_admin_drop_endpoint(
 async def publish_drop_endpoint(
     drop_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    await publish_drop(db, drop_id)
+    await publish_drop(db, drop_id, background_tasks=background_tasks)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
@@ -627,9 +798,16 @@ async def hide_drop_endpoint(
     drop_id: uuid.UUID,
     payload: AdminDropHideRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    await hide_drop(db, drop_id, confirm=payload.confirm, notify_brand=payload.notify_brand)
+    await hide_drop(
+        db,
+        drop_id,
+        confirm=payload.confirm,
+        notify_brand=payload.notify_brand,
+        background_tasks=background_tasks,
+    )
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
@@ -647,25 +825,25 @@ async def unhide_drop_endpoint(
 
 
 @router.post(
-    "/drops/{drop_id}/applications/{application_id}/remove",
-    response_model=DataResponse[AdminRemoveParticipantResponse],
+    "/drops/{drop_id}/applications/{application_id}/delete",
+    response_model=DataResponse[AdminDeleteSeatResponse],
 )
-async def remove_participant_endpoint(
+async def delete_seat_endpoint(
     drop_id: uuid.UUID,
     application_id: uuid.UUID,
-    body: AdminRemoveParticipantRequest,
+    body: AdminDeleteSeatRequest,
     admin: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics."""
-    result = await remove_participant_from_drop(
+    """Hard-delete one seat (test data, mistakes): the seat, its shipments, its linked metrics."""
+    result = await delete_seat(
         db,
         actor_id=admin.id,
         drop_id=drop_id,
         application_id=application_id,
         confirm=body.confirm,
     )
-    return api_response(data=AdminRemoveParticipantResponse.model_validate(result))
+    return api_response(data=AdminDeleteSeatResponse.model_validate(result))
 
 
 @router.post(
@@ -676,6 +854,7 @@ async def add_org_to_drop_endpoint(
     drop_id: uuid.UUID,
     payload: AdminAddOrgRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Accept an org onto a published drop without reopening apply."""
@@ -686,6 +865,7 @@ async def add_org_to_drop_endpoint(
         allocated_units=payload.allocated_units,
         email_org=payload.email_org,
         email_brand=payload.email_brand,
+        background_tasks=background_tasks,
     )
     return api_response(data=AdminAddOrgResponse.model_validate(result))
 
@@ -716,31 +896,84 @@ async def patch_drop_config_endpoint(
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
-@router.post(
-    "/drops/{drop_id}/finalize-applicants",
-    response_model=DataResponse[FinalizeApplicantsResponse],
+@router.put(
+    "/drops/{drop_id}/applications/{application_id}/decision",
+    response_model=DataResponse[AdminDropDetail],
 )
-async def finalize_drop_applicants_endpoint(
+async def put_seat_decision_endpoint(
     drop_id: uuid.UUID,
-    payload: FinalizeApplicantsRequest,
+    application_id: uuid.UUID,
+    payload: AdminSeatDecisionRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Same batch finalize as the brand portal: window closed, selection stage, deny the rest."""
-    allocations = [{"org_id": a.org_id, "units": a.units} for a in payload.allocations]
-    result = await finalize_drop_applicants(db, drop_id, allocations)
-    return api_response(data=FinalizeApplicantsResponse.model_validate(result))
+    """Set one seat's status. accepted/denied are drafts until the next send (may
+    overbook); withdrew/removed end the seat at once, keeping its history."""
+    drop = await lock_drop(db, drop_id)
+    await set_seat_decision(
+        db,
+        drop,
+        application_id,
+        decision=payload.decision,
+        allocated_units=payload.allocated_units,
+        actor="admin",
+        reason=payload.reason,
+    )
+    return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
-@router.patch("/drops/{drop_id}/tracker", response_model=DataResponse[TrackerAdvanceResponse])
-async def advance_tracker_endpoint(
+@router.post(
+    "/drops/{drop_id}/send-decisions",
+    response_model=DataResponse[SendDecisionsResponse],
+)
+async def send_decisions_endpoint(
     drop_id: uuid.UUID,
-    payload: TrackerAdvanceRequest,
+    _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Send every drafted decision on the drop (any stage)."""
+    drop = await lock_drop(db, drop_id)
+    result = await send_decisions(db, drop, actor="admin", background_tasks=background_tasks)
+    return api_response(data=SendDecisionsResponse.model_validate(result))
+
+
+@router.post("/drops/{drop_id}/wrap", response_model=DataResponse[DropStageResponse])
+async def wrap_drop_endpoint(
+    drop_id: uuid.UUID,
+    _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(
+        data=DropStageResponse.model_validate(
+            await wrap_drop(db, drop_id, background_tasks=background_tasks)
+        )
+    )
+
+
+@router.post("/drops/{drop_id}/cancel", response_model=DataResponse[DropStageResponse])
+async def cancel_drop_endpoint(
+    drop_id: uuid.UUID,
+    payload: AdminCancelDropRequest,
+    _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Cancel a published drop (typed title; final)."""
+    result = await cancel_drop(
+        db, drop_id, confirm=payload.confirm, background_tasks=background_tasks
+    )
+    return api_response(data=DropStageResponse.model_validate(result))
+
+
+@router.post("/drops/{drop_id}/unwrap", response_model=DataResponse[DropStageResponse])
+async def unwrap_drop_endpoint(
+    drop_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await advance_tracker(db, drop_id, payload.stage, note=payload.note)
-    return api_response(data=TrackerAdvanceResponse.model_validate(result))
+    return api_response(data=DropStageResponse.model_validate(await unwrap_drop(db, drop_id)))
 
 
 @router.post(
@@ -751,10 +984,32 @@ async def add_application_shipment(
     application_id: uuid.UUID,
     payload: AdminAddShipmentRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await add_shipment(db, application_id, payload.tracking_number, payload.carrier)
+    result = await add_shipment(
+        db,
+        application_id,
+        payload.tracking_number,
+        payload.carrier,
+        background_tasks=background_tasks,
+    )
     return api_response(data=ShipmentItem.model_validate(result))
+
+
+@router.put(
+    "/applications/{application_id}/delivered",
+    response_model=DataResponse[OkResponse],
+)
+async def set_application_delivered(
+    application_id: uuid.UUID,
+    payload: DeliveredRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Mark the seat delivered (or not). A fact, never a gate."""
+    await set_delivered(db, application_id, payload.delivered)
+    return api_response(data=OkResponse())
 
 
 @router.delete(
@@ -769,42 +1024,6 @@ async def delete_application_shipment(
 ) -> APIResponse:
     result = await delete_shipment(db, application_id, shipment_id)
     return api_response(data=OkResponse.model_validate(result))
-
-
-@router.post("/drops/{drop_id}/reopen", response_model=DataResponse[DropReopenResponse])
-async def reopen_drop_endpoint(
-    drop_id: uuid.UUID,
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    result = await reopen_drop(db, drop_id)
-    return api_response(data=DropReopenResponse.model_validate(result))
-
-
-@router.post("/drops/{drop_id}/clear-reopen", response_model=DataResponse[DropReopenResponse])
-async def clear_reopen_endpoint(
-    drop_id: uuid.UUID,
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    result = await clear_manual_reopen(db, drop_id)
-    return api_response(data=DropReopenResponse.model_validate(result))
-
-
-@router.post(
-    "/tools/cleanup-request-received",
-    response_model=DataResponse[AdminCleanupStubsResponse],
-)
-async def cleanup_request_received_endpoint(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """One-shot B6b: convert unpublished request_received stubs into tickets.
-
-    Blocked in production (run the script with ``--confirm`` after explicit ops OK).
-    """
-    result = await cleanup_request_received_stubs(db)
-    return api_response(data=AdminCleanupStubsResponse(**result))
 
 
 # ── Table inspect (MCP / ops) ───────────────────────────────────────────────
@@ -846,23 +1065,12 @@ async def patch_admin_table_row(
     payload: AdminTablePatchRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
-    addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
-    result = await patch_table_row(db, table, row_id, payload.fields, addresses)
+    result = await patch_table_row(db, table, row_id, payload.fields)
     return api_response(data=AdminTableRowResponse(**result))
 
 
 # ── Impersonation ───────────────────────────────────────────────────────────
-
-
-@router.get("/users", response_model=DataResponse[list[AdminUserItem]])
-async def list_users_endpoint(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Org + brand users for the admin impersonation picker."""
-    rows = await list_impersonatable_users(db)
-    return api_response(data=[AdminUserItem(**r) for r in rows])
 
 
 def _impersonate_body(token: str, target: UserResponse) -> ImpersonateResponse:

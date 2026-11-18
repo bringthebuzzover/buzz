@@ -11,6 +11,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
+from fastapi import BackgroundTasks
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,13 +19,16 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
+from app.models.brand_ig_change_request import BrandIgChangeRequest
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import ApplicationDecision, BrandStatus, OrgUserStatus, PortalRole
+from app.models.org_shipping_change_request import OrgShippingChangeRequest
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
+from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
-from app.security.session import bump_token_version, commit_revocation
+from app.security.session import bump_token_version, commit_revocation, lock_user
 from app.services.drop_apply_intents import expire_and_clear_intents_for_org
 from app.services.email import (
     KIND_BRAND_ERASED,
@@ -33,6 +37,7 @@ from app.services.email import (
     send_brand_erased_email,
     send_org_erased_email,
 )
+from app.services.email_tasks import schedule_email
 from app.services.erased_org_participation import (
     TOMBSTONE_ORG_NAME,
     freeze_org_campaign_metrics,
@@ -53,16 +58,27 @@ def _email_domain(email: str | None) -> str | None:
     return email.rsplit("@", 1)[-1].lower()
 
 
-async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[str, object]:
+async def erase_org_user(
+    db: AsyncSession,
+    user_id: UUID,
+    confirm: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, object]:
     """Erase an org account after IG-handle confirm. Idempotent when already erased."""
 
-    user = await db.get(User, user_id)
+    user = await lock_user(db, user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 
     if user.status == OrgUserStatus.ERASED.value:
         # Re-erase heals posts and any identity rows a previous pass left behind.
-        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+        org = await db.scalar(
+            select(Organization)
+            .where(Organization.user_id == user.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         now = datetime.now(timezone.utc)
         await purge_erased_identity_rows(db, user=user, org=org)
         if org is not None:
@@ -72,7 +88,7 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
         return {
             "user_id": str(user.id),
             "status": OrgUserStatus.ERASED.value,
-            "email_sent": False,
+            "email_queued": False,
             "email_to_domain": None,
         }
 
@@ -93,7 +109,12 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     notify_email = (user.edu_email or "").strip() or None
     email_to_domain = _email_domain(notify_email)
 
-    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    org = await db.scalar(
+        select(Organization)
+        .where(Organization.user_id == user.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     display_name = org.org_name if org is not None else stored_handle
 
     now = datetime.now(timezone.utc)
@@ -106,24 +127,26 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     await db.flush()
     await commit_revocation(db)
 
-    email_sent = False
+    email_queued = False
     if notify_email:
-        email_sent = await send_org_erased_email(
+        email_queued = await schedule_email(
+            background_tasks,
+            send_org_erased_email,
             notify_email,
             org_name=display_name,
             idempotency_key=build_idempotency_key(KIND_ORG_ERASED, user.id),
         )
 
     logger.info(
-        "org_erase_completed user_id=%s email_sent=%s",
+        "org_erase_completed user_id=%s email_queued=%s",
         user.id,
-        email_sent,
+        email_queued,
     )
     return {
         "user_id": str(user.id),
         "status": OrgUserStatus.ERASED.value,
-        "email_sent": email_sent,
-        "email_to_domain": email_to_domain if email_sent or notify_email else None,
+        "email_queued": email_queued,
+        "email_to_domain": email_to_domain if email_queued or notify_email else None,
     }
 
 
@@ -131,6 +154,31 @@ async def _scrub_campaign_and_profile(db: AsyncSession, org: Organization, now: 
     await _auto_deny_applied(db, org.id, now)
     await expire_and_clear_intents_for_org(db, org.id)
     await freeze_org_campaign_metrics(db, org_id=org.id, now=now)
+    requests = list(
+        await db.scalars(
+            select(OrgShippingChangeRequest)
+            .where(OrgShippingChangeRequest.org_id == org.id)
+            .with_for_update()
+        )
+    )
+    for request in requests:
+        if request.status == "pending":
+            request.status = "denied"
+            request.decided_at = now
+        request.current_address = None
+        request.requested_address = None
+        request.reason = None
+        request.decision_reason = None
+        request.redacted_at = now
+    await db.execute(
+        update(DropApplicationShipment)
+        .where(
+            DropApplicationShipment.application_id.in_(
+                select(DropApplication.id).where(DropApplication.org_id == org.id)
+            )
+        )
+        .values(shipping_address_snapshot=None, shipping_address_captured_at=None)
+    )
     _scrub_org_profile(org)
 
 
@@ -165,6 +213,7 @@ def _scrub_org_profile(org: Organization) -> None:
     org.shipping_city = None
     org.shipping_state = None
     org.shipping_postal_code = None
+    org.shipping_address_version += 1
     org.approved_at = None
     org.claimed_instagram_username = None
     org.instagram_handle_confirmed = False
@@ -186,7 +235,13 @@ async def _auto_deny_applied(db: AsyncSession, org_id: UUID, now: datetime) -> N
     )
 
 
-async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[str, object]:
+async def erase_brand(
+    db: AsyncSession,
+    brand_id: UUID,
+    confirm: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, object]:
     """Erase a brand after company-email confirm. Does not hide drops."""
 
     brand = await db.get(Brand, brand_id)
@@ -197,7 +252,7 @@ async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[st
         return {
             "brand_id": str(brand.id),
             "status": BrandStatus.ERASED.value,
-            "email_sent": False,
+            "email_queued": False,
             "email_to_domain": None,
         }
 
@@ -223,10 +278,13 @@ async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[st
         raise BuzzAPIException(errors.NOT_FOUND, "Brand user not found.", status_code=404)
 
     await db.execute(delete(BrandInviteToken).where(BrandInviteToken.brand_id == brand.id))
+    await db.execute(delete(BrandIgChangeRequest).where(BrandIgChangeRequest.brand_id == brand.id))
     await _delete_user_tokens(db, user.id)
 
     brand.brand_name = _TOMBSTONE_BRAND_NAME
     brand.company_email = f"erased+{brand.id.hex}@invalid.local"
+    brand.contact_name = None
+    brand.marketing_budget = None
     brand.intent_message = None
     brand.instagram_handle = None
     brand.status = BrandStatus.ERASED.value
@@ -239,20 +297,22 @@ async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[st
     await db.flush()
     await commit_revocation(db)
 
-    email_sent = await send_brand_erased_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_erased_email,
         notify_email,
         brand_name=display_name,
         idempotency_key=build_idempotency_key(KIND_BRAND_ERASED, brand.id),
     )
     logger.info(
-        "brand_erase_completed brand_id=%s email_sent=%s",
+        "brand_erase_completed brand_id=%s email_queued=%s",
         brand.id,
-        email_sent,
+        email_queued,
     )
     return {
         "brand_id": str(brand.id),
         "status": BrandStatus.ERASED.value,
-        "email_sent": email_sent,
+        "email_queued": email_queued,
         "email_to_domain": email_to_domain,
     }
 

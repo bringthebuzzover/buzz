@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from unittest.mock import AsyncMock
 from uuid import UUID
 
+import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
-from app.models.enums import ApplicationDecision, BrandTrackerStage, PortalRole
+from app.models.brand import Brand
+from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.models.organization import Organization
 from app.models.shipment import DropApplicationShipment
+from app.models.user import User
+from app.services import drop_notices
 from app.services.shipments import infer_carrier
+from app.timeutils import utcnow
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -21,14 +29,9 @@ from tests.conftest import (
 )
 
 
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
 async def _accepted_seat(db_session):
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(role=PortalRole.ORG))
     org = await make_org(db_session, org_user)
     app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
@@ -47,9 +50,39 @@ class TestInferCarrier:
 
 
 class TestAdminShipments:
+    async def test_shipment_keeps_the_destination_as_it_was_when_recorded(
+        self, app_client: AsyncClient, db_session
+    ):
+        _, org_user, app = await _accepted_seat(db_session)
+        org = await db_session.scalar(
+            select(Organization).where(Organization.user_id == org_user.id)
+        )
+        org.shipping_line1 = "1 Main St"
+        org.shipping_city = "Berkeley"
+        org.shipping_state = "CA"
+        org.shipping_postal_code = "94704"
+        org.delivery_address = "1 Main St, Berkeley, CA 94704"
+        headers = await admin_headers(db_session)
+
+        response = await app_client.post(
+            f"/api/admin/applications/{app.id}/shipments",
+            json={"trackingNumber": "1Z3V817W0392590700"},
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+        shipment = response.json()["data"]
+        assert shipment["shippingAddressSnapshot"]["shippingLine1"] == "1 Main St"
+        assert shipment["shippingAddressCapturedAt"] is not None
+
+        org.shipping_line1 = "9 New St"
+        await db_session.flush()
+        detail = await app_client.get(f"/api/admin/drops/{app.drop_id}", headers=headers)
+        historical = detail.json()["data"]["applicants"][0]["shipments"][0]
+        assert historical["shippingAddressSnapshot"]["shippingLine1"] == "1 Main St"
+
     async def test_zero_one_n_and_mixed(self, app_client: AsyncClient, db_session):
         drop, org_user, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         empty = await app_client.get(f"/api/admin/drops/{drop.id}", headers=headers)
         assert empty.status_code == 200
@@ -80,7 +113,7 @@ class TestAdminShipments:
         self, app_client: AsyncClient, db_session
     ):
         _, _, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         missing = await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "NW-TRK-001"},
@@ -101,9 +134,23 @@ class TestAdminShipments:
         assert override.status_code == 200
         assert override.json()["data"]["carrier"] == "fedex"
 
+    async def test_unsent_acceptance_has_no_tracking(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        org = await make_org(db_session, await persist(db_session, make_user(role=PortalRole.ORG)))
+        app = await make_application(
+            db_session, drop, org, decision=ApplicationDecision.ACCEPTED, sent=False
+        )
+        res = await app_client.post(
+            f"/api/admin/applications/{app.id}/shipments",
+            json={"trackingNumber": "1Z3V817W0392590700"},
+            headers=await admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
     async def test_uniqueness(self, app_client: AsyncClient, db_session):
         _, _, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         body = {"trackingNumber": "1ZAAA"}
         assert (
             await app_client.post(
@@ -122,7 +169,7 @@ class TestAdminShipments:
         app_b = await make_application(
             db_session, drop, org_b, decision=ApplicationDecision.ACCEPTED
         )
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/applications/{app_a.id}/shipments",
             json={"trackingNumber": "1ZONLYA"},
@@ -145,21 +192,6 @@ class TestAdminShipments:
         )
         assert other.status_code == 404
 
-    async def test_advance_without_tn(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-        await db_session.flush()
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "awaiting_products"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 200
-        await db_session.refresh(drop)
-        assert drop.tracking_number is None
-        assert drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
-
     async def test_applied_rejected(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
@@ -169,13 +201,13 @@ class TestAdminShipments:
         res = await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZNO"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
     async def test_delete(self, app_client: AsyncClient, db_session):
         _, _, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         created = await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZDEL"},
@@ -194,18 +226,16 @@ class TestAdminShipments:
 class TestBrandSeesPerOrg:
     async def test_brand_detail_lists_seat_shipments(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        drop = await make_drop(db_session, brand)
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
         app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZBRAND"},
             headers=headers,
         )
-        from app.models.user import User
-
         brand_user = await db_session.get(User, brand.user_id)
         brand_headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
         res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=brand_headers)
@@ -213,3 +243,195 @@ class TestBrandSeesPerOrg:
         assert "trackingNumber" not in res.json()["data"]
         seat = res.json()["data"]["applications"][0]
         assert [s["trackingNumber"] for s in seat["shipments"]] == ["1ZBRAND"]
+
+
+class TestBrandShipmentEditing:
+    async def test_own_drop_crud(self, app_client: AsyncClient, db_session):
+        drop, _, seat = await _accepted_seat(db_session)
+        brand_user = await _brand_user(db_session, drop)
+        headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
+        url = f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments"
+        created = await app_client.post(url, json={"trackingNumber": "1ZORIGINAL"}, headers=headers)
+        assert created.status_code == 200, created.text
+        shipment_id = created.json()["data"]["id"]
+        listed = await app_client.get(url, headers=headers)
+        assert listed.status_code == 200
+        assert [s["id"] for s in listed.json()["data"]] == [shipment_id]
+        updated = await app_client.patch(
+            f"{url}/{shipment_id}",
+            json={"trackingNumber": " 123456789012 ", "carrier": "fedex"},
+            headers=headers,
+        )
+        assert updated.status_code == 200, updated.text
+        assert updated.json()["data"]["trackingNumber"] == "123456789012"
+        assert updated.json()["data"]["carrier"] == "fedex"
+        assert "fedex.com" in updated.json()["data"]["trackUrl"]
+        unchanged = await app_client.patch(
+            f"{url}/{shipment_id}",
+            json={"trackingNumber": "123456789012"},
+            headers=headers,
+        )
+        assert unchanged.status_code == 200
+        duplicate = await app_client.post(url, json={"trackingNumber": "1ZSECOND"}, headers=headers)
+        conflict = await app_client.patch(
+            f"{url}/{shipment_id}", json={"trackingNumber": "1ZSECOND"}, headers=headers
+        )
+        assert duplicate.status_code == 200
+        assert conflict.status_code == 409
+        removed = await app_client.delete(f"{url}/{shipment_id}", headers=headers)
+        assert removed.status_code == 200
+        assert await db_session.get(DropApplicationShipment, UUID(shipment_id)) is None
+
+    @pytest.mark.parametrize("decision", list(ApplicationDecision))
+    @pytest.mark.parametrize("erased", [False, True])
+    async def test_brand_shipment_addresses_require_accepted_non_erased_org(
+        self, app_client: AsyncClient, db_session, decision, erased
+    ):
+        drop, org_user, seat = await _accepted_seat(db_session)
+        brand_user = await _brand_user(db_session, drop)
+        seat.decision = decision.value
+        if erased:
+            org_user.status = OrgUserStatus.ERASED.value
+        await persist(
+            db_session,
+            DropApplicationShipment(
+                application_id=seat.id,
+                tracking_number="1ZTEST",
+                carrier="ups",
+                shipping_address_snapshot={"formatted": "1 Test St"},
+                shipping_address_captured_at=utcnow(),
+            ),
+        )
+        headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
+        listed = await app_client.get(
+            f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments", headers=headers
+        )
+        detail = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
+        assert listed.status_code == detail.status_code == 200
+        allowed = decision == ApplicationDecision.ACCEPTED and not erased
+        for shipment in (
+            listed.json()["data"][0],
+            detail.json()["data"]["applications"][0]["shipments"][0],
+        ):
+            assert shipment["trackingNumber"] == "1ZTEST"
+            assert shipment["shippingAddressSnapshot"] == (
+                {"formatted": "1 Test St"} if allowed else None
+            )
+            assert (shipment["shippingAddressCapturedAt"] is not None) == allowed
+
+    async def test_canceled_drop_cannot_delete_shipment(self, app_client: AsyncClient, db_session):
+        drop, _, seat = await _accepted_seat(db_session)
+        brand_user = await _brand_user(db_session, drop)
+        shipment = await persist(
+            db_session,
+            DropApplicationShipment(
+                application_id=seat.id, tracking_number="1ZCANCELED", carrier="ups"
+            ),
+        )
+        drop.canceled_at = utcnow()
+        await db_session.flush()
+
+        result = await app_client.delete(
+            f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments/{shipment.id}",
+            headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
+        )
+
+        assert result.status_code == 409, result.text
+        assert result.json()["error"]["code"] == "DROP_CANCELED"
+        await db_session.refresh(shipment)
+        assert shipment.tracking_number == "1ZCANCELED"
+
+    @pytest.mark.parametrize("method", ["GET", "POST", "PATCH", "DELETE"])
+    @pytest.mark.parametrize("scope", ["other_drop", "other_seat", "mismatched_drop"])
+    async def test_other_brand_scope(self, app_client: AsyncClient, db_session, method, scope):
+        drop, _, seat = await _accepted_seat(db_session)
+        other_drop, _, other_seat = await _accepted_seat(db_session)
+        brand_user = await _brand_user(db_session, drop)
+        headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
+        shipment = await persist(
+            db_session,
+            DropApplicationShipment(
+                application_id=other_seat.id, tracking_number="1ZOTHER", carrier="ups"
+            ),
+        )
+        target_drop = drop if scope == "other_seat" else other_drop
+        target_seat = seat if scope == "mismatched_drop" else other_seat
+        url = f"/api/brands/me/drops/{target_drop.id}/applications/{target_seat.id}/shipments"
+        if method in ("PATCH", "DELETE"):
+            url += f"/{shipment.id}"
+        kwargs = {"json": {"trackingNumber": "1ZATTEMPT"}} if method in ("POST", "PATCH") else {}
+        result = await app_client.request(method, url, headers=headers, **kwargs)
+        assert result.status_code == 404, result.text
+        await db_session.refresh(shipment)
+        assert shipment.tracking_number == "1ZOTHER"
+
+    @pytest.mark.parametrize("method", ["PATCH", "DELETE"])
+    async def test_foreign_shipment_rejected(self, app_client: AsyncClient, db_session, method):
+        drop, _, seat = await _accepted_seat(db_session)
+        _, _, other_seat = await _accepted_seat(db_session)
+        brand_user = await _brand_user(db_session, drop)
+        shipment = await persist(
+            db_session,
+            DropApplicationShipment(
+                application_id=other_seat.id, tracking_number="1ZOTHER", carrier="ups"
+            ),
+        )
+        url = f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments/{shipment.id}"
+        kwargs = {"json": {"trackingNumber": "1ZATTEMPT"}} if method == "PATCH" else {}
+        result = await app_client.request(
+            method,
+            url,
+            headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
+            **kwargs,
+        )
+        assert result.status_code == 404
+        await db_session.refresh(shipment)
+        assert shipment.tracking_number == "1ZOTHER"
+
+    @pytest.mark.parametrize("method", ["GET", "POST", "PATCH", "DELETE"])
+    @pytest.mark.parametrize("role", [PortalRole.ORG, PortalRole.ADMIN])
+    async def test_non_brand_rejected(self, app_client: AsyncClient, db_session, method, role):
+        drop, _, seat = await _accepted_seat(db_session)
+        user = await persist(db_session, make_user(role=role))
+        url = f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments"
+        if method in ("PATCH", "DELETE"):
+            url += f"/{seat.id}"
+        kwargs = {"json": {"trackingNumber": "1ZATTEMPT"}} if method in ("POST", "PATCH") else {}
+        result = await app_client.request(
+            method, url, headers={"Authorization": f"Bearer {mint_access_token(user)}"}, **kwargs
+        )
+        assert result.status_code == 403
+
+
+async def _brand_user(db_session, drop):
+    brand = await db_session.get(Brand, drop.brand_id)
+    return await db_session.get(User, brand.user_id)
+
+
+@pytest.mark.parametrize("portal", ["admin", "brand"])
+async def test_shipment_email_is_deferred(app_client: AsyncClient, db_session, monkeypatch, portal):
+    drop, org_user, seat = await _accepted_seat(db_session)
+    org_user.edu_email = "org1@example.edu"
+    await db_session.flush()
+    if portal == "admin":
+        headers = await admin_headers(db_session)
+        url = f"/api/admin/applications/{seat.id}/shipments"
+    else:
+        user = await _brand_user(db_session, drop)
+        headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        url = f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments"
+
+    sender = AsyncMock(return_value=True)
+    monkeypatch.setattr(drop_notices, "_send", sender)
+    schedule = drop_notices.schedule_email
+
+    async def assert_deferred(tasks, *args, **kwargs):
+        assert tasks is not None
+        result = await schedule(tasks, *args, **kwargs)
+        sender.assert_not_awaited()
+        return result
+
+    monkeypatch.setattr(drop_notices, "schedule_email", assert_deferred)
+    result = await app_client.post(url, json={"trackingNumber": "1ZDEFERRED"}, headers=headers)
+    assert result.status_code == 200, result.text
+    sender.assert_awaited_once()

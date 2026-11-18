@@ -50,15 +50,7 @@ function sidebar(page: Page) {
 }
 
 test("admin lands on the overview with a card per queue", async ({ page }) => {
-  const reviewerStatus = page.waitForResponse(
-    (r) =>
-      r.url().includes("/api/meta-reviewer/status") &&
-      r.request().method() === "GET",
-  );
   await loginAsAdmin(page);
-  // Flag off in this environment: the route 404s and the card stays hidden.
-  expect((await reviewerStatus).status()).toBe(404);
-  await expect(page.getByTestId("meta-reviewer-admin")).toHaveCount(0);
 
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
   // Each queue card is a deep link into its filtered list.
@@ -67,84 +59,13 @@ test("admin lands on the overview with a card per queue", async ({ page }) => {
   await expect(page.getByTestId("queue-orgs_ig_bind_mismatch")).toBeVisible();
   await expect(page.getByTestId("needs-a-look")).toBeVisible();
   await expect(
-    page.getByText("No Instagram identity items."),
+    page.getByText("No items need attention."),
   ).toBeVisible();
   await expect(page.getByTestId("queue-brands_pending_review")).toBeVisible();
-  await expect(page.getByTestId("queue-drops_ready_to_advance")).toBeVisible();
+  await expect(page.getByTestId("queue-drops_awaiting_decisions")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: /warnings/i }),
   ).toBeVisible();
-});
-
-test("admin sets up the reviewer org from the overview when the path is on", async ({
-  page,
-}) => {
-  const orgUserId = "11111111-1111-1111-1111-111111111111";
-  const dropId = "647ea986-5af0-44c8-b5ff-03cbddf2d2fd";
-  const secret = "link-secret-must-not-render";
-  let seeded = false;
-
-  await page.route("**/api/meta-reviewer/status", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        data: {
-          enabled: true,
-          seeded,
-          orgId: seeded ? "22222222-2222-2222-2222-222222222222" : null,
-          userId: seeded ? orgUserId : null,
-          dropId,
-          linkSecret: secret,
-        },
-        meta: null,
-        error: null,
-      }),
-    });
-  });
-  await page.route("**/api/meta-reviewer/seed", async (route) => {
-    seeded = true;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        data: {
-          userId: orgUserId,
-          orgId: "22222222-2222-2222-2222-222222222222",
-          dropId,
-          applicationId: "33333333-3333-3333-3333-333333333333",
-          createdUser: true,
-          createdApplication: true,
-          linkSecret: secret,
-        },
-        meta: null,
-        error: null,
-      }),
-    });
-  });
-
-  await loginAsAdmin(page);
-  const card = page.getByTestId("meta-reviewer-admin");
-  await expect(card).toBeVisible();
-  await expect(card).toContainText("Not set up.");
-  await expect(page.getByTestId("meta-reviewer-drop")).toHaveText(dropId);
-
-  const seedReq = page.waitForRequest(
-    (r) =>
-      r.url().includes("/api/meta-reviewer/seed") && r.method() === "POST",
-  );
-  await page.getByTestId("meta-reviewer-seed").click();
-  const req = await seedReq;
-  expect(req.headers().authorization ?? "").toMatch(/^Bearer\s+\S+/);
-  expect(req.postData() ?? "").not.toContain(secret);
-
-  await expect(card).toContainText("Reviewer organization created.");
-  await expect(card).toContainText("Set up.");
-  await expect(page.getByTestId("meta-reviewer-org")).toHaveAttribute(
-    "href",
-    `/admin/orgs/${orgUserId}`,
-  );
-  expect(await page.content()).not.toContain(secret);
 });
 
 test("the session survives a reload", async ({ page }) => {
@@ -169,7 +90,7 @@ test("the UI kit is admin-only and omitted from the public tree", async ({
 
   await page.goto("/dev/ui-kit");
   await page
-    .getByText(/restoring your session/i)
+    .getByTestId("auth-pending")
     .waitFor({ state: "hidden", timeout: 8_000 })
     .catch(() => undefined);
   await expect(page.getByRole("heading", { name: "UI kit" })).toHaveCount(0);
@@ -210,7 +131,7 @@ test("sidebar reaches every section", async ({ page }) => {
   await sidebar(page).getByRole("link", { name: /health/i }).click();
   await expect(page).toHaveURL(/\/admin\/health$/);
   // Pipeline freshness is inferred from domain data; this is the sharpest canary.
-  await expect(page.getByTestId("signal-drop_autoclose")).toBeVisible();
+  await expect(page.getByTestId("signal-metric_sync")).toBeVisible();
 });
 
 test("queue cards deep-link into a filtered list", async ({ page }) => {
@@ -245,20 +166,21 @@ test("org detail opens from the list", async ({ page }) => {
   // SPA nav keeps the in-memory access token; cold goto is covered by reload.
   await sidebar(page).getByRole("link", { name: /organizations/i }).click();
   await expect(page).toHaveURL(/\/admin\/orgs$/);
-  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
+  await expect(page.getByTestId("admin-login-submit")).toHaveCount(0);
   const orgRow = page.getByRole("row", { name: new RegExp(TEST_ORG) });
   await expect(orgRow).toBeVisible();
   await orgRow.getByRole("link", { name: TEST_ORG }).click();
 
   await expect(page).toHaveURL(/\/admin\/orgs\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { name: TEST_ORG })).toBeVisible();
+  await expect(page.getByText("Address pending")).toBeVisible();
 });
 
 test("admin views as an org from a row and can exit", async ({ page }) => {
   await loginAsAdmin(page);
   await sidebar(page).getByRole("link", { name: /organizations/i }).click();
   await expect(page).toHaveURL(/\/admin\/orgs$/);
-  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
+  await expect(page.getByTestId("admin-login-submit")).toHaveCount(0);
 
   const orgRow = page.getByRole("row", { name: new RegExp(TEST_ORG) });
   await orgRow.getByRole("button", { name: /view as/i }).click();
@@ -301,7 +223,7 @@ test("view as survives a direct URL and a new tab", async ({ page }) => {
 
   // Drop the same-tab latch so only the httpOnly intent cookie can remint.
   await page.evaluate(() => sessionStorage.clear());
-  await page.goto("/campaigns");
+  await page.goto("/org/browse");
   await expect(page).toHaveURL(/\/org\/browse$/);
   await waitForAuthSettled(page, "org");
   await expect(page.getByTestId("impersonation-banner")).toBeVisible();
@@ -323,7 +245,7 @@ test("view as a brand survives /brand/setup", async ({ page }) => {
   await brandRow.getByRole("button", { name: /view as/i }).click();
 
   await expect(page).toHaveURL(/\/brand\/dashboard$/);
-  await expect(page.getByText("Brand Portal")).toBeVisible();
+  await expect(page.getByRole("banner").getByText("Brand Portal")).toBeVisible();
   await expect(page.getByTestId("impersonation-banner")).toBeVisible();
 
   await page.evaluate(() => sessionStorage.clear());
@@ -333,6 +255,13 @@ test("view as a brand survives /brand/setup", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: /activate account/i }),
   ).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/brand\/settings$/);
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Change password", exact: true })).toBeDisabled();
+  await expect(page.getByText("Password changes are unavailable while viewing as this brand.")).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 async function horizontalOverflowPx(page: Page): Promise<number> {
@@ -383,6 +312,14 @@ test("admin list tables fit 375px as hybrid cards", async ({ page }) => {
     await horizontalOverflowPx(page),
     "/admin/drops overflows horizontally",
   ).toBeLessThanOrEqual(1);
+});
+
+test("admin drop detail tabs fit 390px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await loginAsAdmin(page);
+  await page.goto("/admin/drops/00000000-0000-0000-0000-000000000063");
+  await expect(page.getByTestId("tab-attribution")).toBeVisible();
+  expect(await horizontalOverflowPx(page)).toBeLessThanOrEqual(1);
 });
 
 test("unauthenticated /admin redirects to the admin login", async ({ page }) => {
@@ -457,7 +394,7 @@ test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
   await expect(page.getByLabel(/^title$/i).first()).toHaveValue("E2E Config Title");
 
   await page.getByTestId("hide-drop").click();
-  await page.getByTestId("hide-drop-confirm").fill("hide");
+  await page.getByTestId("hide-drop-confirm").fill("E2E Config Title");
   const hideResp = page.waitForResponse(
     (r) =>
       r.url().includes(`/api/admin/drops/${dropId}/hide`) &&
@@ -486,8 +423,11 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await page.getByTestId("tab-applicants").click();
   const row = page.getByRole("row", { name: /Berkeley Rowing Club/ });
   await expect(row).toBeVisible();
-  const tn = row.getByLabel("Tracking number");
-  const add = row.getByRole("button", { name: "Add tracking" });
+  const chip = row.getByRole("button", { name: /shipments for Berkeley Rowing Club$/ });
+  await chip.click();
+  const dialog = page.getByRole("dialog", { name: /Shipments · Berkeley Rowing Club/ });
+  const tn = dialog.getByLabel("Tracking number");
+  const add = dialog.getByRole("button", { name: "Add", exact: true });
 
   await tn.fill("1ZE2EADD001");
   await expect(tn).toHaveValue("1ZE2EADD001");
@@ -501,8 +441,8 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await add.click();
   const first = await firstAdd;
   expect(first.ok(), await first.text()).toBeTruthy();
-  await expect(row.getByText("#1ZE2EADD001")).toBeVisible();
-  // Add tracking disables on empty input; wait until the first POST cleared
+  await expect(dialog.getByText("#1ZE2EADD001")).toBeVisible();
+  // Add disables on empty input; wait until the first POST cleared
   // the field so a late setState cannot wipe the second number.
   await expect(tn).toHaveValue("");
   await expect(add).toBeDisabled();
@@ -519,7 +459,11 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await add.click();
   const second = await secondAdd;
   expect(second.ok(), await second.text()).toBeTruthy();
-  await expect(row.getByText("#999999999999")).toBeVisible();
+  await expect(dialog.getByText("#999999999999")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  // Focus goes back to the chip that opened the modal.
+  await expect(chip).toBeFocused();
 });
 
 test("admin can late-add an org that never applied", async ({ page }) => {

@@ -1,4 +1,4 @@
-"""``password_reset_tokens`` — single-use password reset links for brand/admin."""
+"""``password_reset_tokens`` — single-use password reset links for brands."""
 
 from __future__ import annotations
 

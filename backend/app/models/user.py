@@ -7,7 +7,7 @@ matching profile sits in ``organizations`` or ``brands``.
 Notable columns:
 
 * ``instagram_user_id`` / ``instagram_token_user_id`` / ``instagram_*_token*``
-  — populated only for the org-side IG OAuth path (PRODUCT.md §6.1).
+  — populated only for the org-side IG OAuth path (buzz-ops product/PRODUCT.md §6.1).
   ``instagram_user_id`` is Graph ``/me.id``; ``instagram_token_user_id`` is
   the token-exchange ``user_id`` Meta may send on deauthorize (usually the
   same). ``instagram_granted_permissions`` is the code-exchange

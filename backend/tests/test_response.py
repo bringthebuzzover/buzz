@@ -1,6 +1,6 @@
 """Envelope-shape unit tests.
 
-Locks the contract from `architecture.md` §5.2: success responses carry
+Locks the contract from buzz-ops `engineering/architecture.md` §5.2: success responses carry
 `error=None`, errors carry `data=None` and `meta=None`. Five tests cover
 the matrix the doc calls out.
 """

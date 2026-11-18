@@ -3,20 +3,23 @@
  *
  * Polls the current user every 15s so that once an admin approves (status →
  * active) or denies (→ denied) the account, the route guard forwards the user
- * automatically without a manual refresh. Also hosts pending-swap .edu rotate
- * (PRODUCT §3.1) so officers can correct the campus email before approval.
+ * automatically without a manual refresh. School email is locked on this
+ * screen; a swap already in flight is only shown, not editable.
  */
 import { useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Info } from "lucide-react";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
-import AuthShell from "../../components/site/AuthShell";
+import { Notice } from "../../components/forms/controls";
+import StatusHero from "../../components/site/StatusHero";
+import { TEXT } from "../../theme/tokens";
 import { pathForUser } from "../../utils/landing";
 
 const POLL_INTERVAL_MS = 15_000;
 
 export default function PendingApprovalPage() {
   const { user, refreshUser } = useAuth();
+  const [params] = useSearchParams();
 
   useEffect(() => {
     if (!user || user.status !== "pending_approval") return;
@@ -29,25 +32,46 @@ export default function PendingApprovalPage() {
   if (!user || user.status !== "pending_approval") {
     // Poll resolved (or wrong status / no session): route to where the user
     // belongs — active → portal, denied → denial page, none → login.
-    return <Navigate to={pathForUser(user)} replace />;
+    return <Navigate to={pathForUser(user, params.get("next"))} replace />;
   }
 
   return (
-    <AuthShell align="center" className="text-center">
-      <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
-        Awaiting <span className="text-buzz-coral">Approval</span>
-      </h1>
-      <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        We&apos;re reviewing your organization. We&apos;ll email when Instagram
-        is ready to connect. Campus inboxes often put first-time Buzz mail in
-        Junk.
+    <StatusHero
+      title="Application Received"
+      notice={
+        user.pendingEduEmail ? (
+          <Notice
+            tone="accent"
+            icon={<Info className="h-4 w-4" aria-hidden />}
+          >
+            {`Verification link sent to ${user.pendingEduEmail}. Confirm your new school email.`}
+          </Notice>
+        ) : user.instagramConnectRequired ? (
+          <Notice
+            tone="accent"
+            icon={<Info className="h-4 w-4" aria-hidden />}
+          >
+            One step is left: connect your organization&apos;s Instagram. BUZZ
+            will email a Connect link, and we review your application once the
+            account is connected.
+          </Notice>
+        ) : user.email ? (
+          <Notice
+            tone="success"
+            icon={<Info className="h-4 w-4" aria-hidden />}
+          >
+            {`Verified campus email: ${user.email}. We're reviewing your application.`}
+          </Notice>
+        ) : undefined
+      }
+    >
+      <p>
+        We&apos;re reviewing your organization. BUZZ curates vetted campus
+        communities to guarantee high-quality brand collaborations.
       </p>
-
-      <EduEmailRotatePanel
-        liveEmail={user.email}
-        pendingEmail={user.pendingEduEmail}
-        onChanged={() => refreshUser()}
-      />
-    </AuthShell>
+      <p className={TEXT.meta}>
+        Your school email is locked while we review your application.
+      </p>
+    </StatusHero>
   );
 }

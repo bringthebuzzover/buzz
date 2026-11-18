@@ -1,20 +1,22 @@
 """``drop_application_shipments`` — 0–N tracking numbers per accepted seat.
 
-PRODUCT §3.1.1: SOT is this table, not ``drops.tracking_number`` (kept but
-unread/unwritten on product paths after backfill).
+PRODUCT §3.1.1: this table is the source of truth for shipment tracking.
 """
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
 CARRIERS = ("ups", "fedex", "unknown")
+_JSON_TYPE = sa.JSON().with_variant(JSONB(), "postgresql")
 
 
 class DropApplicationShipment(Base):
@@ -38,6 +40,12 @@ class DropApplicationShipment(Base):
     )
     tracking_number: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     carrier: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    shipping_address_snapshot: Mapped[dict[str, Any] | None] = mapped_column(
+        _JSON_TYPE, nullable=True
+    )
+    shipping_address_captured_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
     )

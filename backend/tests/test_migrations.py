@@ -28,6 +28,7 @@ import os
 import secrets
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -72,6 +73,17 @@ async def _drop_db(admin_url: str, db_name: str) -> None:
         await conn.close()
 
 
+def test_alembic_has_a_single_head() -> None:
+    """Two revisions must not both claim the same parent."""
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    cfg = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    heads = ScriptDirectory.from_config(cfg).get_heads()
+    assert len(heads) == 1, heads
+
+
 def _run_alembic(args: list[str], parity_url: str) -> subprocess.CompletedProcess[str]:
     """Invoke ``poetry run alembic ...`` against the parity database."""
 
@@ -114,8 +126,144 @@ async def test_alembic_matches_models() -> None:
             f"alembic check exit {check.returncode}:\n"
             f"STDOUT:\n{check.stdout}\nSTDERR:\n{check.stderr}"
         )
+        await _assert_drop_request_columns_nullable(parity_url)
+        await _assert_legacy_lifecycle_round_trip(parity_url)
+        await _assert_reconnect_status_round_trip(parity_url)
     finally:
         await _drop_db(admin_url, parity_db)
+
+
+async def _assert_legacy_lifecycle_round_trip(parity_url: str) -> None:
+    """Rollback restores the old schema on a populated drop; re-upgrade preserves it."""
+    conn = await asyncpg.connect(parity_url.replace("postgresql+asyncpg://", "postgresql://", 1))
+    try:
+        drop_id = uuid.uuid4()
+        await conn.execute(
+            """
+            INSERT INTO drops (id, brand_id, title, description, image, location,
+                               capacity_total, apply_open_at, apply_close_at)
+            SELECT $1, id, 'Test drop', 'Test description', 'test.png', 'Test campus',
+                   1, now(), now() + interval '1 day'
+            FROM brands LIMIT 1
+            """,
+            drop_id,
+        )
+        legacy_columns = {
+            "brand_tracker_stage",
+            "manual_reopen",
+            "applicant_selection_finalized_at",
+            "tracking_number",
+        }
+        for direction, revision in (("downgrade", "c3e5a7b9d1f2"), ("upgrade", "head")):
+            result = _run_alembic([direction, revision], parity_url)
+            assert result.returncode == 0, result.stderr
+            columns = {
+                row["column_name"]: row
+                for row in await conn.fetch(
+                    "SELECT column_name, is_nullable, udt_name, character_maximum_length, "
+                    "column_default "
+                    "FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND table_name = 'drops'"
+                )
+            }
+            if direction == "downgrade":
+                assert legacy_columns <= columns.keys()
+                assert columns["brand_tracker_stage"]["udt_name"] == "brand_tracker_stage"
+                assert columns["applicant_selection_finalized_at"]["udt_name"] == "timestamptz"
+                assert columns["tracking_number"]["character_maximum_length"] == 255
+                for name in legacy_columns - {"manual_reopen"}:
+                    assert columns[name]["is_nullable"] == "YES"
+                assert columns["manual_reopen"]["is_nullable"] == "NO"
+                assert columns["manual_reopen"]["column_default"] == "false"
+                row = await conn.fetchrow(
+                    "SELECT manual_reopen, brand_tracker_stage, "
+                    "applicant_selection_finalized_at, tracking_number FROM drops WHERE id = $1",
+                    drop_id,
+                )
+                assert tuple(row) == (False, None, None, None)
+            else:
+                assert legacy_columns.isdisjoint(columns)
+            assert (
+                await conn.fetchval("SELECT title FROM drops WHERE id = $1", drop_id) == "Test drop"
+            )
+    finally:
+        await conn.close()
+
+
+_STRUCTURED_DROP_REQUEST_COLUMNS = (
+    "product",
+    "title",
+    "location",
+    "target_date",
+    "org_count",
+    "units_per_org",
+    "campaign_hashtag",
+)
+
+
+async def _assert_drop_request_columns_nullable(parity_url: str) -> None:
+    """New intake columns are nullable, and a message/notes row still inserts."""
+
+    admin_url = parity_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    conn = await asyncpg.connect(admin_url)
+    try:
+        rows = await conn.fetch(
+            """
+            SELECT column_name, is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'drop_requests'
+              AND column_name = ANY($1::text[])
+            """,
+            list(_STRUCTURED_DROP_REQUEST_COLUMNS),
+        )
+        found = {row["column_name"]: row["is_nullable"] for row in rows}
+        assert set(found) == set(_STRUCTURED_DROP_REQUEST_COLUMNS)
+        assert all(nullable == "YES" for nullable in found.values())
+
+        user_id = uuid.uuid4()
+        brand_id = uuid.uuid4()
+        ticket_id = uuid.uuid4()
+        await conn.execute(
+            """
+            INSERT INTO users (id, portal_role, status)
+            VALUES ($1, 'brand'::portal_role, 'active'::org_user_status)
+            """,
+            user_id,
+        )
+        await conn.execute(
+            """
+            INSERT INTO brands (id, user_id, brand_name, company_email, status)
+            VALUES ($1, $2, 'Legacy Brand', $3, 'approved'::brand_status)
+            """,
+            brand_id,
+            user_id,
+            f"legacy-{user_id.hex[:12]}@test.com",
+        )
+        await conn.execute(
+            """
+            INSERT INTO drop_requests (id, brand_id, message, notes)
+            VALUES ($1, $2, 'old ticket', 'old notes')
+            """,
+            ticket_id,
+            brand_id,
+        )
+        stored = await conn.fetchrow(
+            """
+            SELECT message, notes, product, title, location, target_date,
+                   org_count, units_per_org, campaign_hashtag
+            FROM drop_requests
+            WHERE id = $1
+            """,
+            ticket_id,
+        )
+        assert stored is not None
+        assert stored["message"] == "old ticket"
+        assert stored["notes"] == "old notes"
+        for column in _STRUCTURED_DROP_REQUEST_COLUMNS:
+            assert stored[column] is None
+    finally:
+        await conn.close()
 
 
 @pytest.mark.asyncio
@@ -142,3 +290,172 @@ async def test_concurrent_alembic_upgrade_head() -> None:
             )
     finally:
         await _drop_db(admin_url, parity_db)
+
+
+async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
+    """Retire every legacy row without stranding a user or losing switch history.
+
+    Four legacy cohorts (numbered as in the migration docstring), all previously
+    ``pending_instagram``:
+
+    1. unbound with an approved account switch → the ticket flips to
+       ``awaiting_connect``,
+    2. bound (Graph id + token) → active,
+    3. unbound, no switch, with a claimed handle → active **plus** a
+       migration-synthesized ``awaiting_connect`` ticket, because
+       ``pending_approval`` is a dead end for the old apply-first cohort,
+    4. unbound, no switch, no claimed handle → ``pending_approval``, no ticket,
+       so the admin "send Connect link" action can reach it.
+    """
+    old_revision = "c4d5e6f7a8b9"
+    result = _run_alembic(["downgrade", old_revision], parity_url)
+    assert result.returncode == 0, result.stderr
+    conn = await asyncpg.connect(parity_url.replace("postgresql+asyncpg://", "postgresql://", 1))
+    ids = [uuid.uuid4() for _ in range(4)]
+    org_ids = [uuid.uuid4() for _ in ids]
+    claimed_handles = [None, None, "legacyclaimed", None]
+    switch_id = uuid.uuid4()
+    recovery_id = uuid.uuid4()
+    try:
+        for index, (user_id, org_id) in enumerate(zip(ids, org_ids)):
+            await conn.execute(
+                "INSERT INTO users (id, portal_role, status, instagram_user_id, "
+                "instagram_access_token, instagram_username) "
+                "VALUES ($1, 'org', 'pending_instagram', $2, $3, $4)",
+                user_id,
+                "fake-bound-ig" if index == 1 else None,
+                "fake-legacy-token" if index in (1, 3) else None,
+                claimed_handles[index],
+            )
+            await conn.execute(
+                "INSERT INTO organizations (id, user_id, org_name, university) "
+                "VALUES ($1, $2, 'Test Org', 'Test University')",
+                org_id,
+                user_id,
+            )
+        await conn.execute(
+            "INSERT INTO org_ig_change_requests "
+            "(id, org_id, user_id, kind, current_handle, requested_handle, reason, "
+            "status, decided_kind, decided_at) "
+            "VALUES ($1, $2, $3, 'account_switch', 'oldclub', 'newclub', "
+            "'Switch the organization account.', 'approved', 'account_switch', now())",
+            switch_id,
+            org_ids[0],
+            ids[0],
+        )
+        # Equality alone must not give an ordinary recovery ticket the migration exemption.
+        await conn.execute(
+            "INSERT INTO org_ig_change_requests "
+            "(id, org_id, user_id, kind, current_handle, requested_handle, reason, "
+            "status, decided_kind, decided_at, created_at) "
+            "VALUES ($1, $2, $3, 'account_switch', 'originalclub', 'originalclub', "
+            "'Return to the original account.', 'approved', 'account_switch', now(), now())",
+            recovery_id,
+            org_ids[1],
+            ids[1],
+        )
+        result = _run_alembic(["upgrade", "head"], parity_url)
+        assert result.returncode == 0, result.stderr
+        statuses = dict(
+            await conn.fetch("SELECT id, status::text FROM users WHERE id = ANY($1)", ids)
+        )
+        # Cohort 4 (unbound, nothing claimed) lands in pending_approval: there is
+        # no handle to bind and no ticket to redeem, so 'active' would close the
+        # portal with no Connect action able to reopen it. pending_approval is
+        # reachable by the admin "send Connect link" action.
+        assert statuses == dict(zip(ids, ("active", "active", "active", "pending_approval")))
+        assert (
+            await conn.fetchval(
+                "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id
+            )
+            == "awaiting_connect"
+        )
+        assert (
+            await conn.fetchval(
+                "SELECT bool_or(is_migration_placeholder) FROM org_ig_change_requests "
+                "WHERE id = ANY($1)",
+                [switch_id, recovery_id],
+            )
+            is False
+        )
+
+        # The legacy apply-first org gets a synthesized reconnect ticket naming
+        # the handle it claimed, which is what ``resend_org_connect`` and
+        # bind-start read.
+        synthesized = await conn.fetch(
+            "SELECT org_id, user_id, kind, status, decided_kind, current_handle, "
+            "requested_handle, reason, is_migration_placeholder FROM org_ig_change_requests "
+            "WHERE org_id = $1",
+            org_ids[2],
+        )
+        assert len(synthesized) == 1, synthesized
+        ticket = synthesized[0]
+        assert ticket["org_id"] == org_ids[2]
+        assert ticket["user_id"] == ids[2]
+        assert ticket["kind"] == "account_switch"
+        assert ticket["decided_kind"] == "account_switch"
+        assert ticket["status"] == "awaiting_connect"
+        assert ticket["current_handle"] == "legacyclaimed"
+        assert ticket["requested_handle"] == "legacyclaimed"
+        assert "migration" in (ticket["reason"] or "").lower()
+        assert ticket["is_migration_placeholder"] is True
+
+        # A reconnect holder keeps no stale Graph identity. Leaving it would let
+        # an ordinary login as the old account match the row and reopen the
+        # portal without going through the switch's target check.
+        for uid in ids:
+            row = await conn.fetchrow(
+                "SELECT instagram_user_id, instagram_access_token FROM users WHERE id = $1",
+                uid,
+            )
+            status = await conn.fetchval("SELECT status::text FROM users WHERE id = $1", uid)
+            has_ticket = await conn.fetchval(
+                "SELECT EXISTS (SELECT 1 FROM org_ig_change_requests r "
+                "JOIN organizations o ON o.id = r.org_id "
+                "WHERE o.user_id = $1 AND r.status = 'awaiting_connect')",
+                uid,
+            )
+            if has_ticket:
+                assert row["instagram_user_id"] is None, (uid, status, dict(row))
+                assert row["instagram_access_token"] is None, (uid, status, dict(row))
+
+        # No user and no request row was lost, and the enum label is intact.
+        assert await conn.fetchval("SELECT count(*) FROM users WHERE id = ANY($1)", ids) == 4
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM org_ig_change_requests WHERE org_id = ANY($1)", org_ids
+            )
+            == 3
+        )
+
+        result = _run_alembic(["check"], parity_url)
+        assert result.returncode == 0, result.stderr
+
+        # Re-running the upgrade must not duplicate the synthesized ticket or
+        # drop rows (idempotency across a downgrade/upgrade cycle).
+        for direction, revision, expected_user, expected_request in (
+            ("downgrade", old_revision, "pending_instagram", "approved"),
+            ("upgrade", "head", "active", "awaiting_connect"),
+        ):
+            result = _run_alembic([direction, revision], parity_url)
+            assert result.returncode == 0, result.stderr
+            assert (
+                await conn.fetchval("SELECT status::text FROM users WHERE id = $1", ids[0])
+                == expected_user
+            )
+            assert (
+                await conn.fetchval(
+                    "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id
+                )
+                == expected_request
+            )
+        assert (
+            await conn.fetchval(
+                "SELECT count(*) FROM org_ig_change_requests WHERE org_id = $1", org_ids[2]
+            )
+            == 1
+        )
+        result = _run_alembic(["check"], parity_url)
+        assert result.returncode == 0, result.stderr
+    finally:
+        await conn.close()

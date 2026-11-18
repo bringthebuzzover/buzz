@@ -16,7 +16,7 @@ Naming conventions
   (uppercased only when the value itself is uppercase) so model code can
   use either ``PortalRole.ORG`` or ``"org"`` interchangeably.
 
-See ``architecture.md`` §3.2 for the canonical list.
+See buzz-ops ``engineering/architecture.md`` §3.2 for the canonical list.
 """
 
 from __future__ import annotations
@@ -47,7 +47,6 @@ class OrgUserStatus(StrEnum):
     PENDING_ORG_PROFILE = "pending_org_profile"
     PENDING_EMAIL_VERIFICATION = "pending_email_verification"
     PENDING_APPROVAL = "pending_approval"
-    PENDING_INSTAGRAM = "pending_instagram"
     ACTIVE = "active"
     DENIED = "denied"
     ERASED = "erased"
@@ -65,7 +64,7 @@ class BrandStatus(StrEnum):
 class OrgCategory(StrEnum):
     """Classification of a student org (``organizations.category``).
 
-    Drives brand-side applicant filtering (PRODUCT.md §5.3.1). Nullable on the
+    Drives brand-side applicant filtering (buzz-ops product/PRODUCT.md §5.3.1). Nullable on the
     column — orgs onboarded before this field, or that decline to classify,
     have no category.
     """
@@ -79,24 +78,51 @@ class OrgCategory(StrEnum):
 
 
 class ApplicationDecision(StrEnum):
-    """Brand decision on a drop application (``drop_applications.decision``)."""
+    """Seat status (``drop_applications.decision``).
+
+    ``applied`` = undecided; ``accepted`` / ``denied`` are drafts until sent.
+    ``withdrew`` (the org pulled out) and ``removed`` (BUZZ, with a reason)
+    end a seat softly: the row, its shipments and its posts stay for history.
+    """
 
     APPLIED = "applied"
     ACCEPTED = "accepted"
     DENIED = "denied"
+    WITHDREW = "withdrew"
+    REMOVED = "removed"
 
 
-class BrandTrackerStage(StrEnum):
-    """Fulfillment tracker stages for a drop (``drops.brand_tracker_stage``,
-    ``drop_tracker_events.stage``). Order matches architecture §8.5 state machine:
-    ``request_received → finalizing_agreements → awaiting_products → drop_active →
-    drop_finished``."""
+class DropStage(StrEnum):
+    """Computed drop stage (``app.services.lifecycle``; never stored).
 
-    REQUEST_RECEIVED = "request_received"
-    FINALIZING_AGREEMENTS = "finalizing_agreements"
-    AWAITING_PRODUCTS = "awaiting_products"
-    DROP_ACTIVE = "drop_active"
-    DROP_FINISHED = "drop_finished"
+    ``draft`` → ``upcoming`` → ``applying`` → ``selecting`` → ``live`` →
+    ``wrapped``, or ``canceled`` from any published stage before wrap-up.
+    Only draft (unpublished), wrapped (``wrapped_at``) and canceled
+    (``canceled_at``) come from a BUZZ click; the rest follow from the apply
+    dates and the seats.
+    Hidden is a separate flag (``drops.hidden_at``), not a stage.
+    """
+
+    DRAFT = "draft"
+    UPCOMING = "upcoming"
+    APPLYING = "applying"
+    SELECTING = "selecting"
+    LIVE = "live"
+    WRAPPED = "wrapped"
+    CANCELED = "canceled"
+
+
+class SeatProgress(StrEnum):
+    """Where a live seat has got to: the furthest fact reached, never a gate.
+
+    Computed (``app.services.lifecycle.seat_progress``), never stored. Only
+    accepted seats whose decision went out have progress.
+    """
+
+    ACCEPTED = "accepted"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
+    POSTED = "posted"
 
 
 class Platform(StrEnum):
@@ -158,9 +184,8 @@ class DropApplyIntentStatus(StrEnum):
 #
 # Declared once at module level so the same Python object is referenced by
 # every ``mapped_column`` that uses the type. That dedupes the ``CREATE TYPE``
-# emitted by Alembic — critical for enums used in more than one table
-# (e.g. ``brand_tracker_stage`` lives on both ``drops`` and
-# ``drop_tracker_events``). All are native PG enums (``native_enum=True``).
+# emitted by Alembic for enums used in more than one table.
+# All are native PG enums (``native_enum=True``).
 #
 # ``values_callable=_enum_values`` tells SQLAlchemy to persist the StrEnum
 # ``.value`` (lowercase ``"org"``) rather than the Python member name
@@ -187,12 +212,6 @@ OrgCategoryEnum = sa.Enum(
 ApplicationDecisionEnum = sa.Enum(
     ApplicationDecision,
     name="application_decision",
-    native_enum=True,
-    values_callable=_enum_values,
-)
-BrandTrackerStageEnum = sa.Enum(
-    BrandTrackerStage,
-    name="brand_tracker_stage",
     native_enum=True,
     values_callable=_enum_values,
 )
@@ -224,24 +243,3 @@ DropApplyIntentStatusEnum = sa.Enum(
     native_enum=True,
     values_callable=_enum_values,
 )
-
-
-ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
-    PortalRoleEnum,
-    OrgUserStatusEnum,
-    BrandStatusEnum,
-    OrgCategoryEnum,
-    ApplicationDecisionEnum,
-    BrandTrackerStageEnum,
-    PlatformEnum,
-    SocialMediaTypeEnum,
-    SocialMediaProductTypeEnum,
-    PostLinkSourceEnum,
-    SuggestionMatchReasonEnum,
-    DropApplyIntentStatusEnum,
-)
-"""Ordered tuple of every native ENUM type, used by the initial migration's
-``downgrade()`` to drop the corresponding PG types after the tables are gone.
-SQLAlchemy creates these implicitly when a table that references them is
-created, but it does **not** issue ``DROP TYPE`` on table drop — that has to
-be explicit (see ``migrations/versions/<ts>_initial_schema.py``)."""

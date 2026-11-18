@@ -20,7 +20,25 @@ test("brand can log in and reach the dashboard", async ({ page }) => {
   expect(resp.ok(), await resp.text()).toBeTruthy();
 
   await expect(page).toHaveURL(/\/brand\/dashboard/);
-  await expect(page.getByRole("heading", { name: /brand dashboard/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+  const header = page.getByRole("banner");
+  for (const width of [1280, 900, 375]) {
+    await page.setViewportSize({ width, height: 812 });
+    const menu = header.getByRole("button", { name: "Open menu" });
+    await expect(menu).toBeVisible({ visible: width < 1024 });
+    await expect(header.getByRole("navigation", { name: "Primary" })).toBeVisible({
+      visible: width >= 1024,
+    });
+    if (width < 1024) await menu.click();
+    await expect(header.getByRole("link", { name: "Home" })).toHaveCount(0);
+    await expect(
+      header.getByRole("link", { name: "Dashboard", exact: true }).filter({ visible: true }),
+    ).toBeVisible();
+    await header.getByRole("link", { name: "Settings" }).filter({ visible: true }).click();
+    await expect(page).toHaveURL(/\/brand\/settings$/);
+    await page.getByTestId("site-header-logo").click();
+    await expect(page).toHaveURL(/\/brand\/dashboard$/);
+  }
 });
 
 test("brand dashboard compare-drops fits 375px", async ({ page }) => {
@@ -44,7 +62,7 @@ test("brand dashboard compare-drops fits 375px", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/brand\/dashboard/);
   await expect(
-    page.getByRole("heading", { name: /brand dashboard/i }),
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
   ).toBeVisible();
   const overflow = await page.evaluate(
     () =>
@@ -80,6 +98,7 @@ test("brand plan campaign creates a ticket receipt, not a drop", async ({
   await expect(page).toHaveURL(/\/brand\/requests\/new/);
 
   await page.locator("#message").fill("E2E plan campaign ticket");
+  await page.locator("#product").fill("Cold brew cans");
   await page.locator("#notes").fill("Optional notes for the rep");
 
   const createResp = page.waitForResponse(
@@ -94,10 +113,127 @@ test("brand plan campaign creates a ticket receipt, not a drop", async ({
   await expect(page).toHaveURL(/\/brand\/dashboard/);
   await expect(page).not.toHaveURL(/\/brand\/drops\//);
   await expect(page.getByTestId("ticket-submitted-toast")).toBeVisible();
-  await expect(page.getByTestId("drop-request-row").first()).toContainText(
-    /representative will contact you/i,
-  );
+  await expect(page.getByTestId("drop-request-row").first()).toContainText("Received");
   await expect(page.getByText("E2E plan campaign ticket")).toBeVisible();
+});
+
+test("brand settings shows name, locked email, and the handle request", async ({
+  page,
+}) => {
+  await page.goto("/brand/login");
+  await page.getByTestId("brand-email").fill("partnerships@acme.coffee");
+  await page.getByTestId("brand-password").fill("buzzdev123");
+  await page.getByTestId("brand-login-submit").click();
+  await expect(page).toHaveURL(/\/brand\/dashboard/);
+
+  await page.getByRole("link", { name: "Settings" }).click();
+  await expect(page).toHaveURL(/\/brand\/settings/);
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByTestId("brand-email-locked")).toHaveText(
+    "Contact BUZZ to change",
+  );
+  await expect(page.getByTestId("brand-email-locked")).toHaveAttribute(
+    "href",
+    /^mailto:/,
+  );
+  await expect(page.getByTestId("brand-email")).toHaveText(
+    "partnerships@acme.coffee",
+  );
+  const name = page.locator('input[data-testid="brand-name"]');
+  await expect(name).toHaveValue("Acme Coffee");
+  const saveButton = page.getByTestId("brand-name-save");
+  for (const invalid of [false, true]) {
+    if (invalid) {
+      await name.fill("x".repeat(121));
+      await name.press("Enter");
+      await expect(name).toHaveAttribute("aria-invalid", "true");
+      await expect(page.locator("#brand-name-error")).toBeVisible();
+    }
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const nameBox = await name.boundingBox();
+      const saveBox = await saveButton.boundingBox();
+      expect(nameBox).not.toBeNull();
+      expect(saveBox).not.toBeNull();
+      if (width >= 640) {
+        expect(saveBox!.x).toBeGreaterThanOrEqual(nameBox!.x + nameBox!.width);
+        expect(Math.abs(nameBox!.y - saveBox!.y)).toBeLessThanOrEqual(2);
+        expect(
+          Math.abs(nameBox!.y + nameBox!.height - saveBox!.y - saveBox!.height),
+        ).toBeLessThanOrEqual(2);
+      } else {
+        expect(saveBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+        expect(Math.abs(saveBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    }
+  }
+
+  await name.fill("Acme Coffee");
+  const saveResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/brands/me") &&
+      r.request().method() === "PATCH" &&
+      !r.url().includes("ig-change"),
+  );
+  await name.press("Enter");
+  const saved = await saveResp;
+  expect(saved.ok(), await saved.text()).toBeTruthy();
+  await expect(page.getByTestId("brand-name-saved")).toBeVisible();
+
+  await expect(page.getByTestId("brand-current-password")).toHaveCount(0);
+  const changePassword = page.getByRole("button", { name: "Change password", exact: true });
+  await changePassword.click();
+  const passwordDialog = page.getByRole("dialog", { name: "Change password" });
+  await expect(passwordDialog).toBeVisible();
+  const passwordSave = passwordDialog.getByTestId("brand-password-save");
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("Current password").fill("incorrect-password");
+  await passwordDialog.getByLabel("New password", { exact: true }).fill("short");
+  await expect(passwordDialog.getByLabel("Confirm password")).toHaveValue("");
+  await expect(passwordDialog.getByText("Passwords do not match.")).toBeVisible();
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("Confirm password").fill("short");
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("New password", { exact: true }).fill("test-password-123");
+  await expect(passwordDialog.getByText("Passwords do not match.")).toBeVisible();
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("Confirm password").fill("test-password-123");
+  await expect(passwordSave).toBeEnabled();
+  const passwordResponse = page.waitForResponse(
+    (r) => r.url().includes("/api/auth/brand/change-password") &&
+      r.request().method() === "POST",
+  );
+  await passwordSave.click();
+  const rejectedPassword = await passwordResponse;
+  expect(rejectedPassword.status()).toBe(400);
+  expect(rejectedPassword.request().postDataJSON()).toEqual({
+    currentPassword: "incorrect-password",
+    newPassword: "test-password-123",
+  });
+  await expect(passwordDialog.getByText("Current password is incorrect.")).toBeVisible();
+  await passwordDialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(passwordDialog).toHaveCount(0);
+  await expect(changePassword).toBeFocused();
+  await changePassword.click();
+  await expect(passwordDialog.getByLabel("Current password")).toHaveValue("");
+  await expect(passwordDialog.getByLabel("New password", { exact: true })).toHaveValue("");
+  await expect(passwordDialog.getByLabel("Confirm password")).toHaveValue("");
+  await passwordDialog.getByRole("button", { name: "Close", exact: true }).click();
+
+  const requestChange = page.getByTestId("brand-ig-change-open");
+  if (await requestChange.isVisible()) {
+    await requestChange.click();
+    await expect(page.getByTestId("brand-ig-requested")).toBeVisible();
+    await expect(page.getByTestId("brand-ig-reason")).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+  } else {
+    await expect(page.getByTestId("brand-ig-pending")).toHaveText(
+      "Pending admin approval",
+    );
+  }
 });
 
 test("GET /logout signs out like the header button", async ({ page }) => {

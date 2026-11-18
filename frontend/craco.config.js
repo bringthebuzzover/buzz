@@ -29,7 +29,7 @@ module.exports = {
       );
       if (oneOfRule) {
         oneOfRule.oneOf.unshift({
-          test: /\.png$/,
+          test: /\.(png|webp)$/,
           include: path.resolve(__dirname, "src/assets/unis"),
           type: "asset/resource",
         });

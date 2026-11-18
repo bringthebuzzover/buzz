@@ -1,4 +1,4 @@
-"""Tests for admin routes (architecture.md §8.5)."""
+"""Tests for admin routes (buzz-ops engineering/architecture.md §8.5)."""
 
 from __future__ import annotations
 
@@ -9,18 +9,18 @@ from sqlalchemy import select
 
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
-from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
 )
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.security.password import hash_password
+from app.security.token_crypto import encrypt_token
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -32,21 +32,15 @@ from tests.conftest import (
 )
 
 
-async def _admin_headers(db_session) -> dict:
-    """Auth headers for a persisted admin user."""
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
 class TestAdminGate:
     async def test_non_admin_forbidden(self, app_client: AsyncClient, db_session):
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         headers = {"Authorization": f"Bearer {mint_access_token(org_user)}"}
-        res = await app_client.get("/api/admin/orgs/pending", headers=headers)
+        res = await app_client.get("/api/admin/orgs", headers=headers)
         assert res.status_code == 403
 
     async def test_unauthorized(self, app_client: AsyncClient):
-        res = await app_client.get("/api/admin/orgs/pending")
+        res = await app_client.get("/api/admin/orgs")
         assert res.status_code == 401
 
 
@@ -60,7 +54,7 @@ class TestPendingOrgs:
         await make_org(db_session, user, org_name="Pending Org")
 
         res = await app_client.get(
-            "/api/admin/orgs/pending", headers=await _admin_headers(db_session)
+            "/api/admin/orgs?status=pending_approval", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -74,7 +68,7 @@ class TestPendingOrgs:
         await make_org(db_session, user, org_name="Active Org")
 
         res = await app_client.get(
-            "/api/admin/orgs/pending", headers=await _admin_headers(db_session)
+            "/api/admin/orgs?status=pending_approval", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         assert len(res.json()["data"]) == 0
@@ -86,23 +80,27 @@ class TestApproveOrg:
             db_session,
             make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
         )
+        user.instagram_user_id = "ig_approval"
+        user.instagram_access_token = encrypt_token("fake-approval-token")
         org = await make_org(db_session, user, org_name="To Approve")
 
         res = await app_client.post(
             f"/api/admin/orgs/{org.id}/approve",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
             json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 200
         data = res.json()["data"]
-        assert data["status"] == "pending_instagram"
+        assert data["status"] == "active"
 
         await db_session.refresh(user)
         await db_session.refresh(org)
-        assert user.status == OrgUserStatus.PENDING_INSTAGRAM.value
+        assert user.status == OrgUserStatus.ACTIVE.value
         assert org.approved_at is not None
 
-    async def test_approve_requires_tester_confirm(self, app_client: AsyncClient, db_session):
+    async def test_approve_unbound_refused_even_with_tester_confirmation(
+        self, app_client: AsyncClient, db_session
+    ):
         user = await persist(
             db_session,
             make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
@@ -111,10 +109,13 @@ class TestApproveOrg:
 
         res = await app_client.post(
             f"/api/admin/orgs/{org.id}/approve",
-            headers=await _admin_headers(db_session),
-            json={"testerInviteConfirmed": False},
+            headers=await admin_headers(db_session),
+            json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 400
+        assert "reconnect Instagram" in res.json()["error"]["message"]
+        await db_session.refresh(org)
+        assert org.approved_at is None
 
     async def test_approve_wrong_state(self, app_client: AsyncClient, db_session):
         user = await persist(
@@ -124,7 +125,7 @@ class TestApproveOrg:
 
         res = await app_client.post(
             f"/api/admin/orgs/{org.id}/approve",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
             json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 400
@@ -133,7 +134,7 @@ class TestApproveOrg:
     async def test_approve_nonexistent_org(self, app_client: AsyncClient, db_session):
         res = await app_client.post(
             "/api/admin/orgs/00000000-0000-0000-0000-000000000099/approve",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
             json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 404
@@ -148,7 +149,7 @@ class TestDenyOrg:
         org = await make_org(db_session, user, org_name="To Deny")
 
         res = await app_client.post(
-            f"/api/admin/orgs/{org.id}/deny", headers=await _admin_headers(db_session)
+            f"/api/admin/orgs/{org.id}/deny", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         assert res.json()["data"]["status"] == "denied"
@@ -163,7 +164,7 @@ class TestDenyOrg:
         org = await make_org(db_session, user)
 
         res = await app_client.post(
-            f"/api/admin/orgs/{org.id}/deny", headers=await _admin_headers(db_session)
+            f"/api/admin/orgs/{org.id}/deny", headers=await admin_headers(db_session)
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
@@ -171,7 +172,7 @@ class TestDenyOrg:
     async def test_deny_nonexistent_org(self, app_client: AsyncClient, db_session):
         res = await app_client.post(
             "/api/admin/orgs/00000000-0000-0000-0000-000000000099/deny",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
@@ -183,7 +184,7 @@ class TestPendingBrands:
         await db_session.flush()
 
         res = await app_client.get(
-            "/api/admin/brands/pending", headers=await _admin_headers(db_session)
+            "/api/admin/brands?status=pending_review", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -195,7 +196,7 @@ class TestPendingBrands:
         # make_brand creates with status=APPROVED by default
 
         res = await app_client.get(
-            "/api/admin/brands/pending", headers=await _admin_headers(db_session)
+            "/api/admin/brands?status=pending_review", headers=await admin_headers(db_session)
         )
         assert len(res.json()["data"]) == 0
 
@@ -207,7 +208,7 @@ class TestApproveBrand:
         await db_session.flush()
 
         res = await app_client.post(
-            f"/api/admin/brands/{brand.id}/approve", headers=await _admin_headers(db_session)
+            f"/api/admin/brands/{brand.id}/approve", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         assert res.json()["data"]["status"] == "approved"
@@ -221,7 +222,7 @@ class TestApproveBrand:
         # make_brand creates with status=APPROVED
 
         res = await app_client.post(
-            f"/api/admin/brands/{brand.id}/approve", headers=await _admin_headers(db_session)
+            f"/api/admin/brands/{brand.id}/approve", headers=await admin_headers(db_session)
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
@@ -229,130 +230,99 @@ class TestApproveBrand:
     async def test_approve_nonexistent_brand(self, app_client: AsyncClient, db_session):
         res = await app_client.post(
             "/api/admin/brands/00000000-0000-0000-0000-000000000099/approve",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
 
-class TestTrackerAdvance:
-    async def _setup_tracker_test(self, db_session):
-        """Create a brand + drop in request_received stage."""
-        brand = await make_brand(db_session, brand_name="Tracker Brand")
+class TestWrapDrop:
+    async def test_wrap_and_unwrap(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        now = datetime.now(timezone.utc)
         drop = await make_drop(
             db_session,
             brand,
-            stage=BrandTrackerStage.REQUEST_RECEIVED,
+            apply_open_at=now - timedelta(days=3),
+            apply_close_at=now - timedelta(days=1),
         )
-        return drop
+        headers = await admin_headers(db_session)
 
-    async def test_advances_stage(self, app_client: AsyncClient, db_session):
-        drop = await self._setup_tracker_test(db_session)
-
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "finalizing_agreements", "note": "Moving forward"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 200
-        assert res.json()["data"]["stage"] == "finalizing_agreements"
-
-        # Verify DB
+        res = await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=headers)
+        assert res.status_code == 200, res.text
+        assert res.json()["data"]["stage"] == "wrapped"
         await db_session.refresh(drop)
-        assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
-
-        # Verify tracker event created
+        assert drop.wrapped_at is not None
         events = list(
             await db_session.scalars(
                 select(DropTrackerEvent).where(DropTrackerEvent.drop_id == drop.id)
             )
         )
-        assert len(events) == 1
-        assert events[0].stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
-        assert events[0].note == "Moving forward"
+        assert [e.stage for e in events] == ["wrapped"]
 
-    async def test_forward_only(self, app_client: AsyncClient, db_session):
-        drop = await self._setup_tracker_test(db_session)
+        res = await app_client.post(f"/api/admin/drops/{drop.id}/unwrap", headers=headers)
+        assert res.status_code == 200
+        assert res.json()["data"]["stage"] == "selecting"
+        await db_session.refresh(drop)
+        assert drop.wrapped_at is None
 
-        # Advance to finalizing_agreements first
-        await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "finalizing_agreements"},
-            headers=await _admin_headers(db_session),
-        )
-
-        # Try to go back to request_received
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "request_received"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 400
-        assert res.json()["error"]["code"] == "VALIDATION_ERROR"
-
-    async def test_invalid_stage_name(self, app_client: AsyncClient, db_session):
-        drop = await self._setup_tracker_test(db_session)
-
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "nonexistent_stage"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 400
-
-    async def test_awaiting_products_does_not_write_drop_tracking(
-        self, app_client: AsyncClient, db_session
-    ):
-        brand = await make_brand(db_session, brand_name="TN Brand")
-        drop = await make_drop(
+    async def test_wrap_refused_while_open_or_hidden(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        now = datetime.now(timezone.utc)
+        applying = await make_drop(db_session, brand)
+        upcoming = await make_drop(
             db_session,
             brand,
-            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
-            apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
+            apply_open_at=now + timedelta(days=1),
+            apply_close_at=now + timedelta(days=2),
         )
-        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
-        org = await make_org(db_session, org_user)
-        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+        hidden = await make_drop(
+            db_session,
+            brand,
+            apply_open_at=now - timedelta(days=3),
+            apply_close_at=now - timedelta(days=1),
+        )
+        hidden.hidden_at = now
         await db_session.flush()
+        headers = await admin_headers(db_session)
+        for drop, code in (
+            (applying, "APPLY_WINDOW_OPEN"),
+            (upcoming, "APPLY_WINDOW_OPEN"),
+            (hidden, "DROP_HIDDEN"),
+        ):
+            res = await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=headers)
+            assert res.status_code == 409, res.text
+            assert res.json()["error"]["code"] == code
+            await db_session.refresh(drop)
+            assert drop.wrapped_at is None
 
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "awaiting_products"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 200
-        await db_session.refresh(drop)
-        assert drop.tracking_number is None
-        assert drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
-
-    async def test_drop_not_found(self, app_client: AsyncClient, db_session):
-        res = await app_client.patch(
-            "/api/admin/drops/00000000-0000-0000-0000-000000000099/tracker",
-            json={"stage": "finalizing_agreements"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 404
-
-
-class TestReopenDrop:
-    async def test_reopens_drop(self, app_client: AsyncClient, db_session):
+    async def test_wrap_draft_refused(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand)
-
+        drop = await make_drop(db_session, brand, published_at=None)
         res = await app_client.post(
-            f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+            f"/api/admin/drops/{drop.id}/wrap", headers=await admin_headers(db_session)
         )
-        assert res.status_code == 200
-        assert res.json()["data"]["manualReopen"] is True
+        assert res.status_code == 409
+        assert res.json()["error"]["code"] == "DROP_UNPUBLISHED"
 
-        await db_session.refresh(drop)
-        assert drop.manual_reopen is True
-
-    async def test_reopen_nonexistent_drop(self, app_client: AsyncClient, db_session):
+    async def test_cancel_wrapped_refused(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, title="Done Drop")
+        drop.wrapped_at = datetime.now(timezone.utc)
+        await db_session.flush()
         res = await app_client.post(
-            "/api/admin/drops/00000000-0000-0000-0000-000000000099/reopen",
-            headers=await _admin_headers(db_session),
+            f"/api/admin/drops/{drop.id}/cancel",
+            json={"confirm": "Done Drop"},
+            headers=await admin_headers(db_session),
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["error"]["code"] == "DROP_WRAPPED"
+        await db_session.refresh(drop)
+        assert drop.canceled_at is None
+
+    async def test_wrap_unknown_drop(self, app_client: AsyncClient, db_session):
+        res = await app_client.post(
+            "/api/admin/drops/00000000-0000-0000-0000-000000000099/wrap",
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
@@ -371,7 +341,7 @@ class TestAdminRecovery:
             make_user(role=PortalRole.ORG, status=OrgUserStatus.DENIED),
         )
         org = await make_org(db_session, user)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(f"/api/admin/orgs/{org.id}/undeny", headers=headers)
         assert res.status_code == 200
@@ -397,7 +367,7 @@ class TestAdminRecovery:
         assert user is not None
         user.status = OrgUserStatus.DENIED.value
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(f"/api/admin/brands/{brand.id}/undeny", headers=headers)
         assert res.status_code == 200
@@ -414,7 +384,7 @@ class TestAdminRecovery:
         assert user is not None
         user.password_hash = None
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(f"/api/admin/brands/{brand.id}/resend-invite", headers=headers)
         assert res.status_code == 200, res.text
@@ -435,20 +405,9 @@ class TestAdminRecovery:
 
         res = await app_client.post(
             f"/api/admin/brands/{brand.id}/resend-invite",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
-
-    async def test_clear_reopen(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, manual_reopen=True)
-        headers = await _admin_headers(db_session)
-
-        res = await app_client.post(f"/api/admin/drops/{drop.id}/clear-reopen", headers=headers)
-        assert res.status_code == 200
-        assert res.json()["data"]["manualReopen"] is False
-        await db_session.refresh(drop)
-        assert drop.manual_reopen is False
 
     async def test_clear_instagram_token(self, app_client: AsyncClient, db_session):
         user = await persist(db_session, make_user(role=PortalRole.ORG))
@@ -456,7 +415,7 @@ class TestAdminRecovery:
         user.instagram_token_expires_at = datetime.now(timezone.utc)
         user.token_version = 1
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/clear-instagram-token", headers=headers
@@ -466,31 +425,6 @@ class TestAdminRecovery:
         assert user.instagram_access_token is None
         assert user.instagram_token_expires_at is None
         assert user.token_version == 2
-
-    async def test_drop_tracking_route_removed(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracking",
-            json={"trackingNumber": "REPAIR-99"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 404
-
-    async def test_awaiting_products_allows_empty_tracking(
-        self, app_client: AsyncClient, db_session
-    ):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-        await db_session.flush()
-
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "awaiting_products"},
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 200
 
     async def test_non_admin_forbidden_on_recovery(self, app_client: AsyncClient, db_session):
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
@@ -502,7 +436,7 @@ class TestAdminRecovery:
 
 class TestAdminCreateBrand:
     async def test_admin_create_without_approve(self, app_client: AsyncClient, db_session):
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             "/api/admin/brands",
             json={
@@ -518,7 +452,7 @@ class TestAdminCreateBrand:
         assert data["status"] == BrandStatus.PENDING_REVIEW.value
 
     async def test_admin_create_approve_now(self, app_client: AsyncClient, db_session):
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             "/api/admin/brands",
             json={
@@ -530,7 +464,7 @@ class TestAdminCreateBrand:
         )
         assert res.status_code == 200, res.text
         assert res.json()["data"]["status"] == BrandStatus.APPROVED.value
-        assert res.json()["data"]["emailSent"] is True
+        assert res.json()["data"]["emailQueued"] is True
         invite = await db_session.scalar(
             select(BrandInviteToken).where(BrandInviteToken.email == "approve-now@brand.test")
         )
@@ -543,7 +477,7 @@ class TestAdminCreateBrand:
             return False
 
         monkeypatch.setattr("app.services.admin.send_brand_invite_email", _fail)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             "/api/admin/brands",
             json={
@@ -556,7 +490,7 @@ class TestAdminCreateBrand:
         assert res.status_code == 200, res.text
         data = res.json()["data"]
         assert data["status"] == BrandStatus.APPROVED.value
-        assert data["emailSent"] is False
+        assert data["emailQueued"] is True
         invite = await db_session.scalar(
             select(BrandInviteToken).where(BrandInviteToken.email == "mail-fail@brand.test")
         )
@@ -572,7 +506,7 @@ class TestAdminCreateBrand:
         brand = await make_brand(db_session, company_email="approve-fail@brand.test")
         brand.status = BrandStatus.PENDING_REVIEW.value
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/brands/{brand.id}/approve",
             headers=headers,
@@ -580,7 +514,7 @@ class TestAdminCreateBrand:
         assert res.status_code == 200, res.text
         data = res.json()["data"]
         assert data["status"] == BrandStatus.APPROVED.value
-        assert data["emailSent"] is False
+        assert data["emailQueued"] is True
 
     async def test_resend_invite_email_failed(
         self, app_client: AsyncClient, db_session, monkeypatch
@@ -596,13 +530,13 @@ class TestAdminCreateBrand:
         user.password_hash = None
         await db_session.flush()
 
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/brands/{brand.id}/resend-invite",
             headers=headers,
         )
-        assert res.status_code == 502, res.text
-        assert res.json()["error"]["code"] == "EMAIL_SEND_FAILED"
+        assert res.status_code == 200, res.text
+        assert res.json()["data"]["emailQueued"] is True
 
     async def test_admin_create_duplicate_email(self, app_client: AsyncClient, db_session):
         await make_brand(db_session, company_email="dup@brand.test")
@@ -612,7 +546,7 @@ class TestAdminCreateBrand:
                 "brandName": "Dup Co",
                 "companyEmail": "dup@brand.test",
             },
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 409
         assert res.json()["error"]["code"] == "BRAND_EMAIL_TAKEN"
@@ -623,14 +557,20 @@ class TestAdminCreateBrand:
         monkeypatch.setattr(settings, "BRAND_SELF_REGISTRATION_ENABLED", False)
         public = await app_client.post(
             "/api/brands/apply",
-            json={"brandName": "Nope", "companyEmail": "nope@brand.test"},
+            json={
+                "contactName": "Test Applicant",
+                "marketingBudget": "5_20k",
+                "intentMessage": "Campus campaign.",
+                "brandName": "Nope",
+                "companyEmail": "nope@brand.test",
+            },
         )
         assert public.status_code == 403
 
         admin = await app_client.post(
             "/api/admin/brands",
             json={"brandName": "Admin Path", "companyEmail": "admin-path@brand.test"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert admin.status_code == 200, admin.text
 
@@ -641,7 +581,7 @@ class TestDropConfigPatch:
         drop = await make_drop(db_session, brand)
         open_ms = int((datetime.now(timezone.utc) + timedelta(days=2)).timestamp() * 1000)
         close_ms = int((datetime.now(timezone.utc) + timedelta(days=9)).timestamp() * 1000)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
@@ -671,7 +611,7 @@ class TestDropConfigPatch:
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         assert res.json()["data"]["capacityTotal"] == 7
@@ -681,7 +621,7 @@ class TestDropConfigPatch:
         drop = await make_drop(db_session, brand, total_product_units=10)
         drop.campaign_hashtag = "keepme"
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         omit = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
@@ -714,7 +654,7 @@ class TestDropConfigPatch:
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"notARealField": "Nope"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 422
 
@@ -722,7 +662,7 @@ class TestDropConfigPatch:
         res = await app_client.patch(
             "/api/admin/drops/00000000-0000-0000-0000-000000000099",
             json={"capacityTotal": 3},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
@@ -745,7 +685,7 @@ class TestDropConfigPatch:
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"applyOpenAt": open_ms, "applyCloseAt": close_ms},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
@@ -767,39 +707,45 @@ class TestDropConfigPatch:
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"capacityTotal": 1},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
-    async def test_live_stage_blocks_logistics(self, app_client: AsyncClient, db_session):
+    async def test_only_copy_changes_after_wrap(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
-        headers = await _admin_headers(db_session)
-
-        blocked = await app_client.patch(
-            f"/api/admin/drops/{drop.id}",
-            json={"capacityTotal": 9, "campaignHashtag": "x"},
-            headers=headers,
-        )
-        assert blocked.status_code == 409
+        drop = await make_drop(db_session, brand, wrapped_at=datetime.now(timezone.utc))
+        headers = await admin_headers(db_session)
 
         ok = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
-            json={"campaignHashtag": "liveok"},
+            json={"title": "Recap", "location": "Campus"},
             headers=headers,
         )
-        assert ok.status_code == 200
-        assert ok.json()["data"]["campaignHashtag"] == "liveok"
+        assert ok.status_code == 200, ok.text
+        assert ok.json()["data"]["title"] == "Recap"
 
-    async def test_mode_flip_after_finalize_409(self, app_client: AsyncClient, db_session):
+        close_later = int(datetime.now(timezone.utc).timestamp() * 1000) + 86_400_000
+        for body in (
+            {"capacityTotal": 9},
+            {"campaignHashtag": "late"},
+            {"applyCloseAt": close_later},
+            {"title": "Mixed", "capacityTotal": 9},
+        ):
+            blocked = await app_client.patch(
+                f"/api/admin/drops/{drop.id}", json=body, headers=headers
+            )
+            assert blocked.status_code == 409, body
+            assert blocked.json()["error"]["code"] == "DROP_WRAPPED"
+
+    async def test_mode_flip_with_accepted_seat_409(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand, total_product_units=10)
-        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-        await db_session.flush()
+        org = await make_org(db_session, await persist(db_session, make_user(role=PortalRole.ORG)))
+        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"totalProductUnits": None},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 409
 
@@ -811,7 +757,7 @@ class TestDropConfigPatch:
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"campaignHashtag": "#"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         assert res.json()["data"]["campaignHashtag"] is None
@@ -819,7 +765,7 @@ class TestDropConfigPatch:
     async def test_admin_patch_image_https_on_draft(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand, published_at=None)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         ok = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"image": "https://cdn.example.test/hero.png"},
@@ -850,7 +796,7 @@ class TestDropConfigPatch:
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"title": "New title", "image": "https://cdn.example.test/new.png"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         body = res.json()["data"]
@@ -896,7 +842,7 @@ class TestAdminCreateAndPublish:
 
         brand = await make_brand(db_session, company_email="ops@acme.test")
         ticket = await make_drop_request(db_session, brand)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         created = await app_client.post(
             f"/api/admin/brands/{brand.id}/drops",
@@ -908,6 +854,7 @@ class TestAdminCreateAndPublish:
         drop_id = data["id"]
         assert data["publishedAt"] is None
         assert data["title"] == "Campus Spring"
+        assert data["brandCanEditCreative"] is False
 
         await db_session.refresh(ticket)
         assert ticket.status == "converted"
@@ -920,12 +867,10 @@ class TestAdminCreateAndPublish:
         assert published.status_code == 200, published.text
         pub = published.json()["data"]
         assert pub["publishedAt"] is not None
-        assert pub["stage"] == "awaiting_products"
+        assert pub["stage"] == "upcoming"
 
         events = list(await db_session.scalars(select(DropTrackerEvent)))
-        assert any(
-            str(evt.drop_id) == drop_id and evt.stage == "awaiting_products" for evt in events
-        )
+        assert any(str(evt.drop_id) == drop_id and evt.stage == "upcoming" for evt in events)
         assert len(sent) == 1
         assert sent[0]["to"] == "ops@acme.test"
         assert drop_id in sent[0]["drop_url"]
@@ -944,7 +889,7 @@ class TestAdminCreateAndPublish:
         res = await app_client.post(
             f"/api/admin/brands/{brand.id}/drops",
             json=_draft_body(dropRequestId=str(ticket.id), image="http://cdn.example.test/x.png"),
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 422
 
@@ -957,88 +902,59 @@ class TestAdminCreateAndPublish:
                 dropRequestId=str(ticket.id),
                 image="https://placehold.co/600x400/png",
             ),
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 422
 
-
-class TestCleanupRequestReceived:
-    async def test_cleanup_migrates_stubs_to_tickets(self, app_client: AsyncClient, db_session):
+    async def test_create_persists_brand_can_edit_creative(
+        self, app_client: AsyncClient, db_session
+    ):
         brand = await make_brand(db_session)
-        stub = await make_drop(
-            db_session,
-            brand,
-            title="Stub request",
-            stage=BrandTrackerStage.REQUEST_RECEIVED,
-            published_at=None,
-        )
-        live = await make_drop(
-            db_session,
-            brand,
-            title="Live campaign",
-            stage=BrandTrackerStage.AWAITING_PRODUCTS,
-        )
-        headers = await _admin_headers(db_session)
-        stub_id = stub.id
-        live_id = live.id
-        brand_id = brand.id
-        stub_description = stub.description
+        ticket = await make_drop_request(db_session, brand)
         res = await app_client.post(
-            "/api/admin/tools/cleanup-request-received",
-            headers=headers,
+            f"/api/admin/brands/{brand.id}/drops",
+            json=_draft_body(dropRequestId=str(ticket.id), brandCanEditCreative=True),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
-        body = res.json()["data"]
-        assert body["convertedCount"] == 1
-        assert str(stub_id) in body["deletedDropIds"]
+        data = res.json()["data"]
+        assert data["brandCanEditCreative"] is True
+        drop = await db_session.get(Drop, data["id"])
+        assert drop is not None
+        assert drop.brand_can_edit_creative is True
 
-        db_session.expire_all()
-        remaining = await db_session.get(Drop, live_id)
-        assert remaining is not None
-        gone = await db_session.get(Drop, stub_id)
-        assert gone is None
-        tickets = list(
-            await db_session.scalars(select(DropRequest).where(DropRequest.brand_id == brand_id))
-        )
-        assert len(tickets) == 1
-        assert tickets[0].status == "closed"
-        assert tickets[0].message == stub_description
 
-        again = await app_client.post(
-            "/api/admin/tools/cleanup-request-received",
-            headers=headers,
-        )
-        assert again.status_code == 200
-        assert again.json()["data"]["convertedCount"] == 0
-
-    async def test_cleanup_dry_run_does_not_delete(self, app_client: AsyncClient, db_session):
-        from app.services.admin import cleanup_request_received_stubs
-
+class TestAdminDropRequestFields:
+    async def test_list_and_get_echo_structured_fields(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        stub = await make_drop(
-            db_session,
-            brand,
-            title="Stub request",
-            stage=BrandTrackerStage.REQUEST_RECEIVED,
-            published_at=None,
-        )
-        stub_id = stub.id
-        result = await cleanup_request_received_stubs(db_session, dry_run=True)
-        assert result["dry_run"] is True
-        assert result["converted_count"] == 1
-        assert stub_id in result["deleted_drop_ids"]
-        db_session.expire_all()
-        still = await db_session.get(Drop, stub_id)
-        assert still is not None
+        ticket = await make_drop_request(db_session, brand, message="Structured", notes="n")
+        ticket.product = "Cans"
+        ticket.title = "Fall"
+        ticket.location = "Bay Area"
+        ticket.target_date = datetime.now(timezone.utc).date()
+        ticket.org_count = 8
+        ticket.units_per_org = 24
+        ticket.campaign_hashtag = "Fall_Brew"
+        await db_session.flush()
+        headers = await admin_headers(db_session)
 
-    async def test_cleanup_blocked_in_production(
-        self, app_client: AsyncClient, db_session, monkeypatch
-    ):
-        from app.config import settings
+        one = await app_client.get(f"/api/admin/drop-requests/{ticket.id}", headers=headers)
+        assert one.status_code == 200, one.text
+        data = one.json()["data"]
+        assert data["message"] == "Structured"
+        assert data["product"] == "Cans"
+        assert data["title"] == "Fall"
+        assert data["location"] == "Bay Area"
+        assert data["targetDate"] == ticket.target_date.isoformat()
+        assert data["orgCount"] == 8
+        assert data["unitsPerOrg"] == 24
+        assert data["campaignHashtag"] == "Fall_Brew"
+        assert data["notes"] == "n"
+        assert data["brandName"] == brand.brand_name
 
-        monkeypatch.setattr(settings, "ENVIRONMENT", "production")
-        res = await app_client.post(
-            "/api/admin/tools/cleanup-request-received",
-            headers=await _admin_headers(db_session),
-        )
-        assert res.status_code == 403
+        listed = await app_client.get("/api/admin/drop-requests", headers=headers)
+        assert listed.status_code == 200, listed.text
+        row = next(item for item in listed.json()["data"] if item["id"] == str(ticket.id))
+        assert row["product"] == "Cans"
+        assert row["orgCount"] == 8
+        assert row["unitsPerOrg"] == 24

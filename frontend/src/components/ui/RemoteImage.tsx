@@ -7,6 +7,7 @@
  * the existing neutral wash — the same tile size, no broken alt text.
  */
 import { useState } from "react";
+import { ImageOff } from "lucide-react";
 import { cn } from "../../theme/cn";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
 
@@ -77,6 +78,12 @@ type RemoteImageProps = {
   label: string;
   alt?: string;
   className?: string;
+  /**
+   * What to draw when the URL cannot be shown.
+   * `blank` leaves the parent's fill (the pen's grey media well).
+   * `placeholder` is the pen's `Image / Placeholder`: the image-off icon.
+   */
+  fallback?: "initials" | "blank" | "placeholder";
 };
 
 export function RemoteImage({
@@ -84,16 +91,34 @@ export function RemoteImage({
   label,
   alt = "",
   className,
+  fallback = "initials",
 }: RemoteImageProps) {
   const resolved = displayableImageSrc(src);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const failed = resolved == null || failedSrc === resolved;
 
   if (failed) {
+    if (fallback === "blank") return null;
+    if (fallback === "placeholder") {
+      return (
+        <span
+          className={cn(
+            "flex items-center justify-center border border-line buzz-glass-tile text-quiet",
+            className,
+          )}
+          role={alt ? "img" : undefined}
+          aria-label={alt || undefined}
+          aria-hidden={alt ? undefined : true}
+          data-testid="image-fallback"
+        >
+          <ImageOff size={20} aria-hidden />
+        </span>
+      );
+    }
     return (
       <span
         className={cn(
-          "flex items-center justify-center bg-buzz-neutralWash font-semibold text-buzz-inkMuted",
+          "flex items-center justify-center bg-surface-pop font-semibold text-buzz-inkMuted",
           className,
         )}
         role={alt ? "img" : undefined}

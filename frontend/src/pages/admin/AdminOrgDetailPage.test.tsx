@@ -2,12 +2,9 @@
  * Admin org erase uses an in-app type-to-confirm dialog, not window.prompt.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderWithProviders } from "../../testUtils";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import AdminOrgDetailPage from "./AdminOrgDetailPage";
 
 const idleMutation = () => ({
   mutate: jest.fn(),
@@ -20,6 +17,8 @@ const mockUseAdminOrg = jest.fn();
 const mockEraseMutateAsync = jest.fn();
 const mockSendEmailMutateAsync = jest.fn();
 const mockAckMutateAsync = jest.fn();
+const mockApprove = jest.fn();
+const mockSendConnectLink = jest.fn();
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminOrg: (...args: unknown[]) => mockUseAdminOrg(...args),
@@ -29,7 +28,7 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     isPending: false,
     isError: false,
   }),
-  useApproveOrg: () => idleMutation(),
+  useApproveOrg: () => ({ ...idleMutation(), mutateAsync: mockApprove }),
   useClearOrgInstagramToken: () => idleMutation(),
   useDenyOrg: () => idleMutation(),
   useEraseOrg: () => ({
@@ -39,6 +38,10 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     isError: false,
   }),
   useResendOrgConnect: () => idleMutation(),
+  useSendOrgConnectLink: () => ({
+    ...idleMutation(),
+    mutateAsync: mockSendConnectLink,
+  }),
   useSendOrgEmail: () => ({
     mutate: jest.fn(),
     mutateAsync: mockSendEmailMutateAsync,
@@ -53,14 +56,12 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   }),
 }));
 
-import AdminOrgDetailPage from "./AdminOrgDetailPage";
-
 function orgDetail() {
   return {
     userId: "11111111-1111-1111-1111-111111111111",
     orgId: "22222222-2222-2222-2222-222222222222",
     status: "active",
-    orgName: "Lawrence's Test",
+    orgName: "Test Org",
     university: "Cornell University",
     instagramHandle: "test_org_admin",
     instagramHandleConfirmed: false,
@@ -107,10 +108,11 @@ function setInputValue(el: HTMLInputElement, value: string) {
 
 describe("AdminOrgDetailPage erase confirm", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockUseAdminOrg.mockReset();
+    mockApprove.mockReset().mockResolvedValue({});
+    mockSendConnectLink.mockReset().mockResolvedValue({});
     mockEraseMutateAsync.mockReset();
     mockAckMutateAsync.mockReset();
     mockAckMutateAsync.mockResolvedValue({});
@@ -121,44 +123,37 @@ describe("AdminOrgDetailPage erase confirm", () => {
       cc: ["ae101@example.edu"],
     });
     mockEraseMutateAsync.mockResolvedValue({
-      emailSent: true,
+      emailQueued: true,
       emailToDomain: "cornell.edu",
     });
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function renderPage() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter
-          initialEntries={[
-            "/admin/orgs/11111111-1111-1111-1111-111111111111",
-          ]}
-        >
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/orgs/:userId"
-                element={<AdminOrgDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminOrgDetailPage />, {
+      route: "/admin/orgs/11111111-1111-1111-1111-111111111111",
+      path: "/admin/orgs/:userId",
+    }).container;
   }
+
+  it.each([true, false])("approval respects connected identity: %s", async (connected) => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), status: "pending_approval", instagramHandleConfirmed: connected },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    const approve = container.querySelector('[data-testid="approve-org"]') as HTMLButtonElement;
+    expect(approve.disabled).toBe(!connected);
+    expect(container.querySelector('[data-testid="tester-invite-confirmed"]') !== null).toBe(!connected);
+    await act(async () => approve.click());
+    expect(mockApprove.mock.calls).toEqual(connected ? [[{
+      orgId: orgDetail().orgId,
+      testerInviteConfirmed: false,
+    }]] : []);
+    expect(container.textContent).toContain(
+      connected ? "Approved — organization is active." : "Before you approve",
+    );
+  });
 
   it("links claimed Instagram to the public profile", () => {
     mockUseAdminOrg.mockReturnValue({
@@ -179,6 +174,44 @@ describe("AdminOrgDetailPage erase confirm", () => {
     );
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("links a pending Instagram request to the shared changes route", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), pendingIgChangeRequestId: "request-1" },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    const review = Array.from(container.querySelectorAll("a")).find(
+      (link) => link.textContent === "Review",
+    );
+    expect(review?.getAttribute("href")).toBe("/admin/changes/ig/request-1");
+  });
+
+  it("shows Address pending when an unerased organization has no address", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: orgDetail(),
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Address pending");
+    expect(container.textContent).not.toContain("Shipping details removed");
+  });
+
+  it("keeps erased shipping details distinct from a missing address", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), status: "erased" },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Shipping details removed");
+    expect(container.textContent).not.toContain("Address pending");
   });
 
   it("acks an open bind mismatch without changing the connected handle", async () => {
@@ -212,6 +245,38 @@ describe("AdminOrgDetailPage erase confirm", () => {
     expect(mockAckMutateAsync).toHaveBeenCalledWith(
       "22222222-2222-2222-2222-222222222222",
     );
+  });
+
+  it("shows reconnect recovery copy when a refused bind mismatch is open", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        status: "active",
+        instagramReconnectRequired: true,
+        instagramHandle: null,
+        instagramUsername: null,
+        instagramTokenExpiresAt: null,
+        claimedInstagramUsername: "newcampusig",
+        igBindGraphUsername: "thirdclub",
+        igBindMismatchedAt: Date.now(),
+        igBindMismatchAckedAt: null,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(document.body.textContent).toContain("tried to connect @thirdclub");
+    expect(document.body.textContent).toContain("instead of @newcampusig");
+    expect(document.body.textContent).toContain("bind was refused");
+    expect(document.body.textContent).toContain("portal access stays closed");
+    expect(document.body.textContent).not.toContain("This organization connected");
+    expect(document.body.textContent).not.toContain(
+      "Portal access is already open",
+    );
+    expect(
+      container.querySelector('[data-testid="resend-connect"]'),
+    ).not.toBeNull();
   });
 
   it("keeps the Connect snapshot in the mismatch panel after a later Graph rename", () => {
@@ -319,6 +384,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
       userId: "11111111-1111-1111-1111-111111111111",
       confirm: "@test_org_admin",
     });
+    expect(document.body.textContent).toContain("Confirmation email queued");
     promptSpy.mockRestore();
   });
 
@@ -359,6 +425,79 @@ describe("AdminOrgDetailPage erase confirm", () => {
       '[data-testid="erase-org-confirm"]',
     ) as HTMLInputElement;
     expect(reopened.value).toBe("");
+  });
+
+  it.each([true, false])("uses request state for active-org reconnect actions: %s", (required) => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), instagramReconnectRequired: required },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    expect(container.querySelector('[data-testid="resend-connect"]') !== null).toBe(required);
+    expect(container.textContent?.includes("Awaiting Instagram connect")).toBe(required);
+  });
+
+  it("offers Send Connect link to an unbound pre-approval org", async () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        status: "pending_approval",
+        instagramHandleConfirmed: false,
+        instagramTokenExpiresAt: null,
+        instagramConnectRequired: true,
+        instagramReconnectRequired: false,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    // Switch-holder action is not offered; the pre-approval one is.
+    expect(container.querySelector('[data-testid="resend-connect"]')).toBeNull();
+    expect(container.textContent).not.toContain("Instagram Tester");
+    expect(container.textContent).toContain("never connected Instagram");
+
+    const hero = container.querySelector(
+      '[data-testid="send-connect-link"]',
+    ) as HTMLButtonElement;
+    expect(hero).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="send-connect-link-panel"]'),
+    ).toBeTruthy();
+
+    expect(container.querySelector('[data-testid="approve-org"]')).not.toBeNull();
+    expect(
+      (
+        container.querySelector('[data-testid="approve-org"]') as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+
+    await act(async () => hero.click());
+    expect(mockSendConnectLink).toHaveBeenCalledWith(
+      "22222222-2222-2222-2222-222222222222",
+    );
+    expect(container.textContent).toContain(
+      "They stay awaiting approval until they connect and you approve.",
+    );
+  });
+
+  it("keeps the tester-invite confirm for a bound pre-approval org", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        status: "pending_approval",
+        instagramHandleConfirmed: false,
+        instagramConnectRequired: false,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    expect(container.querySelector('[data-testid="send-connect-link"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="tester-invite-confirmed"]'),
+    ).not.toBeNull();
   });
 
   it("opens compose with locked To/CC and requires a subject", async () => {

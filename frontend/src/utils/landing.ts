@@ -6,19 +6,25 @@
  */
 import type { AuthUser } from "../contexts/AuthContext";
 
-export function pathForUser(user: AuthUser | null): string {
-  if (!user) return "/login";
+import { allowlistedOAuthNext, onboardingQuery } from "./oauthNext";
+
+export function pathForUser(user: AuthUser | null, next?: string | null, prefill?: string | null): string {
+  const query = onboardingQuery(next);
+  if (user?.portalRole === "org" && user.instagramReconnectRequired) {
+    return "/onboarding/connect-instagram" + query;
+  }
+  const activeNext = user?.status === "active" ? allowlistedOAuthNext(next) : null;
+  if (activeNext) return activeNext;
+  if (!user) return "/login" + onboardingQuery(next, prefill);
 
   if (user.portalRole === "org") {
     switch (user.status) {
       case "pending_org_profile":
-        return "/onboarding/profile";
+        return "/onboarding/profile" + onboardingQuery(next, prefill);
       case "pending_email_verification":
-        return "/onboarding/verify-email";
+        return "/onboarding/verify-email" + query;
       case "pending_approval":
-        return "/onboarding/pending-approval";
-      case "pending_instagram":
-        return "/onboarding/connect-instagram";
+        return "/onboarding/pending-approval" + query;
       case "denied":
         return "/onboarding/denied";
       case "erased":

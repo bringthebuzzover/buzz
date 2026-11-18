@@ -16,7 +16,21 @@ import { cx } from "./shells";
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: ["buzzMicro"] }],
+      "font-size": [
+        {
+          text: [
+            "buzzMicro",
+            "buzzDisplay",
+            "buzzTitle",
+            "buzzStatement",
+            "buzzH2",
+            "buzzH3",
+            "buzzBody",
+            "buzzSmall",
+            "buzzLabel",
+          ],
+        },
+      ],
     },
   },
 });

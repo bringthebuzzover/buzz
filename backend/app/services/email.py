@@ -10,11 +10,15 @@ never raised, so a failed email can't roll back the operation that triggered it
 Callers that need honesty (verification, Notify Me) use the returned ``bool``:
 ``True`` only on provider accept (HTTP 2xx, including a Resend idempotency
 replay of that original 2xx) or intentional development console success;
-``False`` on unset API key / HTTP error / idempotency conflict / exception.
+``False`` on unset API key / HTTP error / idempotency conflict / exception /
+allowlist suppression. Suppression runs only when ``EMAIL_FAIL_CLOSED`` is
+true and the address is not in ``EMAIL_ALLOWLIST``. ``EMAIL_SUBJECT_PREFIX``
+is prepended when set. Neither depends on ``ENVIRONMENT``. With those unset,
+staging and production send the same payload as before.
 
 Optional Resend ``Idempotency-Key`` values are opt-in per call
 (``build_idempotency_key``). A missing key sends with no header. Policy and
-per-kind choices: ``gaps/archive/ops.email-ledger.md``.
+per-kind choices: buzz-ops ``engineering/gaps/archive/ops.email-ledger.md``.
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ import httpx
 
 from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM, OPS_CC_EMAIL
 from app.config import settings
+from app.marketing_budget import MARKETING_BUDGET_LABELS, MarketingBudget
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +44,16 @@ _IDEMPOTENCY_KEY_MAX = 256
 # starts a new key (a duplicate is possible for 24h). Reusing one for a
 # different send suppresses mail. Kinds with no constant are sent with no key.
 KIND_VERIFICATION = "verification"
+KIND_BRAND_APPLIED = "brand-applied"
+# Public contact modal: ops notice (Reply reaches the sender) + sender copy.
+# The notice body format changed to message + signature, so a new key kind
+# avoids reusing a provider key for a different payload during deploy retries.
+KIND_CONTACT = "contact-v2"
+KIND_CONTACT_ACK = "contact-ack"
 KIND_BRAND_INVITE = "brand-invite"
-KIND_ORG_APPROVED = "org-approved"
 KIND_ORG_APPROVED_BOUND = "org-approved-bound"
 KIND_IG_SWITCH_CONNECT = "ig-switch-connect"
+KIND_ORG_CONNECT_BEFORE_APPROVAL = "org-connect-before-approval"
 KIND_IG_RENAME_APPROVED = "ig-rename-approved"
 KIND_IG_CHANGE_DENIED = "ig-change-denied"
 KIND_ORG_APPLY_PREFILL = "org-apply-prefill"
@@ -53,8 +64,19 @@ KIND_APPLICATION_DENIED = "application-denied"
 KIND_REMINDER = "reminder"
 KIND_DROP_PUBLISHED = "drop-published"
 KIND_PASSWORD_RESET = "password-reset"
+KIND_PASSWORD_CHANGED = "password-changed"
 KIND_LATE_ADD_ORG = "late-add-org"
 KIND_LATE_ADD_BRAND = "late-add-brand"
+# Drop lifecycle notices (app.services.drop_notices, plan §3.6).
+KIND_SEAT_ACCEPTED = "seat-accepted"
+KIND_SEAT_SHIPPED = "seat-shipped"
+KIND_SEAT_WITHDREW = "seat-withdrew"
+KIND_SEAT_WITHDREW_OPS = "seat-withdrew-ops"
+KIND_CHOOSE_ORGS = "choose-orgs"
+KIND_DROP_WRAPPED = "drop-wrapped"
+KIND_DROP_WRAPPED_ORG = "drop-wrapped-org"
+KIND_DROP_CANCELED = "drop-canceled"
+KIND_DROP_CANCELED_ORG = "drop-canceled-org"
 
 _KIND_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _UUID_RE = re.compile(
@@ -163,6 +185,48 @@ def _idempotency_kind(key: str | None) -> str:
 
 def _key_hash(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()[:16]
+
+
+def _email_addr_hash(address: str) -> str:
+    return hashlib.sha256(address.strip().lower().encode()).hexdigest()[:16]
+
+
+def _allowlist_entries(raw: str) -> list[str]:
+    return [part.strip().lower() for part in raw.split(",") if part.strip()]
+
+
+def address_allowlisted(address: str, allowlist: str) -> bool:
+    """True when ``address`` is an exact entry or its domain is an ``@domain`` entry."""
+
+    email = address.strip().lower()
+    if "@" not in email:
+        return False
+    domain = email.split("@", 1)[1]
+    for entry in _allowlist_entries(allowlist):
+        if entry.startswith("@"):
+            if domain == entry[1:]:
+                return True
+        elif email == entry:
+            return True
+    return False
+
+
+def _apply_subject_prefix(subject: str, prefix: str) -> str:
+    """Prepend ``prefix`` once. Blank prefix leaves the subject unchanged."""
+
+    if not prefix.strip():
+        return subject
+    if subject.startswith(prefix):
+        return subject
+    return prefix + subject
+
+
+def _log_allowlist_suppressed(address: str, subject: str) -> None:
+    logger.warning(
+        "email suppressed (not allowlisted): addr_sha256_16=%s subject=%s",
+        _email_addr_hash(address),
+        subject,
+    )
 
 
 def _resend_error_name(resp: httpx.Response) -> str:
@@ -355,6 +419,65 @@ async def send_org_ig_switch_connect_email(
     return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
+async def send_org_connect_before_approval_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    connect_token: str,
+    claimed_handle: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
+    """Ask an unbound org to connect Instagram so an admin can approve it.
+
+    Honest framing only: the org is *not* approved yet and connects *before*
+    approval. ``send_org_approved_email`` says "approved" and
+    ``send_org_ig_switch_connect_email`` says an account change was approved —
+    both are false for this cohort, so this is a dedicated, deliberately short
+    sender rather than a reuse. The template helpers are shared.
+    """
+    name = org_name or "your organization"
+    handle = f"@{claimed_handle}" if claimed_handle else None
+    connect_url = f"{settings.FRONTEND_URL}/onboarding/connect-instagram?token={connect_token}"
+    subject = "Connect Instagram to finish your Buzz application"
+    text = (
+        f"{name} verified its school email on Buzz. One step is left before we can "
+        "review the application: connect Instagram.\n\n"
+        f"1. {_tester_invite_text(handle=handle)}\n"
+        "2. Connect your organization's Business or Creator Instagram:\n\n"
+        f"{connect_url}\n\n"
+        "We review the application once the account is connected. This link "
+        "expires in 7 days."
+    )
+    html = _cta_html(
+        connect_url,
+        subject=subject,
+        paragraphs=[
+            f"{name} verified its school email on Buzz. One step is left before we "
+            "can review the application: connect Instagram.",
+            _step_html(1, _tester_invite_html(handle=handle)),
+            _step_html(
+                2,
+                _connect_instagram_link_html(
+                    connect_url,
+                    trailing=" for your organization's Business or Creator account. "
+                    "We review the application once the account is connected.",
+                ),
+            ),
+            "This link expires in 7 days.",
+        ],
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Org connect before approval:                   ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  URL: {connect_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
+
+
 async def send_org_ig_rename_approved_email(
     to_email: str,
     *,
@@ -456,23 +579,6 @@ def build_org_apply_prefill_email(
 
 
 _UPDATE_BRAND = "UPDATE"
-_FORM_TS_FORMATS = ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%m/%d/%Y")
-
-
-def applied_on_from_source_row_key(key: str | None) -> str | None:
-    """Prefill ``source_row_key`` prefix → 'August 30'. None if unparseable."""
-    text = (key or "").strip()
-    if "|" in text:
-        text = text.split("|", 1)[0].strip()
-    if not text:
-        return None
-    for fmt in _FORM_TS_FORMATS:
-        try:
-            dt = datetime.strptime(text, fmt)
-        except ValueError:
-            continue
-        return f"{dt.strftime('%B')} {dt.day}"
-    return None
 
 
 async def send_org_apply_prefill_update_email(
@@ -784,7 +890,7 @@ async def send_drop_published_email(
     drop_url: str,
     idempotency_key: str | None = None,
 ) -> bool:
-    """Tell a brand their campaign is live on the org feed (LAUNCH.md Phase B)."""
+    """Tell a brand their campaign is live on the org feed."""
     name = brand_name or "your brand"
     title = drop_title or "your campaign"
     subject = f"Your Buzz drop is live — {title}" if drop_title else "Your Buzz drop is live"
@@ -853,12 +959,10 @@ async def send_password_reset_email(
     to_email: str,
     token: str,
     *,
-    portal: str,
     idempotency_key: str | None = None,
 ) -> bool:
-    """Send a brand or admin password-reset link."""
-    path = "/brand/reset-password" if portal == "brand" else "/admin/reset-password"
-    reset_url = f"{settings.FRONTEND_URL}{path}?token={token}"
+    """Send a brand password-reset link."""
+    reset_url = f"{settings.FRONTEND_URL}/brand/reset-password?token={token}"
     subject = "Reset your Buzz password"
     body = (
         "We received a request to reset your Buzz password.\n\n"
@@ -873,6 +977,39 @@ async def send_password_reset_email(
             "║  DEV EMAIL — Password reset link:                           ║\n"
             f"║  To: {to_email:<52s}║\n"
             f"║  URL: {reset_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+
+
+async def send_brand_password_changed_email(
+    to_email: str,
+    *,
+    idempotency_key: str | None = None,
+) -> bool:
+    """Notice that a signed-in brand changed their password.
+
+    Best-effort, same as other transactional mail: a provider failure does
+    not undo the password change. Copy uses ``CONTACT_EMAIL`` from
+    ``brand_emails.json`` (the address SOT). Bodies for other mail live in
+    this module, not that JSON file.
+    """
+    subject = "Your Buzz password was changed"
+    body = (
+        "The password for your Buzz brand account was just changed.\n\n"
+        "If you made this change, no further action is needed. "
+        "Other signed-in sessions were signed out.\n\n"
+        "If you did not change your password, reset it from the brand login page "
+        f"or contact {CONTACT_EMAIL}."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Brand password changed:                        ║\n"
+            f"║  To: {to_email:<52s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
@@ -920,6 +1057,89 @@ async def send_admin_compose_email(
         body,
         html=html,
         cc=cc or None,
+        idempotency_key=idempotency_key,
+    )
+
+
+async def send_contact_notice(
+    *,
+    contact_name: str,
+    contact_type: str,
+    sender_email: str,
+    message: str,
+    idempotency_key: str | None = None,
+) -> bool:
+    """Notify ops of a contact-form message; **Reply reaches the sender.**
+
+    Mirrors ``send_brand_apply_notice``: the reply-to is the person who wrote
+    in, so hitting Reply in the hello@ inbox just works.
+    """
+    type_label = "Organization" if contact_type == "organization" else "Brand"
+    subject = f"Contact form ({type_label}): {contact_name}"
+    # No timestamp here on purpose. The body must be byte-identical for an
+    # identical retry, because the route derives the Idempotency-Key from the
+    # same content; a per-attempt value would make Resend return 409 and turn
+    # every retry into a permanent 502. The provider records the send time.
+    body = f"{message}\n\n-- {contact_name} <{sender_email}>"
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "DEV EMAIL — Contact notice: to=%s from=%s type=%s name=%s",
+            CONTACT_EMAIL,
+            sender_email,
+            type_label,
+            contact_name,
+        )
+        return True
+    return await _dispatch(
+        CONTACT_EMAIL,
+        subject,
+        body,
+        html=_message_html(subject=subject, body=body),
+        cc=_ops_cc(exclude=CONTACT_EMAIL) or None,
+        idempotency_key=idempotency_key,
+        reply_to=sender_email,
+    )
+
+
+async def send_contact_ack(
+    *,
+    to_email: str,
+    contact_name: str,
+    idempotency_key: str | None = None,
+) -> bool:
+    """Confirm receipt to the sender. **Fixed template — never echoes their text.**
+
+    This endpoint is public and unauthenticated, so the address is whatever the
+    submitter typed; nobody has proven they own it. Echoing the message body back
+    would turn the form into a relay that mails arbitrary attacker-written text
+    to arbitrary addresses from ``hello@`` — the same address that carries
+    verification and invite mail, so the damage would land on signup
+    deliverability too.
+
+    A fixed acknowledgement still gives the visitor the assurance that matters
+    ("it landed, we'll reply") without carrying a single character they wrote.
+    Reply-To stays the shared inbox, so replying reaches Buzz.
+    """
+    subject = "We got your message — Buzz"
+    body = "\n".join(
+        [
+            "Hi there,",
+            "",
+            "Thanks for reaching out. We've received your message and will reply to this address.",
+            "",
+            f"You can also reach us any time at {CONTACT_EMAIL}.",
+            "",
+            "— Buzz",
+        ]
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info("DEV EMAIL — Contact ack: to=%s name=%s", to_email, contact_name)
+        return True
+    return await _dispatch(
+        to_email,
+        subject,
+        body,
+        html=_message_html(subject=subject, body=body),
         idempotency_key=idempotency_key,
     )
 
@@ -1020,6 +1240,68 @@ async def send_late_add_brand_email(
     )
 
 
+async def send_brand_apply_notice(
+    *,
+    brand_id: str,
+    contact_name: str,
+    brand_name: str,
+    company_email: str,
+    marketing_budget: MarketingBudget,
+    intent_message: str,
+    submitted_at: datetime,
+) -> bool:
+    """Notify ops of an application; Reply reaches the applicant.
+
+    EMAIL_FAIL_CLOSED + EMAIL_ALLOWLIST can suppress this send when the
+    recipient is not allowlisted. That is intended staging behaviour.
+    """
+    return await send_lifecycle_email(
+        CONTACT_EMAIL,
+        subject=f"New brand application: {brand_name} ({contact_name})",
+        paragraphs=[
+            f"Full name: {contact_name}",
+            f"Company name: {brand_name}",
+            f"Email: {company_email}",
+            f"University marketing budget: {MARKETING_BUDGET_LABELS[marketing_budget]}",
+            f"Short message: {intent_message}",
+            f"Submitted: {submitted_at.isoformat()}",
+        ],
+        url=f"{settings.FRONTEND_URL}/admin/brands/{brand_id}",
+        button="Open application",
+        cc=_ops_cc(exclude=CONTACT_EMAIL),
+        idempotency_key=build_idempotency_key(KIND_BRAND_APPLIED, brand_id),
+        reply_to=company_email,
+    )
+
+
+async def send_lifecycle_email(
+    to_email: str,
+    *,
+    subject: str,
+    paragraphs: list[str],
+    url: str,
+    button: str,
+    cc: list[str] | None = None,
+    idempotency_key: str | None = None,
+    reply_to: str | None = None,
+) -> bool:
+    """One drop-lifecycle notice: plain paragraphs and one button (plan §3.6)."""
+    text = "\n\n".join([*paragraphs, url]) + "\n"
+    html = _cta_html(url, subject=subject, button=button, paragraphs=paragraphs)
+    if settings.ENVIRONMENT == "development":
+        logger.info("DEV EMAIL — %s: to=%s url=%s", subject, to_email, url)
+        return True
+    return await _dispatch(
+        to_email,
+        subject,
+        text,
+        html=html,
+        cc=cc or None,
+        idempotency_key=idempotency_key,
+        reply_to=reply_to,
+    )
+
+
 async def _dispatch(
     to_email: str,
     subject: str,
@@ -1028,6 +1310,7 @@ async def _dispatch(
     html: str | None = None,
     cc: list[str] | None = None,
     idempotency_key: str | None = None,
+    reply_to: str | None = None,
 ) -> bool:
     """Send one email through Resend. Best-effort: never raises.
 
@@ -1046,7 +1329,28 @@ async def _dispatch(
     deploy that hasn't wired email yet degrades gracefully instead of
     500-ing the flows that send mail. An unsafe idempotency key is dropped
     and the email is still attempted with no header.
+
+    ``EMAIL_FAIL_CLOSED`` drops any to/cc address that is not in
+    ``EMAIL_ALLOWLIST`` (an empty list then suppresses every send).
+    ``EMAIL_SUBJECT_PREFIX``, when non-blank, is prepended to the subject.
+    Neither check reads ``ENVIRONMENT``. With both unset, the payload matches
+    the historical staging and production send.
     """
+    subject = _apply_subject_prefix(subject, settings.EMAIL_SUBJECT_PREFIX)
+    if settings.EMAIL_FAIL_CLOSED:
+        allowlist = settings.EMAIL_ALLOWLIST
+        if not address_allowlisted(to_email, allowlist):
+            _log_allowlist_suppressed(to_email, subject)
+            return False
+        if cc:
+            kept: list[str] = []
+            for addr in cc:
+                if address_allowlisted(addr, allowlist):
+                    kept.append(addr)
+                else:
+                    _log_allowlist_suppressed(addr, subject)
+            cc = kept or None
+
     if not settings.RESEND_API_KEY:
         logger.warning("Email not sent (RESEND_API_KEY unset): to=%s subject=%s", to_email, subject)
         return False
@@ -1055,7 +1359,7 @@ async def _dispatch(
         "to": [to_email],
         "subject": subject,
         "text": body,
-        "reply_to": CONTACT_EMAIL,
+        "reply_to": reply_to or CONTACT_EMAIL,
     }
     if html:
         payload["html"] = html
@@ -1111,11 +1415,6 @@ def _verification_rotate_text(verify_url: str, org_name: str) -> str:
         "This link expires in 24 hours.\n\n"
         "If you didn't request this, ignore this email."
     )
-
-
-def _verification_body(verify_url: str, org_name: str) -> str:
-    """Backward-compatible alias (signup). Prefer ``_verification_signup_text``."""
-    return _verification_signup_text(verify_url, org_name or "your organization")
 
 
 def _org_connect_text(connect_url: str, org_name: str) -> str:

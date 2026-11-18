@@ -1,54 +1,62 @@
 /**
- * /admin/drops/:dropId — one drop, with tracker / config / roster facets.
+ * /admin/drops/:dropId — one drop, with lifecycle / config / roster facets.
  *
  * Tabs rather than a sidebar section here: the record is fixed and these are
  * facets of it. The tab lives in `?tab=` so a specific view is still a shareable
  * URL.
  *
- * The tracker is forward-only. Skipping past "finalizing agreements" before
- * applicant selection is finalized would strand every applicant permanently.
- * Tracking numbers live on accepted applicant seats, not on this advance.
+ * The stage is computed (utils/dropStage). BUZZ drafts and sends per-seat
+ * decisions at any stage, reopens by moving the close date, wraps or unwraps
+ * the drop, and can cancel it (final). A seat ends as withdrew or removed (with
+ * a reason); hard delete is only for test data. Tracking and delivery live on
+ * accepted, sent seats.
  */
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import {
   useAdminDrop,
-  useAddApplicantShipment,
-  useAdvanceTracker,
-  useClearReopen,
-  useDeleteApplicantShipment,
-  useFinalizeAdminApplicants,
+  useCancelDrop,
+  useDeleteSeat,
   useHideDrop,
   usePatchAdminDropConfig,
   usePublishDrop,
-  useRemoveParticipant,
-  useReopenDrop,
+  useSendAdminDecisions,
+  useSetAdminSeatDecision,
+  useSetDropWrapped,
   useSyncAndAutolink,
   useUnhideDrop,
   type AdminApplicant,
   type AdminDropConfigPatch,
+  type AdminSeatDecision,
   type AdminDropDetail,
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
 import {
-  Button,
   Checkbox,
-  DateTimeField,
-  ErrorBanner,
   Select,
   SuccessBanner,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { Tabs } from "../../components/ui/Tabs";
+import {
+  DropFormFields,
+  dropToForm,
+  parseDropForm,
+  dropFormError,
+  type DropFormState,
+} from "../../components/admin/DropForm";
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import {
   ActionButton,
+  AdminBackLink,
   AdminTable,
   Cell,
   ErrorNote,
+  entityLinkClass,
   Field,
   FieldGrid,
   HeadingIconButton,
@@ -56,23 +64,24 @@ import {
   Panel,
   Pill,
   QueryState,
+  StagePill,
   Row,
 } from "../../components/admin/AdminPrimitives";
 import {
   STAGE_LABELS,
   STAGE_ORDER,
-  adminApplicantShipTo,
   formatCompactCount,
   formatDate,
   formatDateTime,
-  toDatetimeLocalValue,
 } from "../../components/admin/labels";
 import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
-import { carrierLabel, type Shipment } from "../../utils/shipments";
+import { ApplicantShipping } from "../../components/admin/ApplicantShipping";
+import { ENDED_DECISIONS } from "../../utils/dropStage";
+import { SeatDecisionSelect, SendDecisionsBar } from "../../components/drop/SeatDecisions";
 
 const TABS = [
-  { id: "tracker", label: "Tracker" },
+  { id: "tracker", label: "Lifecycle" },
   { id: "config", label: "Config" },
   { id: "applicants", label: "Applicants" },
   { id: "timeline", label: "Timeline" },
@@ -85,73 +94,28 @@ function isDropTabId(value: string): value is DropTabId {
   return TABS.some((tab) => tab.id === value);
 }
 
-function DropTabs({
-  active,
-  onChange,
-}: {
-  active: DropTabId;
-  onChange: (id: DropTabId) => void;
-}) {
+function StageRail({ current }: { current: string }) {
+  const index = STAGE_ORDER.indexOf(current as (typeof STAGE_ORDER)[number]);
   return (
-    <div
-      role="tablist"
-      aria-label="Drop sections"
-      className="mb-4 inline-flex max-w-full flex-wrap gap-1 rounded-buzzControl border border-buzz-lineMid bg-buzz-cream p-1"
-    >
-      {TABS.map((tab) => {
-        const selected = tab.id === active;
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-6">
+      {STAGE_ORDER.map((stage, i) => {
+        const reached = index >= 0 && i <= index;
         return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            data-testid={`tab-${tab.id}`}
-            onClick={() => onChange(tab.id)}
-            className={cn(
-              "rounded-buzzCheck px-3 py-1.5 text-sm font-semibold transition",
-              selected
-                ? "bg-buzz-paper text-buzz-ink"
-                : "text-buzz-inkMuted hover:bg-buzz-paper/70 hover:text-buzz-ink",
-            )}
-          >
-            {tab.label}
-          </button>
+          <div key={stage} className="flex min-w-0 flex-col gap-3">
+            <div
+              className={cn(
+                "h-1 rounded-full",
+                reached ? "bg-accent" : "bg-buzz-paper09",
+              )}
+            />
+            <p className={cn("text-xs", reached ? "text-primary" : "text-quiet")}>
+              {STAGE_LABELS[stage] ?? stage}
+            </p>
+          </div>
         );
       })}
     </div>
   );
-}
-
-function ConfigSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
-      <div>
-        <h3 className={TEXT.h3}>{title}</h3>
-        {description ? (
-          <p className={cn(TEXT.meta, "mt-1")}>{description}</p>
-        ) : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function httpsImageSrc(value: string): string | null {
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === "https:" ? value.trim() : null;
-  } catch {
-    return null;
-  }
 }
 
 const INTENT_HEADERS = ["Organization", "Status", "Pitch", "Created"] as const;
@@ -163,91 +127,70 @@ const APPLICANT_HEADERS = [
   "Units",
   "Posts",
   "Applied",
-  "Ship to",
-  "Shipments",
+  "Shipping",
+  "",
 ] as const;
 
-function DecisionPill({ decision }: { decision: string }) {
-  const tone =
-    decision === "accepted" ? "good" : decision === "denied" ? "bad" : "warn";
-  return <Pill tone={tone}>{decision}</Pill>;
-}
+/** Withdrew and removed end a seat; it leaves the org's view and frees its units. */
+const DECISION_TONE: Record<string, "good" | "bad" | "warn" | "neutral"> = {
+  accepted: "good",
+  denied: "bad",
+  removed: "bad",
+  withdrew: "neutral",
+};
 
-const LOGISTICS_LOCKED = new Set(["drop_active", "drop_finished"]);
+function DecisionPill({ decision }: { decision: string }) {
+  return <Pill tone={DECISION_TONE[decision] ?? "warn"}>{decision}</Pill>;
+}
 
 function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   const patch = usePatchAdminDropConfig(data.id);
   const publish = usePublishDrop(data.id);
-  const logisticsLocked = LOGISTICS_LOCKED.has(data.stage);
+  // After wrap-up only the copy (title, story, image, location) can change.
+  const copyOnly = data.stage === "wrapped";
   const unpublished = data.publishedAt == null;
-  const [title, setTitle] = useState(data.title);
-  const [description, setDescription] = useState(data.description);
-  const [image, setImage] = useState(data.image);
-  const [location, setLocation] = useState(data.location);
-  const [capacity, setCapacity] = useState(String(data.capacityTotal));
-  const [units, setUnits] = useState(
-    data.totalProductUnits === null ? "" : String(data.totalProductUnits),
-  );
+  const [form, setForm] = useState(() => dropToForm(data));
+  const setField = <K extends keyof DropFormState>(key: K, value: DropFormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
   const [clearUnits, setClearUnits] = useState(false);
-  const [openAt, setOpenAt] = useState(toDatetimeLocalValue(data.applyOpenAt));
-  const [closeAt, setCloseAt] = useState(
-    toDatetimeLocalValue(data.applyCloseAt),
-  );
-  const [hashtag, setHashtag] = useState(data.campaignHashtag ?? "");
   const [clearHashtag, setClearHashtag] = useState(false);
-  const [brandCanEditCreative, setBrandCanEditCreative] = useState(
-    Boolean(data.brandCanEditCreative),
-  );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const onSave = async () => {
     setError(null);
     setNotice(null);
-    const body: AdminDropConfigPatch = {};
-    if (title.trim() !== data.title) body.title = title.trim();
-    if (description.trim() !== data.description) {
-      body.description = description.trim();
+    let parsed;
+    try {
+      parsed = parseDropForm(form, { config: true, copyOnly, clearUnits, clearHashtag });
+    } catch (err) {
+      setError(dropFormError(err, "Could not save configuration."));
+      return;
     }
-    if (image.trim() !== data.image) body.image = image.trim();
-    if (location.trim() !== data.location) body.location = location.trim();
-    if (brandCanEditCreative !== Boolean(data.brandCanEditCreative)) {
-      body.brandCanEditCreative = brandCanEditCreative;
-    }
-    if (!logisticsLocked) {
-      const cap = Number(capacity);
-      if (!Number.isInteger(cap) || cap < 1) {
-        setError("Capacity must be an integer ≥ 1.");
-        return;
-      }
-      if (cap !== data.capacityTotal) body.capacityTotal = cap;
-
-      const openMs = new Date(openAt).getTime();
-      const closeMs = new Date(closeAt).getTime();
-      if (!Number.isFinite(openMs) || !Number.isFinite(closeMs)) {
-        setError("Apply window times are invalid.");
-        return;
-      }
-      if (openMs !== data.applyOpenAt) body.applyOpenAt = openMs;
-      if (closeMs !== data.applyCloseAt) body.applyCloseAt = closeMs;
-
-      if (clearUnits) {
-        if (data.totalProductUnits !== null) body.totalProductUnits = null;
-      } else if (units.trim() !== "") {
-        const u = Number(units);
-        if (!Number.isInteger(u) || u < 1) {
-          setError("Unit budget must be an integer ≥ 1, or clear to spot-only.");
-          return;
-        }
-        if (u !== data.totalProductUnits) body.totalProductUnits = u;
-      }
-    }
-    if (clearHashtag) {
-      if (data.campaignHashtag !== null) body.campaignHashtag = null;
-    } else if (hashtag.trim() !== (data.campaignHashtag ?? "")) {
-      body.campaignHashtag = hashtag.trim() || null;
-    }
-
+    // Send only what changed. Blank units are left alone; wrapped drops never
+    // send dates, and dates are compared as shown (whole minutes), so an
+    // untouched date with seconds is not rewritten.
+    const { applyOpenAt, applyCloseAt, totalProductUnits, campaignHashtag, ...rest } = parsed;
+    const shown = dropToForm(data);
+    const candidates: AdminDropConfigPatch = {
+      ...rest,
+      ...(!copyOnly && form.openAt !== shown.openAt && { applyOpenAt }),
+      ...(!copyOnly && form.closeAt !== shown.closeAt && { applyCloseAt }),
+      ...((clearUnits || form.units.trim() !== "") && { totalProductUnits }),
+      ...((clearHashtag || form.hashtag.trim() !== (data.campaignHashtag ?? "")) && {
+        campaignHashtag,
+      }),
+    };
+    const current: AdminDropConfigPatch = {
+      ...data,
+      brandCanEditCreative: Boolean(data.brandCanEditCreative),
+    };
+    const body = Object.fromEntries(
+      Object.entries(candidates).filter(
+        ([key, value]) => value !== current[key as keyof AdminDropConfigPatch],
+      ),
+    );
     if (Object.keys(body).length === 0) {
       setNotice("No changes to save.");
       return;
@@ -277,177 +220,19 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
     }
   };
 
-  const previewSrc = httpsImageSrc(image);
-
   return (
     <div>
-      <ConfigSection
-        title="Campaign"
-        description="What organizations see on the drop: title, story, and hero image."
-      >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          {previewSrc ? (
-            <div className="relative aspect-video min-h-48 w-full shrink-0 overflow-hidden rounded-buzzCard border border-buzz-lineMid sm:w-auto">
-              <img
-                src={previewSrc}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
-          ) : null}
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <TextField
-              id="drop-config-title"
-              label="Title"
-              size="compact"
-              value={title}
-              disabled={patch.isPending}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <TextArea
-              id="drop-config-description"
-              label="Description"
-              size="compact"
-              rows={5}
-              value={description}
-              disabled={patch.isPending}
-              wrapperClassName="flex min-h-0 flex-1 flex-col"
-              className="min-h-[7.5rem] flex-1"
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-        </div>
-        <TextField
-          id="drop-config-image"
-          label="Image (https)"
-          size="compact"
-          type="url"
-          value={image}
-          disabled={patch.isPending}
-          onChange={(e) => setImage(e.target.value)}
-        />
-      </ConfigSection>
-
-      <ConfigSection
-        title="Logistics"
-        description={
-          logisticsLocked
-            ? "Capacity, window, and unit budget are locked while the drop is live or finished."
-            : "Where it runs, how many seats, and the apply window."
-        }
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <TextField
-              id="drop-config-location"
-              label="Location"
-              size="compact"
-              value={location}
-              disabled={patch.isPending}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-          <TextField
-            id="drop-config-capacity"
-            label="Capacity"
-            size="compact"
-            type="number"
-            min={1}
-            value={capacity}
-            disabled={logisticsLocked || patch.isPending}
-            onChange={(e) => setCapacity(e.target.value)}
-          />
-          <div>
-            <TextField
-              id="drop-config-units"
-              label="Unit budget"
-              size="compact"
-              type="number"
-              min={1}
-              value={units}
-              disabled={logisticsLocked || clearUnits || patch.isPending}
-              placeholder="Leave empty, then clear for spot-only"
-              onChange={(e) => setUnits(e.target.value)}
-            />
-            <Checkbox
-              wrapperClassName="mt-1"
-              checked={clearUnits}
-              disabled={logisticsLocked || patch.isPending}
-              onChange={(e) => setClearUnits(e.target.checked)}
-              label={
-                <span className="text-xs text-buzz-inkMuted">
-                  Clear to spot-only
-                </span>
-              }
-            />
-          </div>
-          <DateTimeField
-            id="drop-config-open-at"
-            label="Apply opens"
-            size="compact"
-            value={openAt}
-            disabled={logisticsLocked || patch.isPending}
-            onChange={(e) => setOpenAt(e.target.value)}
-          />
-          <DateTimeField
-            id="drop-config-close-at"
-            label="Apply closes"
-            size="compact"
-            value={closeAt}
-            disabled={logisticsLocked || patch.isPending}
-            onChange={(e) => setCloseAt(e.target.value)}
-          />
-        </div>
-      </ConfigSection>
-
-      <ConfigSection
-        title="Settings"
-        description="Hashtag matching and who may edit creative after publish."
-      >
-        <TextField
-          id="drop-config-hashtag"
-          label="Campaign hashtag"
-          size="compact"
-          value={hashtag}
-          disabled={clearHashtag || patch.isPending}
-          placeholder="e.g. springdrop (no # required)"
-          onChange={(e) => setHashtag(e.target.value)}
-        />
-        <Checkbox
-          wrapperClassName="mt-1"
-          checked={clearHashtag}
-          disabled={patch.isPending}
-          onChange={(e) => setClearHashtag(e.target.checked)}
-          label={
-            <span className="text-xs text-buzz-inkMuted">Clear hashtag</span>
-          }
-        />
-        <Select
-          id="brand-can-edit-creative"
-          data-testid="brand-can-edit-creative"
-          label="Who can edit"
-          size="compact"
-          value={brandCanEditCreative ? "brand" : "admin"}
-          disabled={patch.isPending}
-          onChange={(e) => setBrandCanEditCreative(e.target.value === "brand")}
-          aria-describedby="brand-can-edit-creative-help"
-        >
-          <option value="admin">Admin only</option>
-          <option value="brand">
-            Brand can edit title, description, and image
-          </option>
-        </Select>
-        <p
-          id="brand-can-edit-creative-help"
-          className="mt-0.5 text-xs font-medium text-buzz-inkMuted"
-        >
-          Brand cannot change dates, capacity, or publish.
-        </p>
-      </ConfigSection>
+      <DropFormFields
+        form={form} setField={setField} prefix="drop-config"
+        disabled={patch.isPending} copyOnly={copyOnly}
+        clearUnits={clearUnits} setClearUnits={setClearUnits}
+        clearHashtag={clearHashtag} setClearHashtag={setClearHashtag}
+      />
 
       <div className={cn(STACK.tight, "px-4 py-4")}>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <ActionButton
+            variant="primary"
             testId="save-drop-config"
             disabled={patch.isPending || publish.isPending}
             onClick={() => void onSave()}
@@ -472,274 +257,98 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   );
 }
 
-function TrackerControls({
-  dropId,
-  currentStage,
-  finalized,
-  manualReopen,
-}: {
-  dropId: string;
-  currentStage: string;
-  finalized: boolean;
-  manualReopen: boolean;
-}) {
-  const advance = useAdvanceTracker(dropId);
-  const reopen = useReopenDrop(dropId);
-  const clearReopen = useClearReopen(dropId);
-  const [error, setError] = useState<string | null>(null);
-
-  const currentIndex = STAGE_ORDER.indexOf(
-    currentStage as (typeof STAGE_ORDER)[number],
-  );
-  const forwardStages = STAGE_ORDER.slice(currentIndex + 1);
-  const [stage, setStage] = useState<string>(forwardStages[0] ?? "");
-  const [note, setNote] = useState("");
-
-  const awaitingIdx = STAGE_ORDER.indexOf("awaiting_products");
-  const stageIdx = STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]);
-  // The backend refuses any jump past selection while the brand has not decided
-  // its applicants, because finalize requires the selection stage and there is no
-  // way back.
-  const blockedByFinalize =
-    !finalized &&
-    stageIdx > STAGE_ORDER.indexOf("finalizing_agreements");
-  const blockedBySkipAwaiting =
-    currentIndex < awaitingIdx && stageIdx > awaitingIdx;
-  const liveOrFinished =
-    currentStage === "drop_active" || currentStage === "drop_finished";
-  // Live/finished + finalized: apply stays closed even with manual_reopen, so
-  // do not offer a no-op "Reopen apply window" control.
-  const canReopenApply = !(liveOrFinished && finalized);
-  const advanceDisabled =
-    advance.isPending || blockedByFinalize || blockedBySkipAwaiting;
-
-  const submit = async () => {
-    setError(null);
-    try {
-      await advance.mutateAsync({ stage, note });
-      setNote("");
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not advance the tracker.",
-      );
-    }
-  };
-
-  const doReopen = async () => {
-    setError(null);
-    try {
-      await reopen.mutateAsync(undefined);
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not reopen the drop.",
-      );
-    }
-  };
-
-  const doClearReopen = async () => {
-    setError(null);
-    try {
-      await clearReopen.mutateAsync(undefined);
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not clear the reopen flag.",
-      );
-    }
-  };
+function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
+  const cancel = useCancelDrop(drop.id);
+  const [open, setOpen] = useState(false);
 
   return (
-    <Panel
-      title="Tracker"
-      description="Stages only move forward. Tracking numbers are added on accepted applicants. Pre-live reopen clears finalize for a new selection round; once a live or finished drop is finalized, apply stays closed."
-    >
-      <div className="space-y-4 px-4 py-4">
-        {error && <ErrorNote>{error}</ErrorNote>}
-
-        {forwardStages.length === 0 ? (
-          <p className="text-sm font-medium text-buzz-inkMuted">
-            This drop is at the final stage.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Select
-              id="tracker-stage"
-              data-testid="tracker-stage"
-              size="compact"
-              label="Advance to"
-              value={stage}
-              onChange={(event) => setStage(event.target.value)}
-            >
-              {forwardStages.map((option) => (
-                <option key={option} value={option}>
-                  {STAGE_LABELS[option]}
-                </option>
-              ))}
-            </Select>
-
-            <div className="sm:col-span-2">
-              <TextField
-                id="tracker-note"
-                data-testid="tracker-note"
-                label="Note (optional)"
-                size="compact"
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
-        {blockedByFinalize && (
-          <ErrorBanner>
-            Applicant selection is not finalized. Finalize it on the Applicants
-            tab before advancing, or every remaining applicant is left with no
-            decision.
-          </ErrorBanner>
-        )}
-
-        {blockedBySkipAwaiting && (
-          <ErrorBanner>
-            Advance to awaiting_products before drop_active.
-          </ErrorBanner>
-        )}
-
-        {!canReopenApply && (
-          <p className="text-xs font-bold text-buzz-inkMuted">
-            Apply cannot reopen while selection is finalized on a live or
-            finished drop.
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {forwardStages.length > 0 && (
-            <ActionButton
-              variant="primary"
-              testId="tracker-advance"
-              disabled={advanceDisabled}
-              onClick={() => void submit()}
-            >
-              {advance.isPending ? "Advancing…" : "Advance stage"}
-            </ActionButton>
-          )}
-          {canReopenApply && (
-            <ActionButton
-              testId="drop-reopen"
-              disabled={reopen.isPending}
-              onClick={() => void doReopen()}
-            >
-              {reopen.isPending ? "Reopening…" : "Reopen apply window"}
-            </ActionButton>
-          )}
-          {manualReopen && (
-            <ActionButton
-              testId="drop-clear-reopen"
-              disabled={clearReopen.isPending}
-              onClick={() => void doClearReopen()}
-            >
-              {clearReopen.isPending ? "Clearing…" : "Clear reopen"}
-            </ActionButton>
-          )}
-        </div>
-      </div>
-    </Panel>
+    <>
+      <ActionButton
+        variant="danger"
+        testId="drop-cancel"
+        onClick={() => setOpen(true)}
+      >
+        Cancel drop
+      </ActionButton>
+      {open && (
+        <ConfirmDialog
+          title="Cancel this drop"
+          description="Final: there is no undo. Decisions, tracking, delivery, post links and metric syncs stop. Seats and posts stay on record, and you can still end a seat with a reason. Organizations still in the running and the brand are emailed."
+          expected={drop.title}
+          inputLabel="Type the drop title"
+          fallbackError="Could not cancel this drop."
+          destructive
+          confirmLabel="Cancel drop"
+          cancelLabel="Keep drop"
+          pendingLabel="Canceling…"
+          pending={cancel.isPending}
+          inputTestId="drop-cancel-confirm"
+          submitTestId="drop-cancel-submit"
+          onConfirm={(typed) => cancel.mutateAsync(typed.trim())}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
-function ApplicantShipmentEditor({
-  dropId,
-  applicant,
-}: {
-  dropId: string;
-  applicant: AdminApplicant;
-}) {
-  const add = useAddApplicantShipment(dropId, applicant.id);
-  const remove = useDeleteApplicantShipment(dropId, applicant.id);
-  const [tn, setTn] = useState("");
-  const [carrier, setCarrier] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const shipments = (applicant.shipments ?? []) as Shipment[];
-
-  const onAdd = async () => {
-    const trackingNumber = tn.trim();
-    if (!trackingNumber) return;
-    const pickedCarrier = carrier;
-    setError(null);
-    setTn("");
-    setCarrier("");
-    try {
-      await add.mutateAsync({
-        trackingNumber,
-        carrier: pickedCarrier || undefined,
-      });
-    } catch (err) {
-      setTn(trackingNumber);
-      setCarrier(pickedCarrier);
-      setError(
-        err instanceof ApiError ? err.message : "Could not add tracking.",
-      );
-    }
-  };
+function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
+  const setWrapped = useSetDropWrapped(drop.id);
+  const [confirming, setConfirming] = useState(false);
+  const wrapped = drop.stage === "wrapped";
+  const canceled = drop.stage === "canceled";
+  // Wrap-up follows Selecting or Live (the matrix); unwrap undoes it.
+  const canWrap =
+    drop.hiddenAt == null && (drop.stage === "selecting" || drop.stage === "live");
 
   return (
-    <div
-      className="min-w-[14rem] space-y-2"
-      data-testid={`applicant-shipments-${applicant.id}`}
+    <Panel
+      title="Lifecycle"
+      description="The stage is computed from the dates and the seats. Reopen applications by moving the close date later in Config. Wrap the drop when the campaign is over; organizations can still link posts for 30 days after. Cancel only a drop that will not happen."
     >
-      {error && <ErrorNote>{error}</ErrorNote>}
-      <ul className="space-y-1">
-        {shipments.map((s) => (
-          <li
-            key={s.id}
-            className="flex items-center justify-between gap-2 text-xs font-semibold"
-          >
-            <span>
-              {carrierLabel(s.carrier)} #{s.trackingNumber}
-            </span>
-            <button
-              type="button"
-              data-testid={`remove-shipment-${s.id}`}
-              className="text-buzz-coral hover:underline"
-              disabled={remove.isPending}
-              onClick={() => void remove.mutateAsync(s.id)}
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="flex flex-col gap-2">
-        <TextField
-          id={`add-tn-${applicant.id}`}
-          data-testid={`add-shipment-tn-${applicant.id}`}
-          label="Tracking number"
-          size="compact"
-          value={tn}
-          onChange={(e) => setTn(e.target.value)}
-        />
-        <Select
-          id={`add-carrier-${applicant.id}`}
-          data-testid={`add-shipment-carrier-${applicant.id}`}
-          size="compact"
-          label="Carrier (if not 1Z / FedEx digits)"
-          value={carrier}
-          onChange={(e) => setCarrier(e.target.value)}
-        >
-          <option value="">Infer</option>
-          <option value="ups">UPS</option>
-          <option value="fedex">FedEx</option>
-          <option value="unknown">Unknown</option>
-        </Select>
-        <ActionButton
-          testId={`add-shipment-${applicant.id}`}
-          disabled={add.isPending || !tn.trim()}
-          onClick={() => void onAdd()}
-        >
-          {add.isPending ? "Adding…" : "Add tracking"}
-        </ActionButton>
+      <div className="space-y-4 px-6 py-5">
+        {canceled ? (
+          <p className={cn(TEXT.body, "flex items-center gap-2 text-muted")} data-testid="drop-canceled">
+            <Pill tone="bad">Canceled</Pill>
+            {drop.canceledAt != null ? formatDateTime(drop.canceledAt) : null}
+          </p>
+        ) : (
+          <StageRail current={drop.stage} />
+        )}
+        {drop.publishedAt != null && !canceled && (
+          <div className="flex flex-wrap gap-2">
+            {(wrapped || canWrap) && (
+              <ActionButton
+                variant={wrapped ? "secondary" : "primary"}
+                testId={wrapped ? "drop-unwrap" : "drop-wrap"}
+                disabled={setWrapped.isPending}
+                onClick={() => setConfirming(true)}
+              >
+                {wrapped ? "Unwrap drop" : "Wrap up drop"}
+              </ActionButton>
+            )}
+            {!wrapped && <CancelDropButton drop={drop} />}
+          </div>
+        )}
       </div>
-    </div>
+      {confirming && (
+        <ConfirmDialog
+          title={wrapped ? "Unwrap drop" : "Wrap up drop"}
+          description={
+            wrapped
+              ? "The drop goes back to the stage its dates and seats give it. Organizations can link posts again."
+              : "Ends the campaign. Organizations still waiting on a decision are emailed \"not selected\", orgs taking part get a thank-you, and the brand gets a recap. Send drafted acceptances first. Organizations can still link posts for 30 days."
+          }
+          fallbackError="Could not update the drop."
+          confirmLabel={wrapped ? "Unwrap" : "Wrap up"}
+          pendingLabel={wrapped ? "Unwrapping…" : "Wrapping up…"}
+          pending={setWrapped.isPending}
+          submitTestId={wrapped ? "drop-unwrap-confirm" : "drop-wrap-confirm"}
+          onConfirm={() => setWrapped.mutateAsync(!wrapped)}
+          onClose={() => setConfirming(false)}
+        />
+      )}
+    </Panel>
   );
 }
 
@@ -749,14 +358,10 @@ function SignupIntents({
   intents: AdminDropDetail["intents"];
 }) {
   return (
-    <div className="border-b border-buzz-lineMid">
-      <div className="px-4 py-3">
-        <h3 className={TEXT.h3}>Signup intents (not applicants)</h3>
-        <p className={cn(TEXT.meta, "mt-1")}>
-          Organizations that asked to apply before they were approved and connected.
-          Brands never see these rows.
-        </p>
-      </div>
+    <Panel
+      title="Signup intents (not applicants)"
+      description="Organizations that asked to apply before they were approved and connected. Brands never see these rows."
+    >
       <AdminTable
         headers={INTENT_HEADERS}
         isEmpty={intents.length === 0}
@@ -765,7 +370,7 @@ function SignupIntents({
         {intents.map((intent) => (
           <Row key={intent.id}>
             <Cell>
-              <span className="font-semibold text-buzz-ink">{intent.orgName}</span>
+              <span className="font-medium text-primary">{intent.orgName}</span>
             </Cell>
             <Cell>
               <Pill tone={intent.status === "expired" ? "warn" : "neutral"}>
@@ -777,232 +382,122 @@ function SignupIntents({
           </Row>
         ))}
       </AdminTable>
-    </div>
+    </Panel>
   );
 }
 
+/** BUZZ can seat an org at any published stage, including after wrap (retro), until canceled. */
 function canLateAdd(drop: AdminDropDetail): boolean {
-  return (
-    drop.publishedAt != null &&
-    drop.hiddenAt == null &&
-    drop.stage !== "drop_finished"
-  );
+  return drop.publishedAt != null && drop.hiddenAt == null && drop.stage !== "canceled";
 }
 
-function canFinalizeSelection(drop: AdminDropDetail): boolean {
-  if (drop.finalizedAt != null || drop.hiddenAt != null) return false;
-  if (Date.now() <= drop.applyCloseAt) return false;
-  if (drop.stage === "finalizing_agreements") return true;
-  return drop.stage === "request_received" && !drop.manualReopen;
-}
-
-function FinalizeSelection({
-  drop,
-  applicants,
+/** End a seat on record: the org withdrew (by email, say) or BUZZ removed it. */
+function EndSeatButton({
+  applicant,
+  onEnd,
+  pending,
+  error,
 }: {
-  drop: AdminDropDetail;
-  applicants: AdminApplicant[];
+  applicant: AdminApplicant;
+  onEnd: (decision: "withdrew" | "removed", reason: string) => Promise<boolean>;
+  pending: boolean;
+  error: string | null;
 }) {
-  const finalize = useFinalizeAdminApplicants(drop.id);
-  const pending = applicants.filter(
-    (row) => row.decision === "applied" && !row.accountErased,
-  );
-  const showUnits = drop.totalProductUnits != null;
-  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
-  const [units, setUnits] = useState<Record<string, number>>({});
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const acceptedCount = pending.filter((row) => accepted[row.orgId]).length;
-  const deniedCount = pending.length - acceptedCount;
-
-  async function submit() {
-    setError(null);
-    setNotice(null);
-    const allocations = pending
-      .filter((row) => accepted[row.orgId])
-      .map((row) => ({ orgId: row.orgId, units: units[row.orgId] ?? 0 }));
-    try {
-      await finalize.mutateAsync(allocations);
-      setConfirmOpen(false);
-      setNotice("Selection finalized. Denied applicants were emailed.");
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not finalize selection.",
-      );
-    }
-  }
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"removed" | "withdrew">("removed");
+  const [reason, setReason] = useState("");
 
   return (
-    <div className="space-y-3 border-b border-buzz-lineMid px-4 py-4">
-      <p className="text-sm font-medium text-buzz-ink">
-        Same batch as the brand: checked organizations are accepted, every other
-        pending applicant is denied.
-        {pending.length === 0
-          ? " Nobody is still pending — finalize locks the roster as it is."
-          : ""}
-      </p>
-      {pending.map((row) => (
-        <div key={row.id} className="flex flex-wrap items-center gap-3">
-          <Checkbox
-            data-testid={`finalize-accept-${row.orgId}`}
-            checked={Boolean(accepted[row.orgId])}
-            onChange={(event) =>
-              setAccepted((prev) => ({
-                ...prev,
-                [row.orgId]: event.target.checked,
-              }))
-            }
-            label={`Accept ${row.orgName}`}
-          />
-          {showUnits && (
-            <TextField
-              id={`finalize-units-${row.orgId}`}
-              type="number"
-              min={0}
-              size="compact"
-              label="Units"
-              disabled={!accepted[row.orgId]}
-              className="w-24"
-              value={accepted[row.orgId] ? units[row.orgId] ?? 0 : 0}
-              onChange={(event) =>
-                setUnits((prev) => ({
-                  ...prev,
-                  [row.orgId]: Math.max(0, parseInt(event.target.value, 10) || 0),
-                }))
-              }
-            />
-          )}
-        </div>
-      ))}
-      <p className="text-sm font-medium text-buzz-inkMuted">
-        Accept {acceptedCount} · Deny {deniedCount}
-      </p>
-      {notice && <p className="text-sm font-medium text-buzz-ink">{notice}</p>}
-      {error && <ErrorNote>{error}</ErrorNote>}
-      {confirmOpen ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-buzz-ink">
-            Accept {acceptedCount}{" "}
-            {acceptedCount === 1 ? "organization" : "organizations"} · Deny{" "}
-            {deniedCount}{" "}
-            {deniedCount === 1 ? "organization" : "organizations"}. Denied
-            applicants are emailed and this cannot be undone.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="compact"
-              data-testid="finalize-cancel"
-              disabled={finalize.isPending}
-              onClick={() => setConfirmOpen(false)}
-            >
-              Cancel
-            </Button>
-            <ActionButton
-              variant="primary"
-              testId="finalize-confirm"
-              disabled={finalize.isPending}
-              onClick={() => void submit()}
-            >
-              {finalize.isPending ? "Finalizing…" : "Confirm finalize"}
-            </ActionButton>
-          </div>
-        </div>
-      ) : (
-        <ActionButton
-          variant="primary"
-          testId="finalize-selection"
-          disabled={finalize.isPending}
-          onClick={() => {
-            setError(null);
-            setConfirmOpen(true);
-          }}
+    <>
+      <ActionButton
+        quiet
+        variant="secondary"
+        testId={`end-seat-${applicant.id}`}
+        onClick={() => setOpen(true)}
+      >
+        End seat
+      </ActionButton>
+      {open && (
+        <ConfirmDialog
+          title={`End ${applicant.orgName}'s seat`}
+          description="The seat leaves the organization's view at once and its units are freed. Linked posts stay on record. Removed seats can't re-apply; a withdrawn org can."
+          error={error}
+          destructive
+          confirmLabel="End seat"
+          pendingLabel="Saving…"
+          pending={pending}
+          submitTestId={`end-seat-submit-${applicant.id}`}
+          onConfirm={() =>
+            void onEnd(kind, reason.trim()).then((ok) => ok && setOpen(false))
+          }
+          onClose={() => setOpen(false)}
         >
-          Finalize selection
-        </ActionButton>
+          <Select
+            id={`end-kind-${applicant.id}`}
+            label="Why it ended"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as "removed" | "withdrew")}
+          >
+            <option value="removed">BUZZ removed it</option>
+            <option value="withdrew">The organization withdrew</option>
+          </Select>
+          <TextArea
+            id={`end-reason-${applicant.id}`}
+            data-testid={`end-reason-${applicant.id}`}
+            label={kind === "removed" ? "Reason (required, BUZZ-only)" : "Note (optional, BUZZ-only)"}
+            placeholder={
+              kind === "removed"
+                ? "e.g. Organization missed the shipping deadline"
+                : "e.g. Organization's officers changed and they withdrew"
+            }
+            value={reason}
+            maxLength={500}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </ConfirmDialog>
       )}
-    </div>
+    </>
   );
 }
 
-function RemoveParticipantButton({
+function DeleteSeatButton({
   dropId,
   applicant,
 }: {
   dropId: string;
   applicant: AdminApplicant;
 }) {
-  const remove = useRemoveParticipant(dropId);
+  const remove = useDeleteSeat(dropId);
   const [open, setOpen] = useState(false);
-  const [typed, setTyped] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const matches = typed.trim().toLowerCase() === "remove";
-
-  async function submit() {
-    setError(null);
-    try {
-      await remove.mutateAsync({ applicationId: applicant.id, confirm: typed.trim() });
-      setOpen(false);
-      setTyped("");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not remove this participant.");
-    }
-  }
 
   return (
     <>
       <ActionButton
-        variant="secondary"
-        testId={`remove-participant-${applicant.id}`}
-        onClick={() => {
-          setError(null);
-          setTyped("");
-          setOpen(true);
-        }}
+        variant="danger"
+        testId={`delete-seat-${applicant.id}`}
+        onClick={() => setOpen(true)}
       >
-        Remove
+        Delete
       </ActionButton>
       {open && (
-        <Modal
+        <ConfirmDialog
+          title="Delete seat (test data)"
+          description="Erases this seat, its tracking numbers, and its linked post metrics as if it never existed. For test data and mistakes only; to end a real seat, use End seat. Type delete to confirm."
+          expected="delete"
+          inputLabel="Type delete"
+          matches={(typed) => typed.trim().toLowerCase() === "delete"}
+          fallbackError="Could not delete this seat."
+          destructive
+          confirmLabel="Delete seat"
+          pendingLabel="Deleting…"
+          pending={remove.isPending}
+          inputTestId={`delete-confirm-${applicant.id}`}
+          submitTestId={`delete-confirm-submit-${applicant.id}`}
+          onConfirm={(typed) =>
+            remove.mutateAsync({ applicationId: applicant.id, confirm: typed.trim() })
+          }
           onClose={() => setOpen(false)}
-          title="Remove participant"
-          description="Deletes this seat, its tracking numbers, and its linked post metrics from this drop. Type remove to confirm."
-        >
-          <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
-            {error && <ErrorNote>{error}</ErrorNote>}
-            <TextField
-              id={`remove-confirm-${applicant.id}`}
-              data-testid={`remove-confirm-${applicant.id}`}
-              label="Type remove"
-              size="compact"
-              value={typed}
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => setTyped(e.target.value)}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="compact"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <ActionButton
-                variant="danger"
-                testId={`remove-confirm-submit-${applicant.id}`}
-                disabled={!matches || remove.isPending}
-                onClick={() => void submit()}
-              >
-                {remove.isPending ? "Removing…" : "Remove from drop"}
-              </ActionButton>
-            </div>
-          </div>
-        </Modal>
+        />
       )}
     </>
   );
@@ -1011,74 +506,167 @@ function RemoveParticipantButton({
 function Applicants({
   dropId,
   applicants,
+  unitsMode,
 }: {
   dropId: string;
   applicants: AdminApplicant[];
+  unitsMode: boolean;
 }) {
+  const decide = useSetAdminSeatDecision(dropId);
+  const send = useSendAdminDecisions(dropId);
+  const [error, setError] = useState<string | null>(null);
+  const setDecision = async (
+    applicant: AdminApplicant,
+    decision: AdminSeatDecision,
+    units?: number,
+    reason?: string,
+  ): Promise<boolean> => {
+    setError(null);
+    try {
+      await decide.mutateAsync({
+        applicationId: applicant.id,
+        decision,
+        allocatedUnits:
+          decision === "accepted" && unitsMode
+            ? (units ?? applicant.allocatedUnits ?? 0)
+            : null,
+        reason,
+      });
+      return true;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not save the decision.");
+      return false;
+    }
+  };
   return (
+    <>
+    <div className="px-6 pb-4">
+      <SendDecisionsBar
+        seats={applicants}
+        pending={send.isPending}
+        error={error}
+        onSend={() => send.mutateAsync(undefined)}
+        locks={false}
+      />
+    </div>
     <AdminTable
       headers={APPLICANT_HEADERS}
       isEmpty={applicants.length === 0}
       empty="Nobody has applied to this drop."
     >
-      {applicants.map((applicant) => (
-        <Row key={applicant.id}>
-          <Cell>
-            <Link
-              to={`/admin/orgs/${applicant.userId}`}
-              className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-            >
-              {applicant.orgName}
-            </Link>
-            {applicant.university ? (
-              <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-                {applicant.university}
-              </span>
-            ) : null}
-            {applicant.accountErased ? (
-              <span className="mt-1 flex flex-wrap items-center gap-2">
-                <Pill tone="neutral">Metrics frozen</Pill>
-                {applicant.metricsFrozenAt != null ? (
-                  <span className="text-xs font-medium text-buzz-inkMuted">
-                    {formatDate(applicant.metricsFrozenAt)}
-                  </span>
-                ) : null}
-                <RemoveParticipantButton dropId={dropId} applicant={applicant} />
-              </span>
-            ) : (
-              <span className="mt-1 block">
-                <RemoveParticipantButton dropId={dropId} applicant={applicant} />
-              </span>
-            )}
-          </Cell>
-          <Cell muted>
-            {formatCompactCount(applicant.followerCount)}
-          </Cell>
-          <Cell>
-            <DecisionPill decision={applicant.decision} />
-          </Cell>
-          <Cell muted>{applicant.allocatedUnits ?? "—"}</Cell>
-          <Cell muted>{applicant.linkedPostCount}</Cell>
-          <Cell muted>{formatDate(applicant.appliedAt)}</Cell>
-          <Cell muted>
-            {applicant.accountErased
-              ? "—"
-              : adminApplicantShipTo(
-                  applicant.decision,
-                  applicant.shippingCity,
-                  applicant.shippingState,
+      {applicants.map((applicant) => {
+        const ended = ENDED_DECISIONS.has(applicant.decision);
+        const live = applicant.decision === "accepted" && applicant.decisionSentAt != null;
+        return (
+          <Row key={applicant.id} attention={applicant.decision === "applied"}>
+            <Cell>
+              <Link
+                to={`/admin/orgs/${applicant.userId}`}
+                className={`block ${entityLinkClass}`}
+              >
+                {applicant.orgName}
+              </Link>
+              {applicant.university ? (
+                <span className="mt-0.5 block text-xs text-quiet">
+                  {applicant.university}
+                </span>
+              ) : null}
+              {applicant.addedBy === "late_add" ? (
+                <span className="mt-1 block">
+                  <Pill tone="neutral">Late add</Pill>
+                </span>
+              ) : null}
+              {applicant.accountErased ? (
+                <span className="mt-1 flex flex-wrap items-center gap-2">
+                  <Pill tone="neutral">Metrics frozen</Pill>
+                  {applicant.metricsFrozenAt != null ? (
+                    <span className="text-xs font-medium text-muted">
+                      {formatDate(applicant.metricsFrozenAt)}
+                    </span>
+                  ) : null}
+                </span>
+              ) : null}
+            </Cell>
+            <Cell muted>
+              {formatCompactCount(applicant.followerCount)}
+            </Cell>
+            <Cell>
+              {applicant.accountErased || ended ? (
+                <div className="flex flex-col gap-1">
+                  <DecisionPill decision={applicant.decision} />
+                  {applicant.endReason ? (
+                    <span className="max-w-48 text-xs text-muted">{applicant.endReason}</span>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <SeatDecisionSelect
+                    id={applicant.id}
+                    orgName={applicant.orgName}
+                    value={applicant.decision}
+                    sent={applicant.decisionSentAt != null}
+                    disabled={decide.isPending}
+                    onChange={(next) => void setDecision(applicant, next)}
+                  />
+                  {applicant.decision !== "applied" && applicant.decisionSentAt == null ? (
+                    <span className="text-xs font-medium text-buzz-warn">Not sent</span>
+                  ) : null}
+                </div>
+              )}
+            </Cell>
+            <Cell muted>
+              {unitsMode && applicant.decision === "accepted" && !applicant.accountErased ? (
+                <TextField
+                  key={`${applicant.id}-${applicant.allocatedUnits ?? 0}`}
+                  id={`units-${applicant.id}`}
+                  aria-label={`Units for ${applicant.orgName}`}
+                  type="number"
+                  min={0}
+                  size="compact"
+                  className="w-20"
+                  disabled={decide.isPending}
+                  defaultValue={applicant.allocatedUnits ?? 0}
+                  onBlur={(e) => {
+                    const units = Math.max(0, parseInt(e.target.value, 10) || 0);
+                    if (units !== (applicant.allocatedUnits ?? 0)) {
+                      void setDecision(applicant, "accepted", units);
+                    }
+                  }}
+                />
+              ) : (
+                applicant.allocatedUnits ?? "—"
+              )}
+            </Cell>
+            <Cell muted>{applicant.linkedPostCount}</Cell>
+            <Cell muted>{formatDate(applicant.appliedAt)}</Cell>
+            <Cell>
+              {applicant.accountErased ||
+              (applicant.decision !== "applied" && applicant.decision !== "accepted") ? (
+                <span className="text-xs font-medium text-muted">—</span>
+              ) : (
+                <ApplicantShipping dropId={dropId} applicant={applicant} live={live} />
+              )}
+            </Cell>
+            <Cell align="right">
+              <div className="flex flex-col items-end gap-1">
+                {!ended && !applicant.accountErased && (
+                  <EndSeatButton
+                    applicant={applicant}
+                    pending={decide.isPending}
+                    error={error}
+                    onEnd={(decision, reason) =>
+                      setDecision(applicant, decision, undefined, reason || undefined)
+                    }
+                  />
                 )}
-          </Cell>
-          <Cell>
-            {applicant.decision === "accepted" ? (
-              <ApplicantShipmentEditor dropId={dropId} applicant={applicant} />
-            ) : (
-              <span className="text-xs font-medium text-buzz-inkMuted">—</span>
-            )}
-          </Cell>
-        </Row>
-      ))}
+                <DeleteSeatButton dropId={dropId} applicant={applicant} />
+              </div>
+            </Cell>
+          </Row>
+        );
+      })}
     </AdminTable>
+    </>
   );
 }
 
@@ -1086,45 +674,15 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
   const hide = useHideDrop(drop.id);
   const unhide = useUnhideDrop(drop.id);
   const [open, setOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
   const [notifyBrand, setNotifyBrand] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   if (drop.publishedAt == null) {
     return null;
   }
 
-  const confirmMatches = confirmText.trim().toLowerCase() === "hide";
-
   function closeDialog() {
     setOpen(false);
-    setConfirmText("");
     setNotifyBrand(false);
-    setError(null);
-  }
-
-  async function doHide() {
-    setError(null);
-    try {
-      await hide.mutateAsync({ confirm: drop.title, notifyBrand });
-      closeDialog();
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not hide this drop.",
-      );
-    }
-  }
-
-  async function doUnhide() {
-    setError(null);
-    try {
-      await unhide.mutateAsync(undefined);
-      closeDialog();
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not unhide this drop.",
-      );
-    }
   }
 
   const hidden = drop.hiddenAt != null;
@@ -1140,75 +698,42 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
         {hidden ? <Eye size={16} aria-hidden /> : <EyeOff size={16} aria-hidden />}
       </HeadingIconButton>
       {open && (
-        <Modal
-          onClose={closeDialog}
-          title={hidden ? "Unhide campaign" : "Hide campaign"}
-          description={
-            hidden
-              ? "Organization and brand portals will see this drop again at the same URLs."
-              : "Removes this published drop from every organization and brand portal. Type hide to confirm. No email unless you opt in."
-          }
-        >
-          <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
-            {error && <ErrorNote>{error}</ErrorNote>}
-            {hidden ? (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="compact"
-                  onClick={closeDialog}
-                >
-                  Cancel
-                </Button>
-                <ActionButton
-                  variant="primary"
-                  testId="drop-unhide-submit"
-                  disabled={unhide.isPending}
-                  onClick={() => void doUnhide()}
-                >
-                  {unhide.isPending ? "Unhiding…" : "Unhide"}
-                </ActionButton>
-              </div>
-            ) : (
-              <>
-                <TextField
-                  id="hide-drop-confirm"
-                  data-testid="hide-drop-confirm"
-                  label='Type "hide" to confirm'
-                  size="compact"
-                  value={confirmText}
-                  autoComplete="off"
-                  onChange={(e) => setConfirmText(e.target.value)}
-                />
-                <Checkbox
-                  data-testid="hide-drop-notify-brand"
-                  checked={notifyBrand}
-                  onChange={(e) => setNotifyBrand(e.target.checked)}
-                  label="Email the brand that this campaign was withdrawn"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    onClick={closeDialog}
-                  >
-                    Cancel
-                  </Button>
-                  <ActionButton
-                    variant="danger"
-                    testId="hide-drop-submit"
-                    disabled={!confirmMatches || hide.isPending}
-                    onClick={() => void doHide()}
-                  >
-                    {hide.isPending ? "Hiding…" : "Hide campaign"}
-                  </ActionButton>
-                </div>
-              </>
-            )}
-          </div>
-        </Modal>
+        hidden ? (
+          <ConfirmDialog
+            title="Unhide campaign"
+            description="Organization and brand portals will see this drop again at the same URLs."
+            fallbackError="Could not unhide this drop."
+            confirmLabel="Unhide"
+            pendingLabel="Unhiding…"
+            pending={unhide.isPending}
+            submitTestId="drop-unhide-submit"
+            onConfirm={() => unhide.mutateAsync(undefined)}
+            onClose={closeDialog}
+          />
+        ) : (
+          <ConfirmDialog
+            title="Hide campaign"
+            description="Removes this published drop from every organization and brand portal. Type the drop title to confirm. No email unless you opt in."
+            expected={drop.title}
+            inputLabel="Type the drop title to confirm"
+            fallbackError="Could not hide this drop."
+            destructive
+            confirmLabel="Hide campaign"
+            pendingLabel="Hiding…"
+            pending={hide.isPending}
+            inputTestId="hide-drop-confirm"
+            submitTestId="hide-drop-submit"
+            onConfirm={() => hide.mutateAsync({ confirm: drop.title, notifyBrand })}
+            onClose={closeDialog}
+          >
+            <Checkbox
+              data-testid="hide-drop-notify-brand"
+              checked={notifyBrand}
+              onChange={(e) => setNotifyBrand(e.target.checked)}
+              label="Email the brand that this campaign was withdrawn"
+            />
+          </ConfirmDialog>
+        )
       )}
     </>
   );
@@ -1218,10 +743,7 @@ function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
   const sync = useSyncAndAutolink(drop.id);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const canRun =
-    drop.publishedAt != null &&
-    drop.hiddenAt == null &&
-    (drop.stage === "awaiting_products" || drop.stage === "drop_active");
+  const canRun = drop.publishedAt != null && drop.hiddenAt == null;
 
   async function run() {
     setError(null);
@@ -1259,7 +781,7 @@ function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
         </Field>
       </FieldGrid>
       {canRun && (
-        <div className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
+        <div className={cn(STACK.tight, "border-t border-line px-4 py-4")}>
           {error && <ErrorNote>{error}</ErrorNote>}
           {notice && <SuccessBanner>{notice}</SuccessBanner>}
           <p className={TEXT.meta}>
@@ -1295,12 +817,7 @@ export default function AdminDropDetailPage() {
 
   return (
     <div>
-      <Link
-        to="/admin/drops"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All drops
-      </Link>
+      <AdminBackLink to="/admin/drops">All drops</AdminBackLink>
 
       <QueryState
         isPending={drop.isPending}
@@ -1315,14 +832,8 @@ export default function AdminDropDetailPage() {
             subtitle={`${data.brandName} · ${data.location}`}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <Pill>{STAGE_LABELS[data.stage] ?? data.stage}</Pill>
-                {data.publishedAt == null ? (
-                  <Pill tone="warn">Draft</Pill>
-                ) : (
-                  <Pill tone="good">Published</Pill>
-                )}
+                <StagePill stage={data.stage} />
                 {data.hiddenAt != null && <Pill tone="bad">Hidden</Pill>}
-                {data.manualReopen && <Pill tone="warn">Reopened</Pill>}
                 {acceptedCount > data.capacityTotal && (
                   <Pill tone="bad">Over capacity</Pill>
                 )}
@@ -1337,66 +848,68 @@ export default function AdminDropDetailPage() {
             </div>
           ) : null}
 
-          <DropTabs
-            active={activeTab}
+          <Tabs
+            label="Drop sections"
+            tabs={TABS}
+            value={activeTab}
             onChange={(id) => setSearchParams({ tab: id })}
+            className="mb-8 gap-8"
           />
 
-          {activeTab === "tracker" && (
-            <TrackerControls
-              dropId={data.id}
-              currentStage={data.stage}
-              finalized={data.finalizedAt !== null}
-              manualReopen={data.manualReopen}
-            />
-          )}
+          {activeTab === "tracker" && <LifecycleControls drop={data} />}
 
           {activeTab === "config" && (
-            <Panel>
-              <FieldGrid>
-                <Field label="Capacity">
-                  {acceptedCount} accepted of {data.capacityTotal}
-                </Field>
-                <Field label="Unit budget">
-                  {data.totalProductUnits === null
-                    ? "Spot-only (no units)"
-                    : `${data.allocatedUnits} of ${data.totalProductUnits} allocated`}
-                </Field>
-                <Field label="Selection finalized">
-                  {data.finalizedAt ? (
-                    formatDateTime(data.finalizedAt)
-                  ) : (
-                    <Pill tone="warn">Not yet</Pill>
-                  )}
-                </Field>
-                <Field label="Published">
-                  {data.publishedAt != null ? (
-                    formatDateTime(data.publishedAt)
-                  ) : (
-                    <Pill tone="warn">Draft</Pill>
-                  )}
-                </Field>
-                {data.dropRequestId && (
-                  <Field label="Drop request">
-                    <Link
-                      to={`/admin/requests/${data.dropRequestId}`}
-                      className="font-semibold text-buzz-coral hover:underline"
-                    >
-                      View ticket
-                    </Link>
-                  </Field>
-                )}
-              </FieldGrid>
+            <>
+              <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {(
+                  [
+                    ["Capacity", `${acceptedCount} accepted of ${data.capacityTotal}`],
+                    [
+                      "Total units",
+                      data.totalProductUnits === null
+                        ? "Spot-only (no units)"
+                        : `${data.allocatedUnits} of ${data.totalProductUnits} allocated`,
+                    ],
+                    [
+                      "Wrapped",
+                      data.wrappedAt ? formatDateTime(data.wrappedAt) : "Not yet",
+                    ],
+                    [
+                      "Published",
+                      data.publishedAt != null ? formatDateTime(data.publishedAt) : "Draft",
+                    ],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-buzzCard border border-line buzz-glass-tile p-4"
+                  >
+                    <p className="text-sm text-quiet">{label}</p>
+                    <p className="mt-3 text-xl font-medium text-primary">{value}</p>
+                  </div>
+                ))}
+              </div>
+              {data.dropRequestId && (
+                <p className="mb-6 text-sm text-muted">
+                  Drop request{" "}
+                  <Link
+                    to={`/admin/requests/${data.dropRequestId}`}
+                    className={entityLinkClass}
+                  >
+                    View ticket
+                  </Link>
+                </p>
+              )}
               <DropConfigEditors data={data} />
-            </Panel>
+            </>
           )}
           {activeTab === "applicants" && (
-            <Panel>
+            <>
               <SignupIntents intents={data.intents ?? []} />
+              <Panel title="Applicants">
               {canLateAdd(data) && (
-                <div className="flex justify-end border-b border-buzz-lineMid px-4 py-3">
+                <div className="flex justify-end px-6 pb-2">
                   <ActionButton
-                    variant="primary"
                     testId="add-org-open"
                     onClick={() => setAddOrgOpen(true)}
                   >
@@ -1404,10 +917,11 @@ export default function AdminDropDetailPage() {
                   </ActionButton>
                 </div>
               )}
-              {canFinalizeSelection(data) && (
-                <FinalizeSelection drop={data} applicants={data.applicants} />
-              )}
-              <Applicants dropId={data.id} applicants={data.applicants} />
+              <Applicants
+                dropId={data.id}
+                applicants={data.applicants}
+                unitsMode={data.totalProductUnits != null}
+              />
               {addOrgOpen && (
                 <AddOrgToDropModal
                   dropId={data.id}
@@ -1417,23 +931,24 @@ export default function AdminDropDetailPage() {
                   onClose={() => setAddOrgOpen(false)}
                 />
               )}
-            </Panel>
+              </Panel>
+            </>
           )}
 
           {activeTab === "timeline" && (
-            <Panel description="Stage transitions, oldest first. Notes prefixed with 'auto:' were written by the auto-close job.">
+            <Panel description="Stage transitions, oldest first. Older events may carry legacy stage names.">
               {data.trackerEvents.length === 0 ? (
-                <p className="px-4 py-6 text-sm font-medium text-buzz-inkMuted">
+                <p className="px-4 py-6 text-sm font-medium text-muted">
                   No tracker events recorded yet.
                 </p>
               ) : (
-                <ol className="divide-y divide-buzz-lineMid">
+                <ol className="divide-y divide-line">
                   {data.trackerEvents.map((event) => (
                     <li key={event.id} className="px-4 py-3">
-                      <p className="text-sm font-bold text-buzz-ink">
+                      <p className="text-sm font-medium text-primary">
                         {STAGE_LABELS[event.stage] ?? event.stage}
                       </p>
-                      <p className="text-xs font-medium text-buzz-inkMuted">
+                      <p className="text-xs font-medium text-muted">
                         {formatDateTime(event.occurredAt)}
                         {event.note ? ` · ${event.note}` : ""}
                       </p>

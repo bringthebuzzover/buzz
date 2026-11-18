@@ -1,11 +1,15 @@
 /**
- * Shared reset-password form (token from query string).
+ * Brand reset-password form (token from query string).
  */
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { useResetPassword } from "../../api/hooks/usePasswordResetHooks";
-import AuthShell from "../../components/site/AuthShell";
+import {
+  AuthBackLink,
+  AuthHeading,
+  AuthSplit,
+} from "../../components/auth/AuthFrame";
 import {
   Button,
   ErrorBanner,
@@ -14,16 +18,20 @@ import {
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 
 type Props = {
-  portal: "brand" | "admin";
   loginPath: string;
   title: string;
+  kicker: string;
 };
 
-export default function ResetPasswordPage({ portal, loginPath, title }: Props) {
+export default function ResetPasswordPage({
+  loginPath,
+  title,
+  kicker,
+}: Props) {
   const [searchParams] = useSearchParams();
   const [token] = useState(() => searchParams.get("token") ?? "");
   const navigate = useNavigate();
-  const reset = useResetPassword(portal);
+  const reset = useResetPassword();
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -58,24 +66,22 @@ export default function ResetPasswordPage({ portal, loginPath, title }: Props) {
     }
   };
 
-  return (
-    <AuthShell align="center">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        {title.split(" ")[0]}{" "}
-        <span className="text-buzz-coral">{title.split(" ").slice(1).join(" ") || "Password"}</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
+  const body = (
+    <>
+      <AuthHeading kicker={kicker} title={title}>
         Choose a new password for your account.
-      </p>
+      </AuthHeading>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-6">
         <TextField
           type="password"
           minLength={8}
           label="New password"
+          hint="At least 8 characters"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="new-password"
         />
         <TextField
           type="password"
@@ -84,21 +90,22 @@ export default function ResetPasswordPage({ portal, loginPath, title }: Props) {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           required
+          autoComplete="new-password"
         />
         {error && <ErrorBanner>{error}</ErrorBanner>}
         <Button
           type="submit"
-          disabled={reset.isPending}
+          size="field"
+          loading={reset.isPending}
+          loadingLabel="Saving…"
           fullWidth
         >
-          {reset.isPending ? "Saving…" : "Reset password"}
+          Reset password
         </Button>
-        <p className="text-center text-sm text-buzz-inkMuted">
-          <Link to={loginPath} className="font-semibold text-buzz-coral hover:underline">
-            Back to login
-          </Link>
-        </p>
+        <AuthBackLink to={loginPath}>Back to login</AuthBackLink>
       </form>
-    </AuthShell>
+    </>
   );
+
+  return <AuthSplit>{body}</AuthSplit>;
 }
