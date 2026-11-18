@@ -9,7 +9,8 @@ description: >-
 
 Run after implementation and before claiming ready or handing off the gate.
 This checklist authorizes neither broad refactors nor product/external writes.
-Run `buzz-coding-agent` (active-checkout/source discovery).
+Run active-checkout/source discovery with
+`buzz-coding-agent`.
 Apply only relevant steps; absent app code makes code/contract checks not
 applicable. Missing required canonical context blocks dependent claims.
 

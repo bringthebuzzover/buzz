@@ -8,7 +8,7 @@ description: >-
 
 # Ship change
 
-For work outside a gap cluster. Run active-checkout/source discovery in
+For work outside a gap cluster, run active-checkout/source discovery in
 `buzz-coding-agent` first. Cluster work uses
 `fix-gap-cluster`.
 
@@ -47,9 +47,12 @@ Docs/rules/skills-only work uses focused validation, not app tests.
 Stress runs require an explicit request.
 
 Report changed files, diff size and justification for growth, exact commands and
-results, gaps/residual risk, and blockers. Leave changes uncommitted for caller
-review. Coding authorization does not authorize commit, push, PR, merge, deploy,
-or external messages. The caller owns those actions when explicitly approved.
+results, gaps/residual risk, and blockers. For test account identifiers and
+endpoints, reference `BUZZ-TEST-ACCOUNTS.md`, and follow
+`buzz-staging-operations` for staging access; never include passwords or codes
+in handoffs. Leave changes uncommitted for caller review. Coding authorization
+does not authorize commit, push, PR, merge, deploy, or external messages. The
+caller owns those actions when explicitly approved.
 
 Follow the discovered checkout instructions and current caller context for
 app/skill-source branch policies. Never push, force-push, or delete `main`, release an item on hold,

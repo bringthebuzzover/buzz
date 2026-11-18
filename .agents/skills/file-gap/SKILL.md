@@ -7,9 +7,8 @@ description: >-
 
 # File a gap
 
-Run `buzz-coding-agent` (source discovery)
-before filing. Resolve the canonical gap root, schema, status vocabulary, and
-close policy from active instructions or an authorized context pack.
+Run source discovery with `buzz-coding-agent` before filing. Resolve the
+canonical gap root, schema, status vocabulary, and close policy from active instructions or an authorized context pack.
 Local `gaps/README.md` is only one possible source; some branches keep the
 tracker in the private operations repository. Do not create a competing local
 tracker when sources moved private.

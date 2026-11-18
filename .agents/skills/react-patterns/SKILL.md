@@ -7,8 +7,8 @@ description: >-
 
 # React patterns
 
-Run `buzz-coding-agent` (active-checkout discovery)
-first. If there is no React app, report these steps as not applicable.
+Run active-checkout discovery with `buzz-coding-agent` first. If there is
+no React app, report these steps as not applicable.
 Inspect the actual package manifest, versions, entry/provider tree, router,
 API hooks, forms, and adjacent components. The observed app branches use React
 18; do not assume React 19 actions, Server Components, Next.js, a particular

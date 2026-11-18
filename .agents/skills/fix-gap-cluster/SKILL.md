@@ -13,7 +13,8 @@ un-parking deferred work without named IDs.
 
 ## Resolve sources and permissions
 
-Run `buzz-coding-agent` (active-checkout discovery).
+Run active-checkout discovery with
+`buzz-coding-agent`.
 Resolve canonical gap records, schema/close policy, queue, and locked approaches
 from active instructions. Examples such as `gaps/README.md`,
 `gaps/CLUSTERS.md`, and `.cursor/rules/gaps-tracker.mdc` apply only when
