@@ -48,7 +48,7 @@ Stress runs require an explicit request.
 
 Report changed files, diff size and justification for growth, exact commands and
 results, gaps/residual risk, and blockers. For test account identifiers and
-endpoints, reference `BUZZ-TEST-ACCOUNTS.md`, and follow
+endpoints, reference the private `buzz-ops` repo (`engineering/testing.md`), and follow
 `buzz-staging-operations` for staging access; never include passwords or codes
 in handoffs. Leave changes uncommitted for caller review. Coding authorization
 does not authorize commit, push, PR, merge, deploy, or external messages. The

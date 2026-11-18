@@ -67,7 +67,7 @@ React work uses `react-patterns` and
 In app checkouts, reuse existing services, API clients, generated types, and
 shared primitives. Read relevant behavior sources and callers first; ask on
 unapproved product forks. For canonical test identities, login routes, and local
-fixtures, reference `BUZZ-TEST-ACCOUNTS.md`. Keep lifecycle computations
+fixtures, reference the private `buzz-ops` repo (`engineering/testing.md`). Keep lifecycle computations
 consistent across layers.
 
 For route/schema changes, discover the actual contract generator and frontend
@@ -94,6 +94,7 @@ Report changed files, diff size/reasons for growth, exact checks/results,
 non-applicable steps, pending caller gate, gaps, and blockers. Keep secrets,
 personal data, private paths, infrastructure IDs, and internal URLs out of
 public files, and keep passwords and codes out of handoffs; follow
-`buzz-staging-operations` and `OPENBOT-FLEET-RULES.md` for credential retrieval
+`buzz-staging-operations` and the fleet rules (`OPENBOT-FLEET-RULES.md` in the
+OpenBot workspace root) for credential retrieval
 and verification code handling. After an approved deployment, use
 `buzz-staging-operations` within its read/write boundaries.

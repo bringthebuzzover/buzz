@@ -8,7 +8,7 @@ This repo is **agent-first**: humans review and commit; agents implement. Deep-i
 
 ## Sources of truth
 
-Docs, decisions, gaps and ideas are canonical in the private `bringthebuzzover/buzz-ops` repo — start at its `AGENTS.md`. In this repo:
+In this repo:
 
 | Concern | Location |
 | ------- | -------- |
@@ -40,7 +40,7 @@ The HTTP contract is [`openapi.json`](openapi.json). After any route or schema c
 For any **behavior-touching** change:
 
 1. Run the **simplify-pass** skill ([`.agents/skills/simplify-pass/SKILL.md`](.agents/skills/simplify-pass/SKILL.md)).
-2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes Playwright E2E). This is the gate for **opening a PR** too: never open or push a PR for Buzz unless local CI passed on that exact commit. A green GitHub run later does not substitute for it. The calling bot runs it serially on a fresh local test database; native CLI subagents run only authorized focused checks and report the full gate as pending.
+2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes Playwright E2E). This is the gate for **opening a PR** too: never open or push a PR for Buzz unless local CI passed on that exact commit. A green GitHub run later does not substitute for it. The calling bot runs it serially on a fresh local test database; native CLI subagents run only authorized focused checks and report the full gate as pending; they do not run this script, including when a repo skill prescribes it.
 3. **Stop** — do not commit or push unless the user explicitly asks.
 4. Stress Playwright ×N **only if the user asks** (`workflow_dispatch` / `[e2e-stress-N]`).
 5. **Never push to `main`** — it is protected. Feature-branch PR only (into `staging`) ([Branching & main protection](README.md#branching--main-protection)).
@@ -51,6 +51,7 @@ Docs/rules/skills-only changes: commit when the user asks; `ci-local` is not req
 
 - PRODUCT / UX / behavior changes
 - Railway, Meta dashboard, Resend, or DNS mutations
+- Un-parking `parked` / deferred work unless the user names the id (see `fix-gap-cluster`)
 - Committing secrets (`.env`, tokens, `.cursor/mcp.json`)
 
 ## Repo skills
@@ -77,15 +78,15 @@ Use project/user MCP when it helps. **Read** is fine; **mutate** needs explicit 
 
 | Server | Use for | Do not |
 | ------ | ------- | ------ |
-| **Railway** | Status, logs, vars (read), docs; mutations via **direct** tools only (`update-service`, `set-variables`, `list-variables`, `redeploy`, …) | Redeploy / set vars / accept-deploy / create services without explicit OK. **Minimize `railway-agent`** — do ops fully with direct tools (or human dashboard/CLI). |
+| **Railway** | Status, logs, vars (read), docs; mutations via **direct** tools only (`update-service`, `set-variables`, `list-variables`, `redeploy`, …) | Redeploy / set vars / accept-deploy / create services without explicit OK. **Minimize `railway-agent`** — do ops fully with direct tools (or human dashboard/CLI); do not ask the agent to delete/stage vars. |
 | **GitHub** | PRs, checks, issues, file reads for this repo | Push or force-push `main`, surprise merges; prefer `gh` when user rules say so |
 | **Hostinger** | Registrar / nameservers for `bringthebuzzover.com` | Assume Lawrence hPanel; mutate NS without explicit OK; commit API tokens; treat Hostinger DNS zone as SOT (Cloudflare is) |
 | **Cloudflare** | Authoritative DNS + apex→www redirect for `bringthebuzzover.com` | Orange-cloud `www`/`api` (breaks Railway TLS); delete personal zones; mutate without OK |
-| **Resend** | Domains, transactional send debug (`list-emails` / logs) | Enable Receiving on apex; create/delete API keys without OK; commit keys to the repo; treat as human inbox |
-| **Meta Developer Tools** | Read the Buzz Meta app settings, app review, compliance, API usage | Paste Hosts / submit App Review / Business Verification; put OAuth config in repo `.cursor/mcp.json` (user MCP only) |
+| **Resend** | Domains, transactional send debug (`list-emails` / logs) | Enable Receiving on apex; create/delete API keys without OK; commit keys to the repo; treat as human inbox. **Domain mutate only with explicit OK** (see hard stops) |
+| **Meta Developer Tools** | Read the Buzz Meta app settings, app review, compliance, API usage | Paste Hosts / submit App Review / Business Verification; webhook `manage`/`test` without explicit OK; put OAuth config in repo `.cursor/mcp.json` (user MCP only). Grant Buzz on consent (**Read** default; **Manage** only for webhook work) |
 | **Buzz Admin** | Local stdio [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/): inspect allowlisted tables, patch profile/copy fields, run `/api/admin/*` actions. Defaults to production API. | Brand/org agents; impersonate; raw SQL; secrets (`password_hash`, IG token, `token_hash`, Graph user ids, `token_version`). Mutate only with explicit user OK. Never commit admin email/password |
 
-**Railway notes (hard-won):** Prefer full manual via direct MCP tools. Skip `railway-agent` unless the user explicitly asks. `set-variables` can only set/overwrite — it **cannot delete** keys; remove vars in the Railway dashboard or `railway variable delete` (CLI must be logged in). If anything claims a var was deleted, re-check with `list-variables` (staged/`null` is not gone).
+**Railway notes (hard-won):** Prefer full manual via direct MCP tools. Skip `railway-agent` unless the user explicitly asks. `set-variables` can only set/overwrite — it **cannot delete** keys; remove vars in the Railway dashboard or `railway variable delete` (CLI must be logged in). If anything claims a var was deleted, **the parent must re-check with `list-variables`** (staged/`null` is not gone).
 
 Personal MCPs (e.g. Hevy, Obsidian) are **out of scope** for Buzz work — ignore them here.
 
