@@ -21,10 +21,6 @@ export const CONTROL_HEIGHT = {
 export const focusRingClass =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-page";
 
-/** Solid yellow ring with paper-colored offset for light paper surfaces. */
-export const focusRingOnPaperClass =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-surface-paper";
-
 /**
  * Focus treatment for text fields. One yellow edge, not two: the 1px border
  * and a 1px ring sit flush (no offset), so they read as a single 2px line.

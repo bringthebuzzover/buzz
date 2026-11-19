@@ -309,10 +309,21 @@ async def send_brand_invite_email(
     """Send a brand account-setup invitation link."""
     setup_url = f"{settings.FRONTEND_URL}/brand/setup?token={setup_token}"
 
+    name = brand_name or "your brand"
     subject = (
         f"Set up your Buzz account — {brand_name}" if brand_name else "Set up your Buzz account"
     )
     body = _brand_invite_body(setup_url, brand_name)
+    html = _cta_html(
+        setup_url,
+        subject=subject,
+        button="Set up password",
+        paragraphs=[
+            f"Your brand ({name}) has been approved on Buzz!",
+            "Click the link below to set up your account password.",
+            "This link expires in 7 days.",
+        ],
+    )
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -324,45 +335,36 @@ async def send_brand_invite_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_org_approved_email(
     to_email: str,
     *,
     org_name: str = "",
-    connect_token: str | None = None,
     idempotency_key: str | None = None,
 ) -> bool:
-    """Tell an org they are approved and must Connect Instagram (or legacy login)."""
+    """Tell an approved, Instagram-bound org they can sign in."""
     name = org_name or "your organization"
-    if connect_token:
-        connect_url = f"{settings.FRONTEND_URL}/onboarding/connect-instagram?token={connect_token}"
-        subject = "Your Buzz organization is approved — connect Instagram"
-        text = _org_connect_text(connect_url, name)
-        html = _cta_html(
-            connect_url,
-            subject=subject,
-            paragraphs=[
-                f"Good news — {name} has been approved on Buzz.",
-                _step_html(1, _tester_invite_html()),
-                _step_html(2, _connect_instagram_link_html(connect_url)),
-            ],
-        )
-        log_url = connect_url
-    else:
-        login_url = f"{settings.FRONTEND_URL}/login"
-        subject = "Your Buzz organization account is approved"
-        text = _org_approved_body(login_url, name)
-        html = None
-        log_url = login_url
+    login_url = f"{settings.FRONTEND_URL}/login"
+    subject = "Your Buzz organization account is approved"
+    text = _org_approved_body(login_url, name)
+    html = _cta_html(
+        login_url,
+        subject=subject,
+        button="Sign in",
+        paragraphs=[
+            f"Good news — {name} has been approved on Buzz!",
+            "Sign in to start browsing drops.",
+        ],
+    )
 
     if settings.ENVIRONMENT == "development":
         logger.info(
             "\n╔══════════════════════════════════════════════════════════════╗\n"
             "║  DEV EMAIL — Org approved:                                  ║\n"
             f"║  To: {to_email:<52s}║\n"
-            f"║  URL: {log_url:<50s}║\n"
+            f"║  URL: {login_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
@@ -496,6 +498,17 @@ async def send_org_ig_rename_approved_email(
         f"then log in with Instagram:\n{login_url}\n\n"
         "Buzz will pick up the new @ from Instagram. Do not type it in the profile."
     )
+    html = _cta_html(
+        login_url,
+        subject=subject,
+        button="Log in with Instagram",
+        paragraphs=[
+            f"Buzz approved the Instagram handle change for {name}.",
+            f"Rename the account on Instagram to {handle} if you have not already, "
+            "then log in with Instagram.",
+            "Buzz will pick up the new @ from Instagram. Do not type it in the profile.",
+        ],
+    )
     if settings.ENVIRONMENT == "development":
         logger.info(
             "DEV EMAIL — Org IG rename approved to=%s handle=%s",
@@ -503,7 +516,7 @@ async def send_org_ig_rename_approved_email(
             handle,
         )
         return True
-    return await _dispatch(to_email, subject, text, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 async def send_org_ig_change_denied_email(
@@ -519,10 +532,11 @@ async def send_org_ig_change_denied_email(
         f"Buzz did not approve the Instagram identity change for {name}.\n\n"
         "Your current Instagram login is unchanged. Reply if you have questions."
     )
+    html = _message_html(subject=subject, body=text)
     if settings.ENVIRONMENT == "development":
         logger.info("DEV EMAIL — Org IG change denied to=%s", to_email)
         return True
-    return await _dispatch(to_email, subject, text, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 async def send_org_apply_prefill_email(
@@ -683,6 +697,7 @@ async def send_org_denied_email(
     """Tell an org their application was not approved."""
     subject = "Update on your Buzz application"
     body = _org_denied_body(org_name)
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -693,7 +708,7 @@ async def send_org_denied_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_org_erased_email(
@@ -705,6 +720,7 @@ async def send_org_erased_email(
     """Confirm an org account was erased after a data-deletion request."""
     subject = "Your Buzz account data has been deleted"
     body = _org_erased_body(org_name)
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -715,7 +731,7 @@ async def send_org_erased_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_brand_erased_email(
@@ -734,6 +750,7 @@ async def send_brand_erased_email(
         "visible to those organizations as an anonymized brand name.\n\n"
         "If you have questions, reply to this email."
     )
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -744,7 +761,7 @@ async def send_brand_erased_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_brand_denied_email(
@@ -760,6 +777,7 @@ async def send_brand_denied_email(
         f"Thanks for your interest in Buzz. After review, {name} was not "
         "approved at this time. Reply to this email if you'd like another look."
     )
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -770,7 +788,7 @@ async def send_brand_denied_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_org_undenied_email(
@@ -786,6 +804,7 @@ async def send_org_undenied_email(
         f"Good news — access for {name} has been restored to the review queue. "
         "We'll email you again when a decision is ready."
     )
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -796,7 +815,7 @@ async def send_org_undenied_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_brand_undenied_email(
@@ -812,6 +831,7 @@ async def send_brand_undenied_email(
         f"Good news — access for {name} has been restored to the review queue. "
         "We'll email you again when a decision is ready."
     )
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -822,7 +842,7 @@ async def send_brand_undenied_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_application_denied_email(
@@ -840,6 +860,7 @@ async def send_application_denied_email(
     """
     subject = "Update on your Buzz drop application"
     body = _application_denied_body(org_name, drop_title, brand_name)
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -850,7 +871,7 @@ async def send_application_denied_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_drop_opening_reminder_email(
@@ -868,6 +889,19 @@ async def send_drop_opening_reminder_email(
     feed_url = f"{settings.FRONTEND_URL}/org/browse"
     subject = f"Applications opening: {drop_title}" if drop_title else "A Buzz drop is opening"
     body = _drop_reminder_body(org_name, drop_title, brand_name, feed_url)
+    name = org_name or "your organization"
+    drop = f'"{drop_title}"' if drop_title else "a drop"
+    brand = f" from {brand_name}" if brand_name else ""
+    html = _cta_html(
+        feed_url,
+        subject=subject,
+        button="Browse drops",
+        paragraphs=[
+            f"You asked us to remind {name} about {drop}{brand} on Buzz — "
+            "applications are opening now.",
+            "Spots are limited and close when capacity fills.",
+        ],
+    )
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -879,7 +913,7 @@ async def send_drop_opening_reminder_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_drop_published_email(
@@ -941,6 +975,7 @@ async def send_drop_hidden_email(
         f"{title} for {name} was withdrawn and is no longer visible in your brand portal.\n\n"
         "Any monitor link you received for this campaign no longer works."
     )
+    html = _message_html(subject=subject, body=text)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -952,7 +987,7 @@ async def send_drop_hidden_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, text, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 async def send_password_reset_email(
@@ -970,6 +1005,17 @@ async def send_password_reset_email(
         "If you did not request this, you can ignore this email. "
         "The link expires in one hour."
     )
+    html = _cta_html(
+        reset_url,
+        subject=subject,
+        button="Reset password",
+        paragraphs=[
+            "We received a request to reset your Buzz password.",
+            "Click the link below to choose a new password.",
+            "If you did not request this, you can ignore this email. "
+            "The link expires in one hour.",
+        ],
+    )
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -981,7 +1027,7 @@ async def send_password_reset_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 async def send_brand_password_changed_email(
@@ -1004,6 +1050,7 @@ async def send_brand_password_changed_email(
         "If you did not change your password, reset it from the brand login page "
         f"or contact {CONTACT_EMAIL}."
     )
+    html = _message_html(subject=subject, body=body)
 
     if settings.ENVIRONMENT == "development":
         logger.info(
@@ -1014,7 +1061,7 @@ async def send_brand_password_changed_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+    return await _dispatch(to_email, subject, body, html=html, idempotency_key=idempotency_key)
 
 
 def _ops_cc(*, exclude: str) -> list[str]:
@@ -1417,20 +1464,13 @@ def _verification_rotate_text(verify_url: str, org_name: str) -> str:
     )
 
 
-def _org_connect_text(connect_url: str, org_name: str) -> str:
-    return (
-        f"Good news — {org_name} has been approved on Buzz.\n\n"
-        f"1. {_tester_invite_text()}\n"
-        "2. Connect Instagram — your organization's Business or Creator "
-        "account:\n\n"
-        f"{connect_url}\n\n"
-        "This link expires in 7 days."
-    )
-
-
-_CORAL = "#E85D4C"
-_CREAM = "#FBF7F0"
-_INK = "#1A1A1A"
+_PAGE_BG = "#0B0B0B"
+_CARD_BG = "#121212"
+_CARD_BORDER = "#262626"
+_FG = "#F0F0F0"
+_MUTED = "#9A9A9A"
+_YELLOW = "#F6D32A"
+_ON_ACCENT = "#0B0B0B"
 
 
 def _verification_html(verify_url: str, *, heading: str, paragraphs: list[str]) -> str:
@@ -1442,41 +1482,60 @@ def _verification_html(verify_url: str, *, heading: str, paragraphs: list[str]) 
     )
 
 
-def _message_html(*, subject: str, body: str) -> str:
-    """Cream/coral card with no CTA — admin-typed body, HTML-escaped."""
-    body_html = _escape(body).replace("\n", "<br/>")
+def _mail_shell(*, subject: str, inner_html: str) -> str:
+    """Pulse Black dark/glass email document shell shared by CTA and message mail."""
     dark_lock = _mail_dark_lock()
     return (
-        f'<!DOCTYPE html><html lang="en" style="color-scheme:light only;">'
+        f'<!DOCTYPE html><html lang="en" style="color-scheme:dark only;">'
         f'<head><meta charset="utf-8"/>'
-        f'<meta name="color-scheme" content="light only"/>'
-        f'<meta name="supported-color-schemes" content="light"/>'
+        f'<meta name="color-scheme" content="dark only"/>'
+        f'<meta name="supported-color-schemes" content="dark only"/>'
         f"{dark_lock}</head>"
-        f'<body class="buzz-mail" bgcolor="{_CREAM}" style="margin:0;padding:24px;'
-        f"background-color:{_CREAM};color:{_INK};"
+        f'<body class="buzz-mail" bgcolor="{_PAGE_BG}" style="margin:0;padding:32px 24px;'
+        f"background-color:{_PAGE_BG};color:{_FG};"
         f'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">'
-        f'<div class="buzz-mail-card" bgcolor="#ffffff" style="max-width:520px;'
-        f"margin:0 auto;background-color:#ffffff;padding:32px;border-radius:12px;"
-        f'color:{_INK};">'
-        f'<h1 style="margin:0 0 20px;font-size:22px;color:{_INK};">{_escape(subject)}</h1>'
-        f'<p style="margin:0;color:{_INK};font-size:16px;line-height:1.5;">{body_html}</p>'
+        f'<div class="buzz-mail-card" bgcolor="{_CARD_BG}" style="max-width:520px;'
+        f"margin:0 auto;background-color:{_CARD_BG};"
+        f"background-image:radial-gradient(ellipse at top right,"
+        f"rgba(241,123,191,0.12),transparent 65%);"
+        f"border:1px solid {_CARD_BORDER};"
+        f"box-shadow:inset 0 1px 0 rgba(255,239,205,0.08),0 20px 56px rgba(0,0,0,0.45);"
+        f'padding:32px;border-radius:16px;color:{_FG};">'
+        f'<h1 style="margin:0 0 20px;font-size:22px;font-weight:600;'
+        f'letter-spacing:-0.02em;color:{_FG};">{_escape(subject)}</h1>'
+        f"{inner_html}"
         f"</div></body></html>"
     )
 
 
+def _message_html(*, subject: str, body: str) -> str:
+    """Pulse Black dark/glass card with no CTA — admin-typed or notice body, HTML-escaped."""
+    body_html = _escape(body).replace("\n", "<br/>")
+    return _mail_shell(
+        subject=subject,
+        inner_html=(
+            f'<p style="margin:0;color:{_FG};font-size:16px;line-height:1.5;">' f"{body_html}</p>"
+        ),
+    )
+
+
 def _mail_dark_lock() -> str:
-    return (
-        f"<style>:root{{color-scheme:light only;supported-color-schemes:light}}"
-        f"@media (prefers-color-scheme:dark){{"
-        f".buzz-mail{{background-color:{_CREAM}!important;color:{_INK}!important}}"
-        f".buzz-mail-card{{background-color:#ffffff!important;color:{_INK}!important}}"
-        f".buzz-mail h1,.buzz-mail p{{color:{_INK}!important;"
+    rules = (
+        f".buzz-mail{{background-color:{_PAGE_BG}!important;color:{_FG}!important}}"
+        f".buzz-mail-card{{background-color:{_CARD_BG}!important;color:{_FG}!important;"
+        f"border:1px solid {_CARD_BORDER}!important}}"
+        f".buzz-mail h1,.buzz-mail p{{color:{_FG}!important;"
         f"background-color:transparent!important}}"
-        f".buzz-mail a{{color:{_CORAL}!important}}"
-        f".buzz-mail a.buzz-mail-btn{{color:#ffffff!important;"
-        f"background-color:{_CORAL}!important}}"
-        f".buzz-mail-muted{{color:#666666!important}}"
-        f"}}</style>"
+        f".buzz-mail a{{color:{_YELLOW}!important}}"
+        f".buzz-mail a.buzz-mail-btn{{color:{_ON_ACCENT}!important;"
+        f"background-color:{_YELLOW}!important}}"
+        f".buzz-mail p.buzz-mail-muted,.buzz-mail-muted{{color:{_MUTED}!important}}"
+    )
+    return (
+        f"<style>:root{{color-scheme:dark only;supported-color-schemes:dark only}}"
+        f"{rules}"
+        f"@media (prefers-color-scheme:dark){{{rules}}}"
+        f"@media (prefers-color-scheme:light){{{rules}}}</style>"
     )
 
 
@@ -1498,45 +1557,32 @@ def _cta_html(
     footer_paragraphs: list[str] | None = None,
 ) -> str:
     paras = "".join(
-        f'<p style="margin:0 0 16px;color:{_INK};font-size:16px;line-height:1.5;">'
+        f'<p style="margin:0 0 16px;color:{_FG};font-size:16px;line-height:1.5;">'
         f"{p.inner if isinstance(p, _HtmlP) else _escape(p)}</p>"
         for p in paragraphs
     )
     footer = "".join(
-        f'<p style="margin:16px 0 0;color:{_INK};font-size:16px;line-height:1.5;">{_escape(p)}</p>'
+        f'<p style="margin:16px 0 0;color:{_FG};font-size:16px;line-height:1.5;">{_escape(p)}</p>'
         for p in (footer_paragraphs or [])
     )
     btn = ""
     if button:
         btn = (
             f'<p style="margin:24px 0;"><a class="buzz-mail-btn" href="{_escape(url)}" '
-            f'style="display:inline-block;background-color:{_CORAL};color:#ffffff;'
-            f"text-decoration:none;padding:12px 24px;border-radius:8px;"
-            f'font-weight:600;">{_escape(button)}</a></p>'
+            f'style="display:inline-block;background-color:{_YELLOW};color:{_ON_ACCENT};'
+            f"text-decoration:none;padding:12px 24px;border-radius:9999px;"
+            f'font-weight:600;font-size:15px;">{_escape(button)}</a></p>'
         )
     paste_margin = "24px 0 0" if not button else "0"
-    # Force the light Buzz palette in clients that invert for dark mode
-    # (Apple Mail / some Gmail). Exact hexes match the light template.
-    dark_lock = _mail_dark_lock()
-    return (
-        f'<!DOCTYPE html><html lang="en" style="color-scheme:light only;">'
-        f'<head><meta charset="utf-8"/>'
-        f'<meta name="color-scheme" content="light only"/>'
-        f'<meta name="supported-color-schemes" content="light"/>'
-        f"{dark_lock}</head>"
-        f'<body class="buzz-mail" bgcolor="{_CREAM}" style="margin:0;padding:24px;'
-        f"background-color:{_CREAM};color:{_INK};"
-        f'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">'
-        f'<div class="buzz-mail-card" bgcolor="#ffffff" style="max-width:520px;'
-        f"margin:0 auto;background-color:#ffffff;padding:32px;border-radius:12px;"
-        f'color:{_INK};">'
-        f'<h1 style="margin:0 0 20px;font-size:22px;color:{_INK};">{_escape(subject)}</h1>'
-        f"{paras}"
-        f"{btn}"
-        f'<p class="buzz-mail-muted" style="margin:{paste_margin};color:#666666;font-size:13px;'
-        f'line-height:1.5;">Or paste this link:<br/>{_inline_a(url)}</p>'
-        f"{footer}"
-        f"</div></body></html>"
+    return _mail_shell(
+        subject=subject,
+        inner_html=(
+            f"{paras}"
+            f"{btn}"
+            f'<p class="buzz-mail-muted" style="margin:{paste_margin};color:{_MUTED};'
+            f'font-size:13px;line-height:1.5;">Or paste this link:<br/>{_inline_a(url)}</p>'
+            f"{footer}"
+        ),
     )
 
 
@@ -1579,7 +1625,7 @@ def _connect_instagram_link_html(
 
 def _inline_a(href: str, label: str | None = None) -> str:
     lab = _escape(label if label is not None else href)
-    return f'<a href="{_escape(href)}" style="color:{_CORAL};text-decoration:underline;">{lab}</a>'
+    return f'<a href="{_escape(href)}" style="color:{_YELLOW};text-decoration:underline;">{lab}</a>'
 
 
 def _escape(value: str) -> str:

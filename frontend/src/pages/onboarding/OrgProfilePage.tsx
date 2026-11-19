@@ -17,6 +17,7 @@ import { userFacingApiError } from "../../api/userFacingError";
 import { allowlistedOAuthNext, allowlistedPrefill, onboardingQuery } from "../../utils/oauthNext";
 import { clearDropPitch, readDropPitch } from "../../utils/dropSignup";
 import { pathForUser } from "../../utils/landing";
+import { VERIFY_EMAIL_SENT_KEY } from "./VerifyEmailPage";
 import {
   Button,
   ErrorBanner,
@@ -141,7 +142,7 @@ export default function OrgProfilePage() {
       await refreshUser();
       // Durable across hard refresh of the verify-await screen.
       sessionStorage.setItem(
-        "buzz.verifyEmailSent",
+        VERIFY_EMAIL_SENT_KEY,
         result.emailQueued === false ? "0" : "1",
       );
       navigate("/onboarding/verify-email" + onboardingQuery(nextPath), {

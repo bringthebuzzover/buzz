@@ -384,10 +384,10 @@ async def test_org_approve_bound_uses_org_id_and_refuses_unbound(db_session, mon
     from app.exceptions import BuzzAPIException
     from app.services.admin import approve_org
 
-    captured: list[tuple[str | None, str | None]] = []
+    captured: list[str | None] = []
 
-    async def _fake(to_email, *, org_name="", connect_token=None, idempotency_key=None):
-        captured.append((connect_token, idempotency_key))
+    async def _fake(to_email, *, org_name="", idempotency_key=None):
+        captured.append(idempotency_key)
         return True
 
     monkeypatch.setattr("app.services.admin.send_org_approved_email", _fake)
@@ -422,7 +422,6 @@ async def test_org_approve_bound_uses_org_id_and_refuses_unbound(db_session, mon
     assert exc.value.status_code == 400
 
     assert len(captured) == 1
-    bound_token, bound_key = captured[0]
-    assert bound_token is None
+    bound_key = captured[0]
     assert bound_key == email.build_idempotency_key(email.KIND_ORG_APPROVED_BOUND, bound_org.id)
     assert "bound@school.edu" not in (bound_key or "")

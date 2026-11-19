@@ -16,11 +16,6 @@ import {
   useResendVerificationFromToken,
   useVerifyEmail,
 } from "../../api/hooks/useOnboardingHooks";
-import {
-  VERIFY_DROP_INTENT_KEY,
-  VERIFY_EDU_EMAIL_KEY,
-  VERIFY_EMAIL_SENT_KEY,
-} from "../../components/org/OrgApplyForm";
 import { authUserFromWire, setAccessToken } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
@@ -29,6 +24,10 @@ import AuthPending from "../../components/auth/AuthPending";
 import StatusHero from "../../components/site/StatusHero";
 import { Button, ErrorBanner, SuccessBanner } from "../../components/forms/controls";
 import type { components } from "../../api/generated/schema";
+
+export const VERIFY_EMAIL_SENT_KEY = "buzz.verifyEmailSent";
+export const VERIFY_EDU_EMAIL_KEY = "buzz.verifyEduEmail";
+export const VERIFY_DROP_INTENT_KEY = "buzz.verifyDropIntent";
 
 type UserWire = components["schemas"]["UserResponse"];
 
