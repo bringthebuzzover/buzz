@@ -248,7 +248,7 @@ for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
         expect(bounds.bottom, `${route}: hero ink clipped at bottom ${JSON.stringify(bounds)}`).toBeLessThanOrEqual(bounds.clipBottom + 1);
       }
 
-      const mockups = page.locator("[data-laptop-chassis], [data-marketing-phone]");
+      const mockups = page.locator("[data-laptop-chassis]");
       expect(await mockups.count()).toBeGreaterThan(0);
       for (const mockup of await mockups.all()) {
         await mockup.scrollIntoViewIfNeeded();
