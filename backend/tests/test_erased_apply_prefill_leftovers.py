@@ -326,11 +326,13 @@ async def test_brand_erasure_body_is_not_an_org_notice(monkeypatch: pytest.Monke
         subject: str,
         body: str,
         *,
+        html: str | None = None,
         idempotency_key: str | None = None,
     ) -> bool:
         del to_email, idempotency_key
         captured["subject"] = subject
         captured["body"] = body
+        captured["html"] = html or ""
         return True
 
     monkeypatch.setattr(settings, "ENVIRONMENT", "production")
@@ -339,7 +341,8 @@ async def test_brand_erasure_body_is_not_an_org_notice(monkeypatch: pytest.Monke
 
     assert sent is True
     assert captured["body"]
-    assert not is_org_erasure_message(captured["subject"], captured["body"], None)
+    assert captured["html"]
+    assert not is_org_erasure_message(captured["subject"], captured["body"], captured["html"])
 
 
 def test_parse_resend_timestamp() -> None:

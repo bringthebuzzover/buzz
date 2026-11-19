@@ -129,42 +129,30 @@ export function MarketingHero({
 export function Statement({
   line1,
   line2,
-  tone = "paper",
 }: {
   line1: string;
   line2: string;
-  tone?: "paper" | "dark";
 }) {
-  const isDark = tone === "dark";
-  const hasTrailingDot = isDark && line2.endsWith(".");
+  const hasTrailingDot = line2.endsWith(".");
   const line2Text = hasTrailingDot ? line2.slice(0, -1) : line2;
 
   return (
     <section
       data-reveal-group
-      data-nav-surface={isDark ? "ink" : "paper"}
-      className={cn(
-        "px-4 pt-[136px] pb-[88px] text-center md:pt-[216px] md:pb-[144px]",
-        isDark ? "bg-page" : "bg-surface-paper",
-      )}
+      data-nav-surface="ink"
+      className="bg-page px-4 pt-[136px] pb-[88px] text-center md:pt-[216px] md:pb-[144px]"
     >
       <p
         data-reveal-line
-        className={cn(
-          "mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
-          isDark ? "text-primary" : "text-on-accent",
-        )}
+        className="mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight text-primary opacity-0 motion-reduce:opacity-100 md:text-buzzStatement"
       >
         {line1}
       </p>
       <p
         data-reveal-line
-        className={cn(
-          "mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
-          isDark ? "text-accent" : "text-on-accent/55",
-        )}
+        className="mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight text-accent opacity-0 motion-reduce:opacity-100 md:text-buzzStatement"
       >
-        {isDark && hasTrailingDot ? (
+        {hasTrailingDot ? (
           <>
             {line2Text}
             <span className="text-primary">.</span>
@@ -598,60 +586,6 @@ export function FaqList({ items }: { items: { q: string; a: string }[] }) {
               </details>
             );
           })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function NumberedCards({
-  kicker,
-  support,
-  cards,
-}: {
-  kicker: string;
-  support: string;
-  cards: {
-    n: string;
-    title: string;
-    body: string;
-    image?: string;
-    alt?: string;
-    mark?: boolean;
-  }[];
-}) {
-  return (
-    <section
-      data-nav-surface="ink"
-      className="bg-page px-4 py-[68px] text-primary md:px-12 md:py-[108px]"
-    >
-      <div className="mx-auto max-w-[1152px]">
-        <h2 className="text-center text-[28px] font-medium leading-none md:text-buzzH2">{kicker}</h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-base text-muted">{support}</p>
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
-          {cards.map((card) => (
-            <article key={card.n}>
-              <div className="relative mb-4 aspect-[368/345] overflow-hidden rounded-buzzBoard">
-                {card.mark ? (
-                  <div className="flex h-full items-center justify-center bg-accent">
-                    <BeeMark className="h-28 w-28" />
-                  </div>
-                ) : (
-                  <img src={card.image} alt={card.alt ?? ""} className="h-full w-full object-cover" />
-                )}
-                <span
-                  className={cn(
-                    "absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium",
-                    card.mark ? "bg-page text-accent" : "bg-accent text-on-accent",
-                  )}
-                >
-                  {card.n}
-                </span>
-              </div>
-              <h3 className="text-xl font-medium">{card.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{card.body}</p>
-            </article>
-          ))}
         </div>
       </div>
     </section>

@@ -10,14 +10,6 @@ export const quietLinkClass = cn(
 /** Row and detail links (a table's first column). Pen type is paper, hover yellow. */
 export const entityLinkClass = cn("text-primary hover:text-accent", focusRingClass);
 
-/** Marketing nav item: paper type, hairline underline when active. */
-export function marketingNavItemClass(active: boolean) {
-  return cn(
-    "whitespace-nowrap text-sm text-buzz-fg transition hover:text-buzz-yellow",
-    active && "underline decoration-buzz-fg decoration-1 underline-offset-8",
-  );
-}
-
 /**
  * Admin nav item. Pen: radius 10, padding 12, 16px icon slot, yellow-faded
  * active state. The authenticated header keeps the pill (`appNavItemClass`).

@@ -109,7 +109,7 @@ it("leaves reduced-motion text visible without scroll observers", () => {
 
 it("renders dark statement with primary line 1 and accent line 2 with primary trailing dot", () => {
   const { container } = renderWithProviders(
-    <Statement line1="Campus drop." line2="Delivered to you." tone="dark" />,
+    <Statement line1="Campus drop." line2="Delivered to you." />,
   );
   const lines = container.querySelectorAll("[data-reveal-line]");
   expect(lines[0].className).toContain("text-primary");

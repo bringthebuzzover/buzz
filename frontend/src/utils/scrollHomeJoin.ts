@@ -1,5 +1,3 @@
-import type { NavigateFunction } from "react-router-dom";
-
 /** Router `location.state` — Home clears after scrolling. */
 export type HomeLocationState = { scrollToJoin?: boolean };
 
@@ -12,16 +10,4 @@ export function scrollToHomeJoin(): void {
     behavior: reduce ? "auto" : "smooth",
     block: "start",
   });
-}
-
-/** From any route: go home and scroll to Join Us, or scroll if already on `/`. */
-export function goToHomeJoin(
-  pathname: string,
-  navigate: NavigateFunction,
-): void {
-  if (pathname === "/") {
-    scrollToHomeJoin();
-    return;
-  }
-  navigate("/", { state: { scrollToJoin: true } satisfies HomeLocationState });
 }

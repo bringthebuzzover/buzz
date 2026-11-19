@@ -176,7 +176,10 @@ def test_org_apply_prefill_update_email_fields() -> None:
     assert f"mailto:{CONTACT_EMAIL}" in html
     assert "Finish your chapter's profile" in html
     assert "color-scheme" in html
-    assert "light only" in html
+    assert "dark only" in html
+    assert "#0B0B0B" in html
+    assert "#121212" in html
+    assert "#F6D32A" in html
     assert "The BUZZ Team" in text
     assert "The BUZZ Team" in html
     # Paste-this-link row is an <a>, not plain text only
@@ -189,7 +192,39 @@ def test_org_apply_prefill_update_email_fields() -> None:
     assert "Hi!" in no_name_text
 
 
-async def test_org_approved_email_links_tester_invite_tab(monkeypatch, _resend_key) -> None:
+async def test_org_approved_email_sends_dark_glass_login_cta(monkeypatch, _resend_key) -> None:
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "email_approved"})
+
+    _stub_transport(monkeypatch, handler)
+    assert (
+        await email.send_org_approved_email(
+            "org@campus.edu",
+            org_name="Campus Greeks",
+        )
+        is True
+    )
+    html = seen["body"]["html"]
+    text = seen["body"]["text"]
+    login_url = f"{settings.FRONTEND_URL}/login"
+    assert login_url in text
+    assert f'href="{login_url}"' in html
+    assert 'class="buzz-mail-btn"' in html
+    assert ">Sign in</a>" in html
+    assert "dark only" in html
+    assert "#0B0B0B" in html
+    assert "#121212" in html
+    assert "#F6D32A" in html
+
+
+async def test_org_connect_before_approval_email_links_tester_invite_tab(
+    monkeypatch, _resend_key
+) -> None:
     seen: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -200,7 +235,7 @@ async def test_org_approved_email_links_tester_invite_tab(monkeypatch, _resend_k
 
     _stub_transport(monkeypatch, handler)
     assert (
-        await email.send_org_approved_email(
+        await email.send_org_connect_before_approval_email(
             "org@campus.edu",
             org_name="Campus Greeks",
             connect_token="tok-connect",

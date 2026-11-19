@@ -53,12 +53,6 @@ export type OrgOnboardingInput = {
   shippingPlaceId?: string;
 };
 
-export type OrgApplyInput = OrgOnboardingInput & {
-  instagramHandle: string;
-  dropId?: string;
-  pitch?: string;
-};
-
 /** Public hashed apply draft. Does not consume the token. */
 export function useOrgApplyPrefill(token: string | null) {
   return useQuery({
@@ -72,20 +66,6 @@ export function useOrgApplyPrefill(token: string | null) {
       return data;
     },
     retry: false,
-  });
-}
-
-/** Retired signup endpoint; retained for legacy form compatibility. */
-export function useOrgApply() {
-  return useMutation({
-    mutationFn: async (input: OrgApplyInput) => {
-      const { data } = await apiFetch<OrgOnboardingResponse>("/api/orgs/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      return data;
-    },
   });
 }
 
