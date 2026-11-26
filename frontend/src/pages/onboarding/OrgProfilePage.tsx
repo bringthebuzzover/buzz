@@ -26,6 +26,7 @@ import {
   TextField,
   fieldClass,
 } from "../../components/forms/controls";
+import { HowFoundField, howFoundPayload, type HowFoundSource } from "../../components/forms/HowFoundField";
 import AuthPending from "../../components/auth/AuthPending";
 import { AuthHeading, AuthSplit } from "../../components/auth/AuthFrame";
 import ShippingAddressFields, {
@@ -60,6 +61,8 @@ export default function OrgProfilePage() {
   const [memberCount, setMemberCount] = useState("");
   const [category, setCategory] = useState<OrgCategory | "">("");
   const [contactName, setContactName] = useState("");
+  const [howFound, setHowFound] = useState<HowFoundSource | "">("");
+  const [howFoundOther, setHowFoundOther] = useState("");
   const [shipping, setShipping] = useState(EMPTY_SHIPPING);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -91,6 +94,7 @@ export default function OrgProfilePage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!howFound) return;
     if (prefillToken && (draft.isPending || draft.isError)) return;
     setError(null);
     setFieldErrors({});
@@ -137,6 +141,7 @@ export default function OrgProfilePage() {
         category,
         contactName: unwrapParsed(contact),
         ...shippingToApi(shipping),
+        ...howFoundPayload(howFound, howFoundOther),
       });
       clearDropPitch();
       await refreshUser();
@@ -255,6 +260,16 @@ export default function OrgProfilePage() {
             error={fieldErrors.memberCount}
           />
         </div>
+
+        <HowFoundField
+          value={howFound}
+          onChange={setHowFound}
+          otherValue={howFoundOther}
+          onOtherChange={setHowFoundOther}
+          disabled={submit.isPending}
+          error={fieldErrors.howFound}
+          otherError={fieldErrors.howFoundOther}
+        />
 
         <ShippingAddressFields
           value={shipping}

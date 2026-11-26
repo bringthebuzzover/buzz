@@ -207,6 +207,8 @@ def _scrub_org_profile(org: Organization) -> None:
     org.city = None
     org.state = None
     org.contact_name = None
+    org.how_found = None
+    org.how_found_other = None
     org.delivery_address = None
     org.shipping_line1 = None
     org.shipping_line2 = None
@@ -284,6 +286,8 @@ async def erase_brand(
     brand.brand_name = _TOMBSTONE_BRAND_NAME
     brand.company_email = f"erased+{brand.id.hex}@invalid.local"
     brand.contact_name = None
+    brand.how_found = None
+    brand.how_found_other = None
     brand.marketing_budget = None
     brand.intent_message = None
     brand.instagram_handle = None

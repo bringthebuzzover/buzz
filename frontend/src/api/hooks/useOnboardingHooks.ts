@@ -8,7 +8,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "../client";
 import type { components } from "../generated/schema";
-import type { OrgCategory } from "../../types/orgCategory";
 
 export type TokenResponse = components["schemas"]["TokenResponse"];
 export type OrgOnboardingResponse = components["schemas"]["OrgOnboardingResponse"];
@@ -32,26 +31,7 @@ export type AddressSuggestionItem =
 
 // ── Org onboarding ─────────────────────────────────────────────────────────
 
-export type OrgOnboardingInput = {
-  dropId?: string;
-  pitch?: string;
-  prefillToken?: string;
-  orgName: string;
-  university: string;
-  eduEmail: string;
-  tiktokHandle?: string;
-  memberCount: number;
-  category: OrgCategory;
-  city?: string;
-  state?: string;
-  contactName: string;
-  shippingLine1: string;
-  shippingLine2?: string;
-  shippingCity: string;
-  shippingState: string;
-  shippingPostalCode: string;
-  shippingPlaceId?: string;
-};
+export type OrgOnboardingInput = components["schemas"]["OrgOnboardingRequest"];
 
 /** Public hashed apply draft. Does not consume the token. */
 export function useOrgApplyPrefill(token: string | null) {
@@ -282,14 +262,7 @@ export function useBrandSetPassword() {
   });
 }
 
-export type BrandApplyInput = {
-  contactName: string;
-  brandName: string;
-  companyEmail: string;
-  marketingBudget: components["schemas"]["BrandApplyRequest"]["marketingBudget"];
-  intentMessage: string;
-  instagramHandle?: string;
-};
+export type BrandApplyInput = components["schemas"]["BrandApplyRequest"];
 
 /** Public brand self-registration (→ pending_review). No auth required. */
 export function useBrandApply() {

@@ -33,6 +33,8 @@ async def _live_brand(db_session):
         marketing_budget="50k_100k",
     )
     brand.instagram_handle = "acme"
+    brand.how_found = "other"
+    brand.how_found_other = "Campus newsletter"
     drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(role=PortalRole.ORG))
     org = await make_org(db_session, org_user, org_name="Campus Club")
@@ -77,6 +79,8 @@ class TestAdminBrandErase:
         assert brand.brand_name == "Deleted brand"
         assert brand.contact_name is None
         assert brand.marketing_budget is None
+        assert brand.how_found is None
+        assert brand.how_found_other is None
         assert brand.instagram_handle is None
         assert brand.company_email.startswith("erased+")
         assert user is not None and user.status == "erased"

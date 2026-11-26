@@ -46,6 +46,8 @@ class Brand(Base):
     brand_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     company_email: Mapped[str] = mapped_column(sa.String(320), nullable=False)
     contact_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    how_found: Mapped[str | None] = mapped_column(sa.String(16), nullable=True)
+    how_found_other: Mapped[str | None] = mapped_column(sa.String(120), nullable=True)
     marketing_budget: Mapped[str | None] = mapped_column(sa.String(16), nullable=True)
     intent_message: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     instagram_handle: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)

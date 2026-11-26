@@ -65,10 +65,10 @@ describe("BrandApplyPage", () => {
     mockMutateAsync.mockResolvedValue({ brandId: "brand-1", status: "pending_review" });
   });
 
-  it("asks for the five required fields and nothing else", () => {
+  it("requires a discovery choice as well as the other fields", () => {
     ({ container } = renderWithProviders(<BrandApplyPage />));
 
-    const labels = Array.from(container.querySelectorAll("label")).map(
+    const labels = Array.from(container.querySelectorAll("label[for]")).map(
       (node) => node.textContent?.trim() ?? "",
     );
     expect(labels).toEqual([
@@ -78,6 +78,18 @@ describe("BrandApplyPage", () => {
       "University marketing budget",
       "What are you hoping to do on BUZZ?",
     ]);
+
+    const choices = Array.from(
+      container.querySelectorAll<HTMLInputElement>('[role="radiogroup"] input[type="radio"]'),
+    );
+    expect(choices.map((choice) => choice.value)).toEqual([
+      "linkedin",
+      "instagram",
+      "referral",
+      "search_engine",
+      "other",
+    ]);
+    expect(choices.every((choice) => choice.required && !choice.checked)).toBe(true);
 
     const budget = fieldByLabel(container, "University marketing budget");
     expect(Array.from(budget.querySelectorAll("option")).map((o) => o.value)).toEqual([
@@ -93,7 +105,7 @@ describe("BrandApplyPage", () => {
     }
   });
 
-  it("submits trimmed values and the budget code", async () => {
+  it("submits trimmed values, the budget code, and the custom discovery answer", async () => {
     ({ container } = renderWithProviders(<BrandApplyPage />));
 
     setValue(fieldByLabel(container, "Your name"), "  Ada Lovelace ");
@@ -104,6 +116,11 @@ describe("BrandApplyPage", () => {
       fieldByLabel(container, "What are you hoping to do on BUZZ?"),
       " Sample our cold brew ",
     );
+
+    const other = container.querySelector<HTMLInputElement>('input[type="radio"][value="other"]')!;
+    act(() => other.click());
+    const detail = container.querySelector<HTMLInputElement>('[aria-label="Specify how you found us"]')!;
+    setValue(detail, "  Campus newsletter  ");
 
     await act(async () => {
       container
@@ -117,6 +134,8 @@ describe("BrandApplyPage", () => {
       companyEmail: "Ada@Acme.test",
       marketingBudget: "20k_50k",
       intentMessage: "Sample our cold brew",
+      howFound: "other",
+      howFoundOther: "Campus newsletter",
     });
   });
 });

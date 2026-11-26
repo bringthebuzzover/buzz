@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 
 from fastapi import APIRouter, Depends
@@ -87,9 +88,12 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     # The sender address is NOT a key part: a part containing "@" is rejected as
     # unsafe, which previously yielded ``None`` and disabled dedup entirely. The
     # hash keeps the address out of a provider-visible header.
-    submission_hash = hashlib.sha256(
-        "\n".join((payload.email, payload.name, payload.type, payload.message)).encode()
-    ).hexdigest()
+    how_found = payload.how_found.label
+    if payload.how_found_other is not None:
+        how_found = f"{how_found}: {payload.how_found_other}"
+    # Encode structurally so newlines in the message cannot collide with fields.
+    hash_input = json.dumps((payload.email, contact_name, payload.type, payload.message, how_found))
+    submission_hash = hashlib.sha256(hash_input.encode()).hexdigest()
     notice_key = email.build_idempotency_key(email.KIND_CONTACT, submission_hash)
 
     # Per-IP limits alone let one address receive up to 20 acknowledgements an
@@ -135,6 +139,7 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
                 contact_type=payload.type,
                 sender_email=payload.email,
                 message=payload.message,
+                how_found=how_found,
                 idempotency_key=notice_key,
             )
         finally:

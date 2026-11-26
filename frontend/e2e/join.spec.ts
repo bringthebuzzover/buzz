@@ -86,8 +86,26 @@ test("Instagram signup completes profile, verifies email, and waits for approval
   await page.getByRole("button", { name: "Continue with Instagram" }).click();
   await expect(page.getByRole("heading", { name: "Campus Profile" })).toBeVisible();
   await fillProfile(page);
+  const source = page.getByRole("radiogroup", { name: "How did you find us?" });
+  await page.getByRole("button", { name: "Complete Application" }).click();
+  await expect(page.getByText("Choose how you found BUZZ.")).toBeVisible();
+  expect(harness.submitted()).toBeNull();
+  const linkedIn = source.getByRole("radio", { name: "LinkedIn" });
+  await linkedIn.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(source.getByRole("radio", { name: "Instagram" })).toBeChecked();
+  await source.getByText("Other", { exact: true }).click();
+  const detail = page.getByRole("textbox", { name: "Specify how you found us" });
+  await detail.fill("   ");
+  await page.getByRole("button", { name: "Complete Application" }).click();
+  expect(harness.submitted()).toBeNull();
+  await detail.fill("  Campus newsletter  ");
   await page.getByRole("button", { name: "Complete Application" }).click();
   await expect(page.getByTestId("verify-edu-email")).toHaveText(DRAFT.eduEmail);
+  expect(harness.submitted()).toMatchObject({
+    howFound: "other",
+    howFoundOther: "Campus newsletter",
+  });
   expect(harness.submitted()).not.toHaveProperty("instagramHandle");
   await page.goto(`/onboarding/verify-email?token=fake-verification&next=${encodeURIComponent(NEXT)}`);
   await page.getByRole("button", { name: /^verify email$/i }).click();
@@ -106,12 +124,14 @@ test("invitation draft survives OAuth, failed submit and reload; successful subm
   await page.getByRole("button", { name: "Continue with Instagram" }).click();
   await expect(page.getByLabel("Organization name", { exact: true })).toHaveValue(DRAFT.orgName);
   await expect(page.getByText(`You wrote: ${DRAFT.shippingRaw}`)).toBeVisible();
+  await page.getByText("Referral", { exact: true }).click();
   harness.failNext();
   await page.getByRole("button", { name: "Complete Application" }).click();
   await expect(page.getByText("Please retry the test address.")).toBeVisible();
   expect(harness.used()).toBe(false);
   await page.reload();
   await expect(page.getByLabel("School (.edu) email", { exact: true })).toHaveValue(DRAFT.eduEmail);
+  await page.getByText("Referral", { exact: true }).click();
   await page.getByRole("button", { name: "Complete Application" }).click();
   await expect(page).toHaveURL(/onboarding\/verify-email$/);
   expect(harness.submitted()).toMatchObject({ prefillToken: "fake-draft", orgName: DRAFT.orgName });
@@ -141,11 +161,13 @@ test("public drop signup preserves pitch through Instagram, profile retry, verif
   await page.getByTestId("public-drop-pitch").fill("Updated campus pitch");
   await page.getByRole("link", { name: "Continue onboarding" }).click();
   await fillProfile(page);
+  await page.getByText("Referral", { exact: true }).click();
   harness.failNext();
   await page.getByRole("button", { name: "Complete Application" }).click();
   await expect(page.getByText("Please retry the test address.")).toBeVisible();
   await page.reload();
   await fillProfile(page);
+  await page.getByText("Referral", { exact: true }).click();
   await page.getByRole("button", { name: "Complete Application" }).click();
   expect(harness.submitted()).toMatchObject({ dropId: DROP, pitch: "Updated campus pitch" });
   expect(harness.submitted()).not.toHaveProperty("instagramHandle");

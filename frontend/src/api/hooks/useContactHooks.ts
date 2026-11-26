@@ -7,15 +7,9 @@
  */
 import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "../client";
+import type { components } from "../generated/schema";
 
-export type ContactSubmission = {
-  name: string;
-  type: "organization" | "brand";
-  email: string;
-  message: string;
-  /** Honeypot. Real users never fill it; see `ContactModal`. */
-  website?: string;
-};
+export type ContactSubmission = components["schemas"]["ContactRequest"];
 
 export function useSubmitContact() {
   return useMutation({
