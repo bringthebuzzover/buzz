@@ -10,6 +10,7 @@ from pydantic.alias_generators import to_camel
 
 from app.models.enums import OrgCategory
 from app.schemas.common import CamelModel
+from app.schemas.how_found import HowFoundRequest
 
 
 def _edu_email(v: str) -> str:
@@ -112,7 +113,7 @@ class OrgApplyPrefillResponse(CamelModel):
     shipping_raw: str | None = None
 
 
-class OrgOnboardingRequest(_OrgProfileRequest):
+class OrgOnboardingRequest(HowFoundRequest, _OrgProfileRequest):
     """Submit an authenticated profile and optional public-drop apply intent."""
 
     prefill_token: OptionalText = None

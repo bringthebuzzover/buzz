@@ -51,6 +51,8 @@ class Organization(Base):
     city: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     state: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
     contact_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    how_found: Mapped[str | None] = mapped_column(sa.String(16), nullable=True)
+    how_found_other: Mapped[str | None] = mapped_column(sa.String(120), nullable=True)
     delivery_address: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     # Structured US ship-to. Null on legacy rows until the next profile save;
     # apply/create always writes these. Campus city/state are not collected.

@@ -180,6 +180,7 @@ async def test_brand_drop_detail_org_with_no_posts(app_client: AsyncClient, db_s
 
 
 _ONBOARDING_REQUIRED = {
+    "howFound": "referral",
     "memberCount": 40,
     "city": "Ithaca",
     "state": "NY",

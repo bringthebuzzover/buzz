@@ -558,6 +558,7 @@ class TestAdminCreateBrand:
         public = await app_client.post(
             "/api/brands/apply",
             json={
+                "howFound": "referral",
                 "contactName": "Test Applicant",
                 "marketingBudget": "5_20k",
                 "intentMessage": "Campus campaign.",

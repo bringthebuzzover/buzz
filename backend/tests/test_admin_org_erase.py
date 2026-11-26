@@ -177,6 +177,8 @@ class TestAdminOrgErase:
         user, org, accepted, applied, post = await _seed_erasable_org(db_session)
         post.media_url = "https://instagram.test/media.jpg"
         post.caption = "hello campus"
+        org.how_found = "other"
+        org.how_found_other = "Campus newsletter"
         post.insights_raw = {"reach": 1}
         post.views = 9
         post.saved = 2
@@ -229,6 +231,8 @@ class TestAdminOrgErase:
         assert org.shipping_state is None
         assert org.shipping_postal_code is None
         assert org.contact_name is None
+        assert org.how_found is None
+        assert org.how_found_other is None
         app_count = await db_session.scalar(
             select(func.count())
             .select_from(DropApplication)

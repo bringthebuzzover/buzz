@@ -16,11 +16,12 @@ from pydantic.alias_generators import to_camel
 from app.marketing_budget import MarketingBudget
 from app.models.enums import DropStage, SeatProgress
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
+from app.schemas.how_found import HowFoundRequest
 from app.schemas.posts import ReelsSkipRate
 from app.schemas.shipments import ShipmentItem
 
 
-class BrandApplyRequest(CamelModel):
+class BrandApplyRequest(HowFoundRequest):
     """Public brand self-registration body for ``POST /api/brands/apply``."""
 
     contact_name: str
