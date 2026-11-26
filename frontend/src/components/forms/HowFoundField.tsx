@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { components } from "../../api/generated/schema";
 import { fieldLabelClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
@@ -15,8 +15,7 @@ const OPTIONS: ReadonlyArray<{ value: HowFoundSource; label: string }> = [
   { value: "other", label: "Other" },
 ];
 
-export function howFoundPayload(source: HowFoundSource | "", other: string) {
-  if (!source) return {};
+export function howFoundPayload(source: HowFoundSource, other: string) {
   if (source === "other") return { howFound: source, howFoundOther: other.trim() };
   return { howFound: source };
 }
@@ -40,7 +39,10 @@ export function HowFoundField({
 }) {
   const id = useId();
   const labelId = `${id}-label`;
-  const groupError = error ?? (value !== "other" ? otherError : undefined);
+  const [showRequiredError, setShowRequiredError] = useState(false);
+  const groupError =
+    error ?? (value !== "other" ? otherError : undefined) ??
+    (!value && showRequiredError ? "Choose how you found BUZZ." : undefined);
   const errorId = `${id}-error`;
 
   return (
@@ -51,6 +53,8 @@ export function HowFoundField({
       <div
         role="radiogroup"
         aria-labelledby={labelId}
+        aria-required="true"
+        onInvalid={() => setShowRequiredError(true)}
         aria-describedby={groupError ? errorId : undefined}
         aria-invalid={groupError ? true : undefined}
         className="flex flex-wrap gap-1.5"
@@ -63,6 +67,7 @@ export function HowFoundField({
               value={option}
               checked={value === option}
               onChange={() => onChange(option)}
+              required
               disabled={disabled}
               className="peer sr-only"
             />

@@ -65,7 +65,7 @@ describe("BrandApplyPage", () => {
     mockMutateAsync.mockResolvedValue({ brandId: "brand-1", status: "pending_review" });
   });
 
-  it("keeps the five required fields and offers optional discovery choices", () => {
+  it("requires a discovery choice as well as the other fields", () => {
     ({ container } = renderWithProviders(<BrandApplyPage />));
 
     const labels = Array.from(container.querySelectorAll("label[for]")).map(
@@ -89,7 +89,7 @@ describe("BrandApplyPage", () => {
       "search_engine",
       "other",
     ]);
-    expect(choices.every((choice) => !choice.required && !choice.checked)).toBe(true);
+    expect(choices.every((choice) => choice.required && !choice.checked)).toBe(true);
 
     const budget = fieldByLabel(container, "University marketing budget");
     expect(Array.from(budget.querySelectorAll("option")).map((o) => o.value)).toEqual([

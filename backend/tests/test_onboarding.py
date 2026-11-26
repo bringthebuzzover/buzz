@@ -29,6 +29,7 @@ from tests.conftest import admin_headers, make_brand, make_user, mint_access_tok
 # --- Org onboarding: profile submit -----------------------------------------
 
 _VALID_PROFILE = {
+    "howFound": "linkedin",
     "orgName": "Buzz Club",
     "university": "Test University",
     "eduEmail": "club@test.edu",
@@ -44,17 +45,14 @@ _VALID_PROFILE = {
 }
 
 
-@pytest.mark.parametrize("source", [None, "linkedin"])
-async def test_onboarding_submit_advances_status(
-    app_client: AsyncClient, db_session, source
-) -> None:
+async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_session) -> None:
     user = await persist(
         db_session,
         make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_1"),
     )
     resp = await app_client.post(
         "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, **({"howFound": source} if source else {})},
+        json=_VALID_PROFILE,
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
     assert resp.status_code == 200, resp.text
@@ -71,7 +69,7 @@ async def test_onboarding_submit_advances_status(
     assert org.shipping_state == "NY"
     assert org.shipping_postal_code == "14850"
     assert org.delivery_address == "123 Campus Rd, Ithaca, NY 14850"
-    assert org.how_found == source
+    assert org.how_found == _VALID_PROFILE["howFound"]
     assert org.how_found_other is None
     await db_session.refresh(user)
     assert user.edu_email == "club@test.edu"
@@ -185,16 +183,16 @@ async def test_onboarding_takeover_stale_unverified_edu(
     assert peer.edu_email is None
 
 
-async def test_onboarding_requires_profile_fields(app_client: AsyncClient, db_session) -> None:
+@pytest.mark.parametrize("field", ["contactName", "howFound"])
+async def test_onboarding_requires_profile_fields(
+    app_client: AsyncClient, db_session, field
+) -> None:
     user = await persist(
         db_session,
         make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_req"),
     )
-    minimal = {
-        "orgName": "Buzz Club",
-        "university": "Test University",
-        "eduEmail": "club@test.edu",
-    }
+    minimal = {**_VALID_PROFILE}
+    minimal.pop(field)
     resp = await app_client.post(
         "/api/orgs/onboarding",
         json=minimal,
@@ -590,10 +588,13 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
         ("intentMessage", "x" * 2001),
         ("marketingBudget", None),
         ("marketingBudget", "invalid"),
+        ("howFound", None),
+        ("howFound", "invalid"),
     ],
 )
 async def test_brand_apply_required_fields(app_client: AsyncClient, field, value) -> None:
     payload = {
+        "howFound": "referral",
         "contactName": "Test Applicant",
         "brandName": "Test Company",
         "companyEmail": "user1@example.com",
@@ -613,6 +614,7 @@ async def test_brand_apply_duplicate_email_conflict(app_client: AsyncClient, db_
     resp = await app_client.post(
         "/api/brands/apply",
         json={
+            "howFound": "referral",
             "contactName": "Test Applicant",
             "marketingBudget": "5_20k",
             "intentMessage": "Campus campaign.",
@@ -633,6 +635,7 @@ async def test_brand_apply_disabled_returns_403(
     resp = await app_client.post(
         "/api/brands/apply",
         json={
+            "howFound": "referral",
             "contactName": "Test Applicant",
             "marketingBudget": "5_20k",
             "intentMessage": "Campus campaign.",

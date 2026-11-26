@@ -438,6 +438,7 @@ async def scenario_onboarding(api: Api) -> None:
         "/api/orgs/onboarding",
         token=tok,
         json={
+            "howFound": "referral",
             "orgName": "Bash Onboard",
             "university": "Bash U",
             "eduEmail": f"onboard-{suffix}@campus.edu",

@@ -1114,7 +1114,7 @@ async def send_contact_notice(
     contact_type: str,
     sender_email: str,
     message: str,
-    how_found: str | None = None,
+    how_found: str,
     idempotency_key: str | None = None,
 ) -> bool:
     """Notify ops of a contact-form message; **Reply reaches the sender.**
@@ -1128,11 +1128,9 @@ async def send_contact_notice(
     # identical retry, because the route derives the Idempotency-Key from the
     # same content; a per-attempt value would make Resend return 409 and turn
     # every retry into a permanent 502. The provider records the send time.
-    parts = [message]
-    if how_found is not None:
-        parts.append(f"How did you find us? {how_found}")
-    parts.append(f"-- {contact_name} <{sender_email}>")
-    body = "\n\n".join(parts)
+    body = "\n\n".join(
+        (message, f"How did you find us? {how_found}", f"-- {contact_name} <{sender_email}>")
+    )
     if settings.ENVIRONMENT == "development":
         logger.info(
             "DEV EMAIL — Contact notice: to=%s from=%s type=%s name=%s",

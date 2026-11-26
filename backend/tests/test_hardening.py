@@ -145,6 +145,7 @@ async def test_rate_limit_blocks_after_threshold(app_client: AsyncClient) -> Non
             await app_client.post(
                 "/api/brands/apply",
                 json={
+                    "howFound": "referral",
                     "contactName": "Test Applicant",
                     "marketingBudget": "5_20k",
                     "intentMessage": "Campus campaign.",
@@ -166,6 +167,7 @@ async def test_rate_limit_disabled_does_not_block(app_client: AsyncClient) -> No
         resp = await app_client.post(
             "/api/brands/apply",
             json={
+                "howFound": "referral",
                 "contactName": "Test Applicant",
                 "marketingBudget": "5_20k",
                 "intentMessage": "Campus campaign.",

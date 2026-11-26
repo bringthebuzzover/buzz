@@ -56,6 +56,11 @@ function setSelect(id: string, value: string) {
   });
 }
 
+function selectReferral() {
+  const referral = document.body.querySelector<HTMLInputElement>('input[type="radio"][value="referral"]')!;
+  act(() => referral.click());
+}
+
 function submit() {
   return act(async () => {
     document.body
@@ -106,8 +111,9 @@ describe("ContactModal", () => {
     setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "We want to run a drop.");
-    const referral = document.body.querySelector<HTMLInputElement>('input[type="radio"][value="referral"]')!;
-    act(() => referral.click());
+    await submit();
+    expect(mockMutateAsync).not.toHaveBeenCalled();
+    selectReferral();
     await submit();
 
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
@@ -127,6 +133,7 @@ describe("ContactModal", () => {
 
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
+    selectReferral();
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "Please keep this text.");
     await submit();
@@ -165,6 +172,7 @@ describe("ContactModal", () => {
 
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
+    selectReferral();
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "We want to run a drop.");
     await submit();
@@ -193,6 +201,7 @@ describe("ContactModal", () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
+    selectReferral();
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -214,6 +223,7 @@ describe("ContactModal", () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
+    selectReferral();
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -232,6 +242,7 @@ describe("ContactModal", () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
+    selectReferral();
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -245,6 +256,7 @@ describe("ContactModal", () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
+    selectReferral();
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();
@@ -262,6 +274,7 @@ describe("ContactModal", () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
+    selectReferral();
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "x");
     await submit();

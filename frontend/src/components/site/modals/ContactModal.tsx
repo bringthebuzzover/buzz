@@ -180,6 +180,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!howFound) return;
     // A new attempt retires the previous attempt's errors, field-level included:
     // leaving them up while the request runs claims the new input is still bad.
     setError(null);

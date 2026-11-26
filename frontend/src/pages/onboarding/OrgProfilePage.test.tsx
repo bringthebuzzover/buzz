@@ -58,6 +58,8 @@ it.each([true, false])("submits the profile and carries email delivery state: %s
   for (const [field, value] of [
     ["line1", "123 Test St"], ["city", "Test City"], ["state", "NY"], ["postal", "10001"],
   ]) fill(container, `[data-testid="org-onboarding-shipping-${field}"]`, value);
+  const referral = container.querySelector<HTMLInputElement>('input[type="radio"][value="referral"]')!;
+  act(() => referral.click());
   await act(async () => {
     container.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
   });
@@ -68,7 +70,7 @@ it.each([true, false])("submits the profile and carries email delivery state: %s
   });
   expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({
     prefillToken: "draft-1", orgName: "Test Org", eduEmail: "org1@example.edu", memberCount: 40,
-    shippingLine1: "123 Test St", category: "social",
+    shippingLine1: "123 Test St", category: "social", howFound: "referral",
   }));
   expect(mockSubmit.mock.calls[0][0]).not.toHaveProperty("instagramHandle");
   expect(mockRefresh).toHaveBeenCalledTimes(1);

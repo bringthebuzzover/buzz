@@ -94,6 +94,7 @@ export default function OrgProfilePage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!howFound) return;
     if (prefillToken && (draft.isPending || draft.isError)) return;
     setError(null);
     setFieldErrors({});

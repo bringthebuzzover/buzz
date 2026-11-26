@@ -3852,7 +3852,7 @@ export interface components {
             companyEmail: string;
             /** Contactname */
             contactName: string;
-            howFound?: components["schemas"]["HowFoundSource"] | null;
+            howFound: components["schemas"]["HowFoundSource"];
             /** Howfoundother */
             howFoundOther?: string | null;
             /** Instagramhandle */
@@ -4463,7 +4463,7 @@ export interface components {
         ContactRequest: {
             /** Email */
             email: string;
-            howFound?: components["schemas"]["HowFoundSource"] | null;
+            howFound: components["schemas"]["HowFoundSource"];
             /** Howfoundother */
             howFoundOther?: string | null;
             /** Message */
@@ -5648,7 +5648,7 @@ export interface components {
             dropId?: string | null;
             /** Eduemail */
             eduEmail: string;
-            howFound?: components["schemas"]["HowFoundSource"] | null;
+            howFound: components["schemas"]["HowFoundSource"];
             /** Howfoundother */
             howFoundOther?: string | null;
             /** Membercount */

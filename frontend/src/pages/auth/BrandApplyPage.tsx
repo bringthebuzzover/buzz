@@ -7,9 +7,7 @@
  * form. After a successful apply, the brand waits for admin approval + an
  * invite email to set their password.
  *
- * Batch 6: five required fields — full name and company name side by side, then
- * company email, university marketing budget and a short message. The form runs
- * at the `wide` (640px) auth width so the paired fields have room.
+ * The form uses the wide (640px) auth width to pair the applicant and company names.
  */
 import { useState } from "react";
 import { useBrandApply, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
@@ -59,6 +57,7 @@ export default function BrandApplyPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!howFound) return;
     setError(null);
     setFieldErrors({});
     try {

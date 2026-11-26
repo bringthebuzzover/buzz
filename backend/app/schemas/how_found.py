@@ -27,7 +27,7 @@ class HowFoundSource(StrEnum):
 
 
 class HowFoundRequest(CamelModel):
-    how_found: HowFoundSource | None = None
+    how_found: HowFoundSource
     how_found_other: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] | None
     ) = Field(default=None, validate_default=True)

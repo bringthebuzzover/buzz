@@ -75,6 +75,7 @@ async def test_brand_apply_sends_one_ops_notice(app_client, monkeypatch) -> None
     response = await app_client.post(
         "/api/brands/apply",
         json={
+            "howFound": "referral",
             "contactName": "  Test Applicant  ",
             "brandName": "Test Company",
             "companyEmail": "user1@example.com",

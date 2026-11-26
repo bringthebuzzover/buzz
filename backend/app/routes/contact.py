@@ -88,16 +88,11 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     # The sender address is NOT a key part: a part containing "@" is rejected as
     # unsafe, which previously yielded ``None`` and disabled dedup entirely. The
     # hash keeps the address out of a provider-visible header.
-    how_found = None
-    parts = (payload.email, contact_name, payload.type, payload.message)
-    # Preserve the key for older submissions with no answer. Encode the new
-    # format structurally so newlines in the message cannot collide with fields.
-    hash_input = "\n".join(parts)
-    if payload.how_found is not None:
-        how_found = payload.how_found.label
-        if payload.how_found_other is not None:
-            how_found = f"{how_found}: {payload.how_found_other}"
-        hash_input = json.dumps((*parts, how_found))
+    how_found = payload.how_found.label
+    if payload.how_found_other is not None:
+        how_found = f"{how_found}: {payload.how_found_other}"
+    # Encode structurally so newlines in the message cannot collide with fields.
+    hash_input = json.dumps((payload.email, contact_name, payload.type, payload.message, how_found))
     submission_hash = hashlib.sha256(hash_input.encode()).hexdigest()
     notice_key = email.build_idempotency_key(email.KIND_CONTACT, submission_hash)
 
