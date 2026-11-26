@@ -3852,6 +3852,9 @@ export interface components {
             companyEmail: string;
             /** Contactname */
             contactName: string;
+            howFound?: components["schemas"]["HowFoundSource"] | null;
+            /** Howfoundother */
+            howFoundOther?: string | null;
             /** Instagramhandle */
             instagramHandle?: string | null;
             /** Intentmessage */
@@ -4460,6 +4463,9 @@ export interface components {
         ContactRequest: {
             /** Email */
             email: string;
+            howFound?: components["schemas"]["HowFoundSource"] | null;
+            /** Howfoundother */
+            howFoundOther?: string | null;
             /** Message */
             message: string;
             /** Name */
@@ -5380,6 +5386,11 @@ export interface components {
             version: string;
         };
         /**
+         * HowFoundSource
+         * @enum {string}
+         */
+        HowFoundSource: "linkedin" | "instagram" | "referral" | "search_engine" | "other";
+        /**
          * ImpersonateRequest
          * @description Optional continuation of an existing View-as session.
          *
@@ -5637,6 +5648,9 @@ export interface components {
             dropId?: string | null;
             /** Eduemail */
             eduEmail: string;
+            howFound?: components["schemas"]["HowFoundSource"] | null;
+            /** Howfoundother */
+            howFoundOther?: string | null;
             /** Membercount */
             memberCount: number;
             /** Orgname */

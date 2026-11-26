@@ -44,14 +44,17 @@ _VALID_PROFILE = {
 }
 
 
-async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_session) -> None:
+@pytest.mark.parametrize("source", [None, "linkedin"])
+async def test_onboarding_submit_advances_status(
+    app_client: AsyncClient, db_session, source
+) -> None:
     user = await persist(
         db_session,
         make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_1"),
     )
     resp = await app_client.post(
         "/api/orgs/onboarding",
-        json=_VALID_PROFILE,
+        json={**_VALID_PROFILE, **({"howFound": source} if source else {})},
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
     assert resp.status_code == 200, resp.text
@@ -68,6 +71,8 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     assert org.shipping_state == "NY"
     assert org.shipping_postal_code == "14850"
     assert org.delivery_address == "123 Campus Rd, Ithaca, NY 14850"
+    assert org.how_found == source
+    assert org.how_found_other is None
     await db_session.refresh(user)
     assert user.edu_email == "club@test.edu"
     assert user.instagram_username is not None
@@ -553,6 +558,8 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
             "companyEmail": "Hello@Acme.com",
             "instagramHandle": "@acme",
             "intentMessage": "We want campus reach.",
+            "howFound": "other",
+            "howFoundOther": "  Campus newsletter  ",
         },
     )
     assert resp.status_code == 200, resp.text
@@ -563,6 +570,8 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
     assert brand is not None
     assert brand.contact_name == "Test Applicant"
     assert brand.marketing_budget == "5_20k"
+    assert brand.how_found == "other"
+    assert brand.how_found_other == "Campus newsletter"
     assert brand.instagram_handle == "acme" or brand.instagram_handle == "@acme"
     user = await db_session.get(User, brand.user_id)
     assert user.portal_role == PortalRole.BRAND.value

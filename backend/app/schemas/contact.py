@@ -13,6 +13,7 @@ from pydantic.alias_generators import to_camel
 
 from app.schemas.common import CamelModel
 from app.schemas.email_rules import clean_email_address
+from app.schemas.how_found import HowFoundRequest
 
 # Kept in step with the frontend fields; generous but bounded so a script cannot
 # push arbitrary volume through the mail provider.
@@ -20,7 +21,7 @@ _NAME_LIMIT = 100
 _MESSAGE_LIMIT = 2000
 
 
-class ContactRequest(CamelModel):
+class ContactRequest(HowFoundRequest):
     """``POST /api/contact`` body.
 
     ``website`` is a **honeypot**: a real browser never fills it because the

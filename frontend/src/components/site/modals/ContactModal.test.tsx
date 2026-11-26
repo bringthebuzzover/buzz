@@ -99,13 +99,15 @@ describe("ContactModal", () => {
     ).toBe(false);
   });
 
-  it("posts the form once with the honeypot left empty", async () => {
+  it("posts the source once with the honeypot left empty", async () => {
     renderWithProviders(<ContactModal onClose={jest.fn()} />);
 
     setInput("contact-name", "Jordan");
     setSelect("contact-type", "organization");
     setInput("contact-email", "jordan@example.edu");
     setInput("contact-message", "We want to run a drop.");
+    const referral = document.body.querySelector<HTMLInputElement>('input[type="radio"][value="referral"]')!;
+    act(() => referral.click());
     await submit();
 
     expect(mockMutateAsync).toHaveBeenCalledTimes(1);
@@ -115,6 +117,7 @@ describe("ContactModal", () => {
       email: "jordan@example.edu",
       message: "We want to run a drop.",
       website: "",
+      howFound: "referral",
     });
   });
 

@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { useBrandApply, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import { userFacingApiError } from "../../api/userFacingError";
 import {
   AuthArrowLink,
   AuthHeading,
@@ -29,6 +30,7 @@ import {
   TextArea,
   TextField,
 } from "../../components/forms/controls";
+import { HowFoundField, howFoundPayload, type HowFoundSource } from "../../components/forms/HowFoundField";
 import {
   MARKETING_BUDGET_CODES,
   MARKETING_BUDGET_LABELS,
@@ -43,8 +45,11 @@ export default function BrandApplyPage() {
   const [brandName, setBrandName] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
   const [marketingBudget, setMarketingBudget] = useState("");
+  const [howFound, setHowFound] = useState<HowFoundSource | "">("");
+  const [howFoundOther, setHowFoundOther] = useState("");
   const [intentMessage, setIntentMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
   // Restrictive default: show the form ONLY when self-registration is explicitly
@@ -55,6 +60,7 @@ export default function BrandApplyPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     try {
       await apply.mutateAsync({
         contactName: contactName.trim(),
@@ -62,12 +68,17 @@ export default function BrandApplyPage() {
         companyEmail: companyEmail.trim(),
         marketingBudget: marketingBudget as MarketingBudget,
         intentMessage: intentMessage.trim(),
+        ...howFoundPayload(howFound, howFoundOther),
       });
       setSubmitted(true);
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
-      );
+      const fallback = "Something went wrong. Please try again.";
+      const { fields } = userFacingApiError(err, fallback);
+      if (fields.howFound || fields.howFoundOther) {
+        setFieldErrors(fields);
+      } else {
+        setError(err instanceof ApiError ? err.message : fallback);
+      }
     }
   };
 
@@ -161,6 +172,16 @@ export default function BrandApplyPage() {
             </option>
           ))}
         </Select>
+
+        <HowFoundField
+          value={howFound}
+          onChange={setHowFound}
+          otherValue={howFoundOther}
+          onOtherChange={setHowFoundOther}
+          disabled={apply.isPending}
+          error={fieldErrors.howFound}
+          otherError={fieldErrors.howFoundOther}
+        />
 
         <TextArea
           label="What are you hoping to do on BUZZ?"

@@ -12,7 +12,14 @@
 import { useState } from "react";
 import { ArrowUpRight, Mail } from "lucide-react";
 import { siteIdentity } from "../../../data/siteIdentity";
-import { Button, ErrorBanner, Select, TextArea, TextField } from "../../forms/controls";
+import {
+  Button,
+  ErrorBanner,
+  Select,
+  TextArea,
+  TextField,
+} from "../../forms/controls";
+import { HowFoundField, howFoundPayload, type HowFoundSource } from "../../forms/HowFoundField";
 import { Modal } from "../../ui/Modal";
 import { SURFACE, TEXT } from "../../../theme/tokens";
 import { focusRingClass } from "../../../theme/controls";
@@ -68,14 +75,14 @@ type ContactForm = { name: string; type: ContactType; email: string; message: st
 
 const EMPTY: ContactForm = { name: "", type: "", email: "", message: "" };
 
-type ContactField = keyof typeof EMPTY;
+type ContactField = keyof ContactForm | "howFound" | "howFoundOther";
 
 /**
  * Native length caps mirroring the backend schema, so the browser stops the
  * user at the same place the server would (names 100, email 320, message 2000).
  * Without this the first hint of a problem is a 422 after a round-trip.
  */
-const MAX_LENGTH: Record<ContactField, number> = {
+const MAX_LENGTH: Record<keyof ContactForm, number> = {
   name: 100,
   type: 20,
   email: 320,
@@ -84,13 +91,15 @@ const MAX_LENGTH: Record<ContactField, number> = {
 
 /**
  * The API reports the schema's snake_case names; the form is camelCase. Only
- * these four keys can land on a control — anything else has no home here.
+ * these keys can land on a control — anything else has no home here.
  */
 const SERVER_FIELD_TO_CONTROL: Record<string, ContactField> = {
   name: "name",
   type: "type",
   email: "email",
   message: "message",
+  howFound: "howFound",
+  howFoundOther: "howFoundOther",
 };
 
 /**
@@ -133,6 +142,8 @@ export default function ContactModal({ onClose }: ContactModalProps) {
   const { social, contact, brand } = siteIdentity;
   const submit = useSubmitContact();
   const [form, setForm] = useState<ContactForm>(EMPTY);
+  const [howFound, setHowFound] = useState<HowFoundSource | "">("");
+  const [howFoundOther, setHowFoundOther] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ContactField, string>>>({});
   // Honeypot lives outside `form` so it is never echoed into state a user sees.
@@ -179,7 +190,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
       return;
     }
     try {
-      await submit.mutateAsync({ ...form, type, website });
+      await submit.mutateAsync({ ...form, type, website, ...howFoundPayload(howFound, howFoundOther) });
       // Clear the message body only; names stay in case they write again.
       setForm((prev) => ({ ...prev, message: "" }));
     } catch (err) {
@@ -318,12 +329,23 @@ export default function ContactModal({ onClose }: ContactModalProps) {
               />
             </div>
             <div className="sm:col-span-2">
+              <HowFoundField
+                value={howFound}
+                onChange={setHowFound}
+                otherValue={howFoundOther}
+                onOtherChange={setHowFoundOther}
+                error={fieldErrors.howFound}
+                otherError={fieldErrors.howFoundOther}
+                disabled={submit.isPending}
+              />
+            </div>
+            <div className="sm:col-span-2">
               <TextArea
                 id="contact-message"
                 label="Message"
                 placeholder="Tell us a little about what you have in mind..."
                 required
-                rows={5}
+                rows={2}
                 resizable
                 maxLength={MAX_LENGTH.message}
                 value={form.message}

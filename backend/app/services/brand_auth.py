@@ -42,6 +42,8 @@ async def apply_brand(
     intent_message: str | None,
     contact_name: str | None = None,
     marketing_budget: str | None = None,
+    how_found: str | None = None,
+    how_found_other: str | None = None,
 ) -> dict[str, str]:
     """Public brand self-registration → creates a User + pending_review Brand.
 
@@ -78,6 +80,8 @@ async def apply_brand(
         intent_message=(intent_message or None),
         contact_name=contact_name,
         marketing_budget=marketing_budget,
+        how_found=how_found,
+        how_found_other=how_found_other,
         status=BrandStatus.PENDING_REVIEW.value,
     )
     db.add(brand)

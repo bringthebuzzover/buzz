@@ -72,6 +72,43 @@ async def test_contact_sends_ops_notice_with_reply_to(app_client: AsyncClient, s
     assert "received your message" in ack["body"].lower()
 
 
+async def test_contact_notice_carries_source_and_deduplicates_identical_retries(
+    app_client: AsyncClient, sent
+) -> None:
+    other = {**_VALID, "howFound": "other", "howFoundOther": "  <Campus newsletter>  "}
+    for payload in (other, other, {**_VALID, "howFound": "referral"}):
+        resp = await app_client.post("/api/contact", json=payload)
+        assert resp.status_code == 200, resp.text
+
+    assert len(sent) == 4
+    first_notice, first_ack, second_notice, _ = sent
+    assert "How did you find us? Other: <Campus newsletter>" in first_notice["body"]
+    assert "&lt;Campus newsletter&gt;" in first_notice["html"]
+    assert "Campus newsletter" not in first_ack["body"]
+    assert "How did you find us? Referral" in second_notice["body"]
+    assert first_notice["idempotency_key"] != second_notice["idempotency_key"]
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        {"howFound": "unknown"},
+        {"howFound": "other"},
+        {"howFound": "other", "howFoundOther": "   "},
+        {"howFound": "other", "howFoundOther": "x" * 121},
+        {"howFound": "other", "howFoundOther": "a\x00b"},
+        {"howFound": "linkedin", "howFoundOther": "A blog"},
+        {"howFoundOther": "A blog"},
+    ],
+)
+async def test_contact_rejects_invalid_source_before_sending(
+    app_client: AsyncClient, sent, answer
+) -> None:
+    resp = await app_client.post("/api/contact", json={**_VALID, **answer})
+    assert resp.status_code == 422, resp.text
+    assert sent == []
+
+
 async def test_contact_honeypot_returns_success_and_sends_nothing(
     app_client: AsyncClient, sent
 ) -> None:

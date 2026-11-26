@@ -3838,6 +3838,28 @@
             "title": "Contactname",
             "type": "string"
           },
+          "howFound": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HowFoundSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "howFoundOther": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Howfoundother"
+          },
           "instagramHandle": {
             "anyOf": [
               {
@@ -5531,6 +5553,28 @@
           "email": {
             "title": "Email",
             "type": "string"
+          },
+          "howFound": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HowFoundSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "howFoundOther": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Howfoundother"
           },
           "message": {
             "title": "Message",
@@ -8969,6 +9013,17 @@
         "title": "HealthStatusResponse",
         "type": "object"
       },
+      "HowFoundSource": {
+        "enum": [
+          "linkedin",
+          "instagram",
+          "referral",
+          "search_engine",
+          "other"
+        ],
+        "title": "HowFoundSource",
+        "type": "string"
+      },
       "ImpersonateRequest": {
         "description": "Optional continuation of an existing View-as session.\n\n``started_at`` is the original mint time in epoch milliseconds. When it is\nset, the intent cookie expires at that time plus the intent TTL, and a\ncontinuation past the window is refused. Omit it to start a new session\n(the admin View-as button).",
         "properties": {
@@ -9663,6 +9718,28 @@
           "eduEmail": {
             "title": "Eduemail",
             "type": "string"
+          },
+          "howFound": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HowFoundSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "howFoundOther": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Howfoundother"
           },
           "memberCount": {
             "title": "Membercount",

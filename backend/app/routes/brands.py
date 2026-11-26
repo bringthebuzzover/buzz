@@ -104,6 +104,8 @@ async def brand_apply(
         intent_message=payload.intent_message,
         contact_name=payload.contact_name,
         marketing_budget=payload.marketing_budget,
+        how_found=payload.how_found,
+        how_found_other=payload.how_found_other,
     )
     await schedule_email(
         background_tasks,

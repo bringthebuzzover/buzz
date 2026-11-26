@@ -359,6 +359,8 @@ async def submit_org_onboarding(
         city=payload.city,
         state=payload.state,
         contact_name=payload.contact_name,
+        how_found=payload.how_found,
+        how_found_other=payload.how_found_other,
         claimed_instagram_username=canonical_instagram_handle(user.instagram_username),
         instagram_handle_confirmed=True,
     )

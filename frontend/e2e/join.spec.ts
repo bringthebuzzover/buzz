@@ -86,8 +86,23 @@ test("Instagram signup completes profile, verifies email, and waits for approval
   await page.getByRole("button", { name: "Continue with Instagram" }).click();
   await expect(page.getByRole("heading", { name: "Campus Profile" })).toBeVisible();
   await fillProfile(page);
+  const source = page.getByRole("radiogroup", { name: "How did you find us?" });
+  const linkedIn = source.getByRole("radio", { name: "LinkedIn" });
+  await linkedIn.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(source.getByRole("radio", { name: "Instagram" })).toBeChecked();
+  await source.getByText("Other", { exact: true }).click();
+  const detail = page.getByRole("textbox", { name: "Specify how you found us" });
+  await detail.fill("   ");
+  await page.getByRole("button", { name: "Complete Application" }).click();
+  expect(harness.submitted()).toBeNull();
+  await detail.fill("  Campus newsletter  ");
   await page.getByRole("button", { name: "Complete Application" }).click();
   await expect(page.getByTestId("verify-edu-email")).toHaveText(DRAFT.eduEmail);
+  expect(harness.submitted()).toMatchObject({
+    howFound: "other",
+    howFoundOther: "Campus newsletter",
+  });
   expect(harness.submitted()).not.toHaveProperty("instagramHandle");
   await page.goto(`/onboarding/verify-email?token=fake-verification&next=${encodeURIComponent(NEXT)}`);
   await page.getByRole("button", { name: /^verify email$/i }).click();
