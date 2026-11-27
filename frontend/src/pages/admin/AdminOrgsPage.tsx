@@ -65,6 +65,7 @@ export default function AdminOrgsPage() {
   const [searchParams] = useSearchParams();
   const status = searchParams.get("status");
   const attention = searchParams.get("attention");
+  const hasFilters = Boolean(status || attention);
   const orgs = useAdminOrgs(status ?? undefined, attention ?? undefined);
   const deny = useDenyOrg();
   const resendAll = useResendAllAwaitingInstagramConnect();
@@ -194,7 +195,8 @@ export default function AdminOrgsPage() {
         <AdminTable
           headers={HEADERS}
           isEmpty={orgs.data.length === 0}
-          empty="No organizations match this filter."
+          empty={hasFilters ? "No organizations match these filters." : "No organizations yet."}
+          clearFilters={hasFilters}
         >
           {orgs.data.map((row) => (
             <Row

@@ -32,3 +32,29 @@ describe("AdminTable hybrid cell labels", () => {
     expect(cells[2].textContent).toBe("View as");
   });
 });
+
+describe("AdminTable empty results", () => {
+  it("shows a status in place of the columns and links back to the unfiltered list", () => {
+    const { container } = renderWithProviders(
+      <AdminTable headers={["Brand"]} empty="No brands match these filters." isEmpty clearFilters>
+        {null}
+      </AdminTable>,
+      { route: "/admin/brands?status=erased" },
+    );
+
+    expect(container.querySelector("table")).toBeNull();
+    expect(container.querySelector('[role="status"]')?.textContent).toBe("No brands match these filters.");
+    expect(container.querySelector('a[href="/admin/brands"]')?.textContent).toBe("Clear filters");
+  });
+
+  it("omits the filter action when the list itself is empty", () => {
+    const { container } = renderWithProviders(
+      <AdminTable headers={["Brand"]} empty="No brands yet." isEmpty>
+        {null}
+      </AdminTable>,
+    );
+
+    expect(container.querySelector('[role="status"]')?.textContent).toBe("No brands yet.");
+    expect(container.querySelector("a")).toBeNull();
+  });
+});

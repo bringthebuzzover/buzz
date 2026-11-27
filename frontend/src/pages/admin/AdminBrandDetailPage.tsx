@@ -439,7 +439,8 @@ export default function AdminBrandDetailPage() {
             <AdminTable
               headers={DROP_HEADERS}
               isEmpty={data.drops.length === 0}
-              empty="This brand has not requested any drops."
+              empty="No drops requested yet."
+              inPanel
             >
               {data.drops.map((drop) => (
                 <Row key={drop.id}>
