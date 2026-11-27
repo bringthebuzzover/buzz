@@ -23,7 +23,7 @@ import PageShell from "../../components/site/PageShell";
 import { LinkButton, SuccessBanner } from "../../components/forms/controls";
 import { Card, CardHeader } from "../../components/ui/Card";
 import { Badge, Chip } from "../../components/ui/Chip";
-import { EmptyState } from "../../components/ui/EmptyState";
+import { CompactEmptyState, EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
 import { Table, TBody, THead, Td, Th, Tr } from "../../components/ui/Table";
@@ -92,9 +92,7 @@ function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
         className="mb-5"
       />
       {tickets.length === 0 ? (
-        <EmptyState>
-          No requests yet. Use New request to tell us about your campaign.
-        </EmptyState>
+        <CompactEmptyState>No requests yet.</CompactEmptyState>
       ) : mdUp ? (
         <Table>
           <THead>

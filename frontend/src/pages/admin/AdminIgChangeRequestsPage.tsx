@@ -68,6 +68,7 @@ export default function AdminIgChangeRequestsPage() {
   const status = searchParams.get("status");
   const account = searchParams.get("account");
   const change = searchParams.get("change");
+  const hasFilters = Boolean(status || account || change);
   const showOrgInstagram = account !== "brand" && change !== "address";
   const showBrandInstagram = account !== "organization" && change !== "address";
   const showAddress = account !== "brand" && change !== "instagram";
@@ -148,7 +149,12 @@ export default function AdminIgChangeRequestsPage() {
       <FilterChips options={STATUS_FILTERS} active={status} basePath="/admin/changes" param="status" />
       <QueryState isPending={pending} isError={failed} label="change requests" />
       {ready && (
-        <AdminTable headers={HEADERS} isEmpty={rows.length === 0} empty="No change requests match this filter.">
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={rows.length === 0}
+          empty={hasFilters ? "No change requests match these filters." : "No change requests yet."}
+          clearFilters={hasFilters}
+        >
           {rows.map((ticket) => (
             <Row key={ticket.key} attention={ticket.status === "pending"}>
               <Cell><Link to={ticket.accountTo} className={entityLinkClass}>{ticket.name}</Link></Cell>

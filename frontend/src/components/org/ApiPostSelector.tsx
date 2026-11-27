@@ -26,7 +26,7 @@ import PostCard from "../posts/PostCard";
 import { formatInsightCount } from "../posts/insightMetrics";
 import { Card, CardHeader } from "../ui/Card";
 import { Chip } from "../ui/Chip";
-import { Loader, EmptyState } from "../ui/EmptyState";
+import { CompactEmptyState, Loader } from "../ui/EmptyState";
 import { RemoteImage } from "../ui/RemoteImage";
 import { TEXT } from "../../theme/tokens";
 import { quietLinkClass } from "../ui/navItem";
@@ -149,7 +149,7 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
         {isLoading ? (
           <Loader label="Loading your posts…" className="py-8" />
         ) : !posts || posts.length === 0 ? (
-          <EmptyState title="No posts found for your account yet." />
+          <CompactEmptyState>No posts found for your account yet.</CompactEmptyState>
         ) : (
           <ul className="flex flex-col gap-3">
             {posts.map((post: PostItem) => {

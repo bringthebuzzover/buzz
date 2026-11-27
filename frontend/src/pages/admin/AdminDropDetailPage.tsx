@@ -366,6 +366,7 @@ function SignupIntents({
         headers={INTENT_HEADERS}
         isEmpty={intents.length === 0}
         empty="No signup intents on this drop."
+        inPanel
       >
         {intents.map((intent) => (
           <Row key={intent.id}>
@@ -553,6 +554,7 @@ function Applicants({
       headers={APPLICANT_HEADERS}
       isEmpty={applicants.length === 0}
       empty="Nobody has applied to this drop."
+      inPanel
     >
       {applicants.map((applicant) => {
         const ended = ENDED_DECISIONS.has(applicant.decision);
