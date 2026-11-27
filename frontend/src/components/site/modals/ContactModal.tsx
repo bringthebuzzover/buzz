@@ -319,7 +319,9 @@ export default function ContactModal({ onClose }: ContactModalProps) {
                 id="contact-email"
                 type="email"
                 label="Email address"
-                placeholder="you@company.com"
+                placeholder={
+                  form.type === "organization" ? "you@university.edu" : "you@brand.com"
+                }
                 autoComplete="email"
                 required
                 maxLength={MAX_LENGTH.email}
