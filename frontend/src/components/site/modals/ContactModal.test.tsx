@@ -86,7 +86,12 @@ describe("ContactModal", () => {
     expect(field("contact-email")).not.toBeNull();
     expect(field("contact-message")).not.toBeNull();
     expect((field("contact-name") as HTMLInputElement).placeholder).toBe("First Last");
-    expect((field("contact-email") as HTMLInputElement).placeholder).toBe("you@company.com");
+    const email = field("contact-email") as HTMLInputElement;
+    expect(email.placeholder).toBe("you@brand.com");
+    setSelect("contact-type", "organization");
+    expect(email.placeholder).toBe("you@university.edu");
+    setSelect("contact-type", "brand");
+    expect(email.placeholder).toBe("you@brand.com");
     expect((field("contact-message") as HTMLTextAreaElement).placeholder).toContain(
       "Tell us a little about what you have in mind",
     );
