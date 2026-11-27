@@ -40,6 +40,34 @@ export function EmptyState({
   );
 }
 
+/** A quiet empty row for a list, filter result, or an existing panel. */
+export function CompactEmptyState({
+  children,
+  action,
+  className,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-x-4 gap-y-2 rounded-buzzField bg-buzz-paper04 px-3 py-6 backdrop-blur-md sm:py-7",
+        className,
+      )}
+    >
+      <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">
+        <BeeMark className="h-10 w-10 shrink-0 sm:h-12 sm:w-12" />
+        <p className={cn(TEXT.body, "text-primary")} role="status">
+          {children}
+        </p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
 /** Pen loader: bee, one lit dot, two quiet dots. Dots are decorative. */
 export function Loader({
   label = "Loading…",

@@ -19,9 +19,9 @@ import {
 import { ChevronDown } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { STAGE_LABELS, STATUS_LABELS } from "./labels";
-import { Button, Checkbox, ErrorBanner } from "../forms/controls";
+import { Button, Checkbox, ErrorBanner, LinkButton } from "../forms/controls";
 import { Card, CardHeader } from "../ui/Card";
-import { EmptyState } from "../ui/EmptyState";
+import { CompactEmptyState } from "../ui/EmptyState";
 import { PageHeader, BackLink } from "../ui/PageHeader";
 import { tableHeadClass } from "../ui/Table";
 import { filterChipClass } from "../ui/navItem";
@@ -276,12 +276,33 @@ export function AdminTable({
   children,
   empty,
   isEmpty,
+  inPanel = false,
+  clearFilters = false,
 }: {
   headers: readonly string[];
   children: ReactNode;
   empty: string;
   isEmpty: boolean;
+  inPanel?: boolean;
+  clearFilters?: boolean;
 }) {
+  if (isEmpty) {
+    return (
+      <CompactEmptyState
+        className={inPanel ? "mx-3 my-4" : undefined}
+        action={
+          clearFilters ? (
+            <LinkButton to={{ search: "" }} variant="ghost" size="compact">
+              Clear filters
+            </LinkButton>
+          ) : undefined
+        }
+      >
+        {empty}
+      </CompactEmptyState>
+    );
+  }
+
   return (
     <div className="md:overflow-x-auto">
       <table className="w-full text-left text-sm max-md:block">
@@ -300,13 +321,6 @@ export function AdminTable({
         </thead>
         <tbody className="max-md:flex max-md:flex-col max-md:gap-3 max-md:p-3">
           {withHybridCellMeta(headers, children)}
-          {isEmpty && (
-            <tr className="max-md:block">
-              <td colSpan={headers.length} className="px-0 py-4">
-                <EmptyState title={empty} float={false} />
-              </td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>

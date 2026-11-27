@@ -58,7 +58,8 @@ export default function AdminDropRequestsPage() {
         <AdminTable
           headers={HEADERS}
           isEmpty={requests.data.length === 0}
-          empty="No drop requests match this filter."
+          empty={status ? "No drop requests match these filters." : "No drop requests yet."}
+          clearFilters={Boolean(status)}
         >
           {requests.data.map((ticket) => {
             const title = ticket.title?.trim();

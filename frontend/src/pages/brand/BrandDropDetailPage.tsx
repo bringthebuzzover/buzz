@@ -27,7 +27,7 @@ import {
 } from "../../components/drop/SeatDecisions";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
-import { EmptyState, Loader } from "../../components/ui/EmptyState";
+import { CompactEmptyState, Loader } from "../../components/ui/EmptyState";
 import { BackLink, PageHeader } from "../../components/ui/PageHeader";
 import { StatePanel } from "../../components/ui/StatePanel";
 import { Table, TBody, THead, Td, Th, Tr } from "../../components/ui/Table";
@@ -179,9 +179,9 @@ function ApiApplicantTable({
         className="mb-0"
       />
       {visible.length === 0 ? (
-        <EmptyState>
+        <CompactEmptyState>
           {readOnly ? "No applications yet." : "No applicants waiting on a decision."}
-        </EmptyState>
+        </CompactEmptyState>
       ) : !mdUp ? (
         <ul className="flex flex-col gap-3">
           {visible.map((app) => (

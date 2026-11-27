@@ -147,6 +147,7 @@ export default function AdminOverviewPage() {
                 headers={["Organization", "Why", "Waiting", ""]}
                 isEmpty={(overview.data.items ?? []).length === 0}
                 empty="No items need attention."
+                inPanel
               >
                 {(overview.data.items ?? []).map((item) => (
                   <Row key={`${item.kind}-${item.id}`} attention>

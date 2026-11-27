@@ -16,10 +16,10 @@ import {
 } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
 import { QueryStatePanel } from "../../components/ui/StatePanel";
-import { EmptyState } from "../../components/ui/EmptyState";
+import { CompactEmptyState, EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { filterChipClass } from "../../components/ui/navItem";
-import { LinkButton } from "../../components/forms/controls";
+import { Button, LinkButton } from "../../components/forms/controls";
 
 type FilterId = "all" | "accepted" | "applied" | "finished";
 
@@ -113,7 +113,15 @@ function ApiCampaigns() {
         ))}
       </div>
       {visibleRows.length === 0 ? (
-        <EmptyState title="No campaigns match this filter." />
+        <CompactEmptyState
+          action={
+            <Button type="button" variant="ghost" size="compact" onClick={() => setFilter("all")}>
+              Clear filter
+            </Button>
+          }
+        >
+          No campaigns match this filter.
+        </CompactEmptyState>
       ) : null}
       <div className="flex flex-col gap-3">
         {visibleRows.map(({ item, status }) => (

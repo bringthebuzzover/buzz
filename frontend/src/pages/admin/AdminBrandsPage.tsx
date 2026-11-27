@@ -222,7 +222,8 @@ export default function AdminBrandsPage() {
         <AdminTable
           headers={HEADERS}
           isEmpty={brands.data.length === 0}
-          empty="No brands match this filter."
+          empty={status ? "No brands match these filters." : "No brands yet."}
+          clearFilters={Boolean(status)}
         >
           {brands.data.map((row) => (
             <Row key={row.id} attention={row.status === "pending_review"}>

@@ -75,6 +75,7 @@ export default function AdminDropsPage() {
       : publishedParam === "draft" || publishedParam === "published"
         ? publishedParam
         : null;
+  const hasFilters = hidden || published !== null || stages.length > 0 || attentions.length > 0;
   const drops = useAdminDrops({
     stage: stages,
     attention: attentions,
@@ -172,7 +173,8 @@ export default function AdminDropsPage() {
         <AdminTable
           headers={HEADERS}
           isEmpty={drops.data.length === 0}
-          empty="No drops match this filter."
+          empty={hasFilters ? "No drops match these filters." : "No drops yet."}
+          clearFilters={hasFilters}
         >
           {drops.data.map((drop) => {
             const closed = drop.applyCloseAt <= Date.now();
